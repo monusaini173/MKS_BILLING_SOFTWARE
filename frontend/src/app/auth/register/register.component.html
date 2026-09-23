@@ -1,0 +1,143 @@
+<div class="auth-page">
+  <div class="auth-card" style="max-width: 680px;">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">M</div>
+      <div>
+        <div class="auth-brand-name">MKS Billing</div>
+        <div class="auth-tagline">by MKS IT Solution</div>
+      </div>
+    </div>
+
+    <h2 class="auth-heading">Create Business Account</h2>
+    <p class="auth-subheading">Set up your multi-tenant shop dashboard in seconds</p>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <!-- Form row 1: Business Details -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Shop Name <span class="required">*</span></label>
+          <input type="text" formControlName="shopName" class="form-control" placeholder="e.g. MKS Garments">
+          @if (registerForm.get('shopName')?.touched && registerForm.get('shopName')?.invalid) {
+            <div class="form-error">Shop name is required (min 3 chars).</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Shop Type <span class="required">*</span></label>
+          <select formControlName="shopType" class="form-control">
+            <option value="" disabled selected>Select Shop Type</option>
+            @for (type of shopTypes; track type.value) {
+              <option [value]="type.value">{{ type.label }}</option>
+            }
+          </select>
+          @if (registerForm.get('shopType')?.touched && registerForm.get('shopType')?.invalid) {
+            <div class="form-error">Shop Type is required.</div>
+          }
+        </div>
+      </div>
+
+      <!-- Form row 2: Owner & Mobile -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Owner Name <span class="required">*</span></label>
+          <input type="text" formControlName="ownerName" class="form-control" placeholder="Full name">
+          @if (registerForm.get('ownerName')?.touched && registerForm.get('ownerName')?.invalid) {
+            <div class="form-error">Owner name is required.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mobile Number <span class="required">*</span></label>
+          <input type="text" formControlName="mobile" class="form-control" placeholder="10 digit number">
+          @if (registerForm.get('mobile')?.touched && registerForm.get('mobile')?.invalid) {
+            <div class="form-error">Please enter a valid 10-digit mobile number.</div>
+          }
+        </div>
+      </div>
+
+      <!-- Form row 3: Email & Password -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email Address <span class="required">*</span></label>
+          <input type="email" formControlName="email" class="form-control" placeholder="name@domain.com">
+          @if (registerForm.get('email')?.touched && registerForm.get('email')?.invalid) {
+            <div class="form-error">Please enter a valid email address.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password <span class="required">*</span></label>
+          <input type="password" formControlName="password" class="form-control" placeholder="••••••••">
+          @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
+            <div class="form-error">Password must be at least 6 characters.</div>
+          }
+        </div>
+      </div>
+
+      <!-- Form row 4: Address & GSTIN -->
+      <div class="form-group">
+        <label class="form-label">Address <span class="required">*</span></label>
+        <input type="text" formControlName="address" class="form-control" placeholder="Shop Address, Street, Locality">
+        @if (registerForm.get('address')?.touched && registerForm.get('address')?.invalid) {
+          <div class="form-error">Address is required.</div>
+        }
+      </div>
+
+      <!-- Form row 5: Location Details -->
+      <div class="form-row form-row-3">
+        <div class="form-group">
+          <label class="form-label">City <span class="required">*</span></label>
+          <input type="text" formControlName="city" class="form-control" placeholder="City">
+          @if (registerForm.get('city')?.touched && registerForm.get('city')?.invalid) {
+            <div class="form-error">City is required.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">State <span class="required">*</span></label>
+          <select formControlName="state" class="form-control">
+            <option value="" disabled selected>Select State</option>
+            @for (st of states; track st) {
+              <option [value]="st">{{ st }}</option>
+            }
+          </select>
+          @if (registerForm.get('state')?.touched && registerForm.get('state')?.invalid) {
+            <div class="form-error">State is required.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Pincode <span class="required">*</span></label>
+          <input type="text" formControlName="pincode" class="form-control" placeholder="6 digits">
+          @if (registerForm.get('pincode')?.touched && registerForm.get('pincode')?.invalid) {
+            <div class="form-error">Valid 6-digit Pincode required.</div>
+          }
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">GSTIN <span class="text-muted">(Optional)</span></label>
+        <input type="text" formControlName="gstin" class="form-control" placeholder="e.g. 07AAAAA1111A1Z1" style="text-transform: uppercase;">
+        @if (registerForm.get('gstin')?.touched && registerForm.get('gstin')?.invalid) {
+          <div class="form-error">Please enter a valid Indian GSTIN format.</div>
+        }
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full mt-2" [disabled]="loading">
+        @if (loading) {
+          <div class="spinner spinner-sm"></div>
+          Creating Account...
+        } @else {
+          Register Business & Launch Dashboard
+        }
+      </button>
+    </form>
+
+    <div class="divider"></div>
+
+    <p style="text-align: center; font-size: 13px; color: var(--text-secondary);">
+      Already have a shop registered? 
+      <a routerLink="/auth/login" style="color: var(--primary); font-weight: 600;">Sign In Instead</a>
+    </p>
+  </div>
+</div>

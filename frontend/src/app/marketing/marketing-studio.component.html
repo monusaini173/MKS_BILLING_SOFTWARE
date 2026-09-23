@@ -1,0 +1,273 @@
+<div class="marketing-studio-page">
+  <!-- Studio Top Bar -->
+  <header class="studio-header">
+    <div class="header-left">
+      <div class="studio-icon">🎨</div>
+      <div>
+        <h1 class="studio-title">AI Marketing Studio & Poster Generator</h1>
+        <p class="studio-subtitle">28+ व्यापार श्रेणियों हेतु एजेंसी-ग्रेड इंस्टाग्राम, फेसबुक व प्रिंट पोस्टर्स जनरेटर</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" (click)="generateSmartAICopy()" class="btn btn-ai-magic">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> ⚡ AI Magic Copywriter
+      </button>
+      <button type="button" (click)="downloadPoster()" class="btn btn-download">
+        <i class="fa-solid fa-download"></i> 📸 HD पोस्टर डाउनलोड
+      </button>
+    </div>
+  </header>
+
+  <!-- Studio Main Workspace Split -->
+  <div class="studio-workspace">
+    
+    <!-- LEFT SIDE: Business Info, Campaign & Design Controls -->
+    <div class="controls-panel">
+      
+      <!-- SECTION 1: BUSINESS PROFILE -->
+      <div class="panel-card">
+        <div class="card-header-title">
+          <i class="fa-solid fa-store text-primary"></i> 1. व्यावसायिक जानकारी (Business Profile)
+        </div>
+
+        <div class="form-group mb-2">
+          <label class="form-label">दुकान / प्रतिष्ठान का नाम *</label>
+          <input type="text" [ngModel]="businessName()" (ngModelChange)="businessName.set($event); renderMarketingPoster();" class="form-control" placeholder="उदा. MKS General Store / Alok Garments">
+        </div>
+
+        <div class="form-group mb-2">
+          <label class="form-label">व्यापार श्रेणी (Business Category) *</label>
+          <select [ngModel]="shopCategory()" (ngModelChange)="onCategorySelect($event)" class="form-control font-bold">
+            @for (cat of categories; track cat.id) {
+              <option [value]="cat.id">
+                {{ cat.emoji }} {{ cat.name }} ({{ cat.hindiName }})
+              </option>
+            }
+          </select>
+        </div>
+
+        @if (shopCategory() === 'OTHER') {
+          <div class="form-group mb-2" style="background: #fdf2f8; padding: 8px; border-radius: 6px; border: 1px solid #fbcfe8;">
+            <label class="form-label text-pink">कस्टम व्यापार का नाम दर्ज करें:</label>
+            <input type="text" [ngModel]="customCategoryName()" (ngModelChange)="customCategoryName.set($event); renderMarketingPoster();" class="form-control" placeholder="उदा. Organic Honey Shop / Veterinary Clinic">
+          </div>
+        }
+
+        <div class="grid grid-2 gap-2 mb-2">
+          <div>
+            <label class="form-label">मोबाइल नंबर</label>
+            <input type="text" [ngModel]="contactNumber()" (ngModelChange)="contactNumber.set($event); renderMarketingPoster();" class="form-control" placeholder="98290XXXXX">
+          </div>
+          <div>
+            <label class="form-label">WhatsApp नंबर</label>
+            <input type="text" [ngModel]="whatsappNumber()" (ngModelChange)="whatsappNumber.set($event); renderMarketingPoster();" class="form-control" placeholder="98290XXXXX">
+          </div>
+        </div>
+
+        <div class="form-group mb-2">
+          <label class="form-label">दुकान का पता (Location Address)</label>
+          <input type="text" [ngModel]="address()" (ngModelChange)="address.set($event); renderMarketingPoster();" class="form-control" placeholder="मेन मार्केट, स्टेशन रोड, शहर">
+        </div>
+
+        <div class="form-group mb-2">
+          <label class="form-label">दुकान का लोगो (Business Logo)</label>
+          <div class="flex items-center gap-2">
+            <label class="btn btn-sm btn-outline cursor-pointer">
+              <i class="fa-solid fa-cloud-arrow-up"></i> लोगो अपलोड करें
+              <input type="file" (change)="onLogoUpload($event)" accept="image/*" style="display: none;">
+            </label>
+            @if (businessLogo()) {
+              <span class="badge badge-success">✅ लोगो लोड है</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: CAMPAIGN & AI COPYWRITING -->
+      <div class="panel-card mb-3">
+        <div class="card-header-title flex justify-between items-center">
+          <span><i class="fa-solid fa-bullhorn text-warning"></i> 2. कैम्पेन व कॉपीराइटिंग (Campaign & Copy)</span>
+          <button type="button" (click)="generateSmartAICopy()" class="btn-xs btn-ai-sparkle">
+            ⚡ AI ऑटो कॉपी
+          </button>
+        </div>
+
+        <div class="form-group mb-2">
+          <label class="form-label">पोस्टर का उद्देश्य (Campaign Purpose)</label>
+          <select [ngModel]="posterPurpose()" (ngModelChange)="posterPurpose.set($event); generateSmartAICopy();" class="form-control">
+            <option value="GENERAL_PROMO">📢 सामान्य प्रचार व ब्रांडिंग (General Branding)</option>
+            <option value="FESTIVAL_OFFER">🪔 त्योहारी स्पेशल ऑफर (Festival Special)</option>
+            <option value="DISCOUNT_SALE">💥 महा डिस्काउंट सेल (Mega Sale Offer)</option>
+            <option value="NEW_ARRIVALS">🎉 नया माल व स्टॉक आगमन (New Stock Arrival)</option>
+            <option value="STORE_OPENING">🏬 भव्य शुभारंभ व ओपनिंग (Grand Opening)</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-2">
+          <label class="form-label flex justify-between">
+            <span>मुख्य हेडलाइन (Headline Text) *</span>
+            <span style="font-size: 10px; color: #2563eb; cursor: pointer;" (click)="generateSmartAICopy()">⚡ AI री-जनरेट</span>
+          </label>
+          <input type="text" [ngModel]="headlineText()" (ngModelChange)="headlineText.set($event); renderMarketingPoster();" class="form-control font-bold" placeholder="जैसे: Everything You Need, All in One Place">
+        </div>
+
+        <div class="form-group mb-2">
+          <label class="form-label">सहायक विवरण (Subtext Body)</label>
+          <textarea rows="2" [ngModel]="subtextBody()" (ngModelChange)="subtextBody.set($event); renderMarketingPoster();" class="form-control" placeholder="ताज़ा राशन व ग्रॉसरी पर पाएं सबसे बड़ी बचत।"></textarea>
+        </div>
+
+        <div class="form-group mb-2">
+          <label class="form-label">ऑफर / डिस्काउंट टैगलाइन (Offer Banner)</label>
+          <input type="text" [ngModel]="offerTagline()" (ngModelChange)="offerTagline.set($event); renderMarketingPoster();" class="form-control font-bold text-danger" placeholder="उदा. FLAT 20% OFF ON ALL ITEMS">
+        </div>
+
+        <div class="grid grid-2 gap-2 mb-2">
+          <div>
+            <label class="form-label">एक्शन बटन (CTA Text)</label>
+            <select [ngModel]="ctaText()" (ngModelChange)="ctaText.set($event); renderMarketingPoster();" class="form-control font-bold">
+              <option value="SHOP NOW">SHOP NOW</option>
+              <option value="ORDER NOW">ORDER NOW</option>
+              <option value="VISIT OUR STORE">VISIT OUR STORE</option>
+              <option value="WHATSAPP NOW">WHATSAPP NOW</option>
+              <option value="BOOK APPOINTMENT">BOOK APPOINTMENT</option>
+              <option value="GET DEALS">GET DEALS</option>
+              <option value="CALL US NOW">CALL US NOW</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">प्रोडक्ट जोड़ें (Showcase)</label>
+            <select class="form-control" (change)="onProductSelect($event)">
+              <option value="">-- बिना प्रोडक्ट इमेज --</option>
+              @for (p of productsList(); track p._id) {
+                <option [value]="p._id">{{ p.name }} - ₹{{ p.sellingPrice }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: DESIGN STYLES & FORMATS -->
+      <div class="panel-card">
+        <div class="card-header-title">
+          <i class="fa-solid fa-wand-magic-sparkles text-success"></i> 3. डिज़ाइन थीम व फ़ॉर्मेट (Design & Formats)
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label font-bold">🎨 10+ वरिष्ठ ग्राफिक डिज़ाइनर आर्ट कम्पोज़िशन्स (Art Director Campaign Compositions):</label>
+          <div class="template-grid">
+            <button type="button" (click)="templateStyle.set('INDIAN_RETAIL_FLYER'); renderMarketingPoster();" [class.active]="templateStyle() === 'INDIAN_RETAIL_FLYER'" class="tpl-btn premium" style="grid-column: span 2; background: linear-gradient(135deg, #15803d 0%, #b91c1c 100%); color: #ffffff; border: 2px solid #fef08a; font-weight: 800;">
+              🇮🇳 ऑल-इन-वन इंडियन रिटेल फ़्लायर (All-In-One Kirana & Retail Pamphlet) ⭐
+            </button>
+            <button type="button" (click)="templateStyle.set('FULL_BLEED_HERO'); renderMarketingPoster();" [class.active]="templateStyle() === 'FULL_BLEED_HERO'" class="tpl-btn premium">
+              📸 Full-Bleed Hero Visual (फुल-ब्लीड)
+            </button>
+            <button type="button" (click)="templateStyle.set('EDITORIAL_ASYMMETRICAL'); renderMarketingPoster();" [class.active]="templateStyle() === 'EDITORIAL_ASYMMETRICAL'" class="tpl-btn modern">
+              📰 Editorial Asymmetrical (एडिटोरियल)
+            </button>
+            <button type="button" (click)="templateStyle.set('CUTOUT_COMPOSITION'); renderMarketingPoster();" [class.active]="templateStyle() === 'CUTOUT_COMPOSITION'" class="tpl-btn product">
+              💎 Cutout & Spotlight (कटआउट एवं स्पॉटलाइट)
+            </button>
+            <button type="button" (click)="templateStyle.set('SPLIT_IMAGE_TYPO'); renderMarketingPoster();" [class.active]="templateStyle() === 'SPLIT_IMAGE_TYPO'" class="tpl-btn offer">
+              🌗 Split Image & Copy (स्प्लिट विजुअल)
+            </button>
+            <button type="button" (click)="templateStyle.set('TYPOGRAPHY_CAMPAIGN'); renderMarketingPoster();" [class.active]="templateStyle() === 'TYPOGRAPHY_CAMPAIGN'" class="tpl-btn modern">
+              🔤 Bold Typographic (बोल्ड टाइपोग्राफी)
+            </button>
+            <button type="button" (click)="templateStyle.set('MINIMAL_LUXURY'); renderMarketingPoster();" [class.active]="templateStyle() === 'MINIMAL_LUXURY'" class="tpl-btn festival">
+              👑 Minimal Luxury (मिनिमल लक्जरी)
+            </button>
+            <button type="button" (click)="templateStyle.set('DARK_PREMIUM_TECH'); renderMarketingPoster();" [class.active]="templateStyle() === 'DARK_PREMIUM_TECH'" class="tpl-btn premium">
+              🌙 Dark Studio Tech (डार्क नियोन)
+            </button>
+            <button type="button" (click)="templateStyle.set('LIFESTYLE_ADVERTISING'); renderMarketingPoster();" [class.active]="templateStyle() === 'LIFESTYLE_ADVERTISING'" class="tpl-btn product">
+              🛋️ Lifestyle Atmosphere (लाइफस्टाइल)
+            </button>
+            <button type="button" (click)="templateStyle.set('HIGH_IMPACT_OFFER'); renderMarketingPoster();" [class.active]="templateStyle() === 'HIGH_IMPACT_OFFER'" class="tpl-btn offer">
+              💥 High-Impact Offer (हाई-इम्पैक्ट ऑफर)
+            </button>
+            <button type="button" (click)="templateStyle.set('STREET_POSTER_COLLAGE'); renderMarketingPoster();" [class.active]="templateStyle() === 'STREET_POSTER_COLLAGE'" class="tpl-btn product">
+              🎨 Urban Collage (अर्बन कोलाज)
+            </button>
+            <button type="button" (click)="templateStyle.set('FESTIVAL'); renderMarketingPoster();" [class.active]="templateStyle() === 'FESTIVAL'" class="tpl-btn festival" style="grid-column: span 2;">
+              🪔 Festive Royal Mandala (शाही त्योहारी)
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label font-bold">📐 6 पोस्टर फ़ॉर्मेट / आकार (Aspect Ratio):</label>
+          <div class="format-chips">
+            <button type="button" (click)="setPosterFormat('SQUARE')" [class.active]="posterFormat() === 'SQUARE'" class="chip-btn">
+              1:1 इंस्टाग्राम/FB (1080x1080)
+            </button>
+            <button type="button" (click)="setPosterFormat('PORTRAIT')" [class.active]="posterFormat() === 'PORTRAIT'" class="chip-btn">
+              4:5 पोर्ट्रेट फीड (1080x1350)
+            </button>
+            <button type="button" (click)="setPosterFormat('STORY')" [class.active]="posterFormat() === 'STORY'" class="chip-btn">
+              9:16 स्टोरी/स्टेटस (1080x1920)
+            </button>
+            <button type="button" (click)="setPosterFormat('LANDSCAPE')" [class.active]="posterFormat() === 'LANDSCAPE'" class="chip-btn">
+              16:9 लैंडस्केप बैनर (1920x1080)
+            </button>
+            <button type="button" (click)="setPosterFormat('A4_PRINT')" [class.active]="posterFormat() === 'A4_PRINT'" class="chip-btn">
+              A4 प्रिंट पोस्टर (1240x1754)
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group mb-1">
+          <label class="flex items-center gap-2 cursor-pointer font-bold text-slate">
+            <input type="checkbox" [ngModel]="showMksBranding()" (ngModelChange)="showMksBranding.set($event); renderMarketingPoster();" style="width: 16px; height: 16px; accent-color: #2563eb;">
+            <span>सुरक्षित फुटर में "Powered by MKS Billing" क्रेडिट दिखाएं</span>
+          </label>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDE: LIVE HD POSTER PREVIEW -->
+    <div class="preview-panel">
+      
+      <div class="preview-header flex justify-between items-center">
+        <span class="preview-title">
+          <i class="fa-solid fa-eye text-primary"></i> रियल-टाइम HD पोस्टर पूर्वावलोकन (Live 60fps Canvas)
+        </span>
+        <span class="badge badge-success">
+          ✅ {{ canvasWidth() }} x {{ canvasHeight() }} px ({{ posterFormat() }})
+        </span>
+      </div>
+
+      <!-- Canvas Preview Sizing Wrapper -->
+      <div class="canvas-wrapper">
+        @if (isGenerating()) {
+          <div class="canvas-loading-overlay">
+            <span class="spinner spinner-lg"></span>
+            <span>AI पोस्टर जनरेट हो रहा है...</span>
+          </div>
+        }
+
+        @if (posterDataUrl()) {
+          <img [src]="posterDataUrl()" class="live-poster-img" [style.aspectRatio]="canvasWidth() + '/' + canvasHeight()">
+        }
+      </div>
+
+      <!-- Action Buttons Bar -->
+      <div class="action-buttons-bar">
+        <button type="button" (click)="downloadPoster()" class="btn btn-primary btn-lg flex-1">
+          <i class="fa-solid fa-download"></i> 📸 HD पोस्टर डाउनलोड (PNG)
+        </button>
+
+        <button type="button" (click)="copyPosterToClipboard()" class="btn btn-outline btn-lg">
+          <i class="fa-solid fa-clipboard"></i> 📋 कॉपी करें (Ctrl+V)
+        </button>
+
+        <button type="button" (click)="shareOnWhatsApp()" class="btn btn-whatsapp btn-lg">
+          <i class="fa-brands fa-whatsapp"></i> 📲 WhatsApp पर भेजें
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>

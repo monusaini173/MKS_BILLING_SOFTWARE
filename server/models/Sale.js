@@ -1,0 +1,83 @@
+const mongoose = require('mongoose');
+
+const saleItemSchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.Mixed, default: null },
+  productName: { type: String, required: true },
+  sku: { type: String },
+  barcode: { type: String },
+  quantity: { type: Number, required: true, min: 0 },
+  unit: { type: String, default: 'PCS' },
+  rate: { type: Number, required: true },
+  mrp: { type: Number },
+  discount: { type: Number, default: 0 },
+  discountType: { type: String, enum: ['PERCENT', 'AMOUNT'], default: 'PERCENT' },
+  gstPercent: { type: Number, default: 0 },
+  cgst: { type: Number, default: 0 },
+  sgst: { type: Number, default: 0 },
+  igst: { type: Number, default: 0 },
+  hsnCode: { type: String },
+  subtotal: { type: Number, required: true },
+  totalGst: { type: Number, default: 0 },
+  total: { type: Number, required: true },
+  // Specialized Fields
+  batchNumber: { type: String },
+  expiryDate: { type: Date },
+  genericName: { type: String },
+  size: { type: String },
+  color: { type: String },
+  fabric: { type: String },
+  imeiNumber: { type: String },
+  warranty: { type: String },
+  isLoose: { type: Boolean, default: false },
+});
+
+const saleSchema = new mongoose.Schema({
+  shopId: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop', required: true, index: true },
+  invoiceNumber: { type: String, required: true },
+  invoiceDate: { type: Date, default: Date.now },
+  customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
+  customerName: { type: String },
+  customerMobile: { type: String },
+  customerGstin: { type: String },
+  // Medical Fields
+  doctorName: { type: String },
+  doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor' },
+  doctorRegNumber: { type: String },
+  patientName: { type: String },
+  patientAge: { type: String },
+  patientGender: { type: String, enum: ['Male', 'Female', 'Other', ''] },
+  isPrescription: { type: Boolean, default: false },
+  prescriptionRef: { type: String },
+  prescriptionChecked: { type: Boolean, default: false },
+  items: [saleItemSchema],
+  subtotal: { type: Number, required: true },
+  totalDiscount: { type: Number, default: 0 },
+  totalCgst: { type: Number, default: 0 },
+  totalSgst: { type: Number, default: 0 },
+  totalIgst: { type: Number, default: 0 },
+  totalGst: { type: Number, default: 0 },
+  isInterState: { type: Boolean, default: false },
+  roundOff: { type: Number, default: 0 },
+  previousDue: { type: Number, default: 0 },
+  grandTotal: { type: Number, required: true },
+  amountPaid: { type: Number, default: 0 },
+  balanceDue: { type: Number, default: 0 },
+  paymentMethod: { type: String, enum: ['CASH', 'UPI', 'CARD', 'BANK_TRANSFER', 'CREDIT', 'PARTIAL'], default: 'CASH' },
+  paymentDetails: [{
+    method: { type: String },
+    amount: { type: Number },
+    reference: { type: String },
+  }],
+  status: { type: String, enum: ['PENDING', 'PAID', 'PARTIAL', 'CANCELLED'], default: 'PAID' },
+  notes: { type: String },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  termsConditions: { type: String },
+  isEdited: { type: Boolean, default: false },
+  editedAt: { type: Date },
+  editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+}, { timestamps: true });
+
+saleSchema.index({ shopId: 1, invoiceNumber: 1 }, { unique: true });
+saleSchema.index({ shopId: 1, invoiceDate: -1 });
+
+module.exports = mongoose.model('Sale', saleSchema);

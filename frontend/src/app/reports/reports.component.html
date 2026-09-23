@@ -1,0 +1,379 @@
+<!-- ============================================ -->
+<!-- 📊 QUICK REPORT DOWNLOAD SECTION -->
+<!-- ============================================ -->
+<div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+  <div class="flex justify-between items-center" style="margin-bottom: 16px;">
+    <div>
+      <h2 style="color: white; font-size: 18px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-cloud-arrow-down"></i> Quick Report Download
+      </h2>
+      <p style="color: rgba(255,255,255,0.7); font-size: 12.5px; margin: 4px 0 0;">
+        रिपोर्ट डाउनलोड करें — Daily, 7 Day, 15 Day, Monthly (Excel/CSV)
+      </p>
+    </div>
+  </div>
+
+  <!-- Sales Report Download Buttons -->
+  <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+    <div style="color: #86efac; font-size: 12px; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+      <i class="fa-solid fa-file-invoice-dollar"></i> 🛍️ SALES REPORT (बिक्री रिपोर्ट)
+    </div>
+    <div class="flex gap-2" style="flex-wrap: wrap;">
+      <button (click)="downloadReport('today', 'sales')" class="btn btn-sm"
+        style="background: #10b981; color: white; border: none; font-weight: 700; font-size: 12px;"
+        [disabled]="isDownloading('today', 'sales')">
+        @if (isDownloading('today', 'sales')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-calendar-day"></i> }
+        आज (Today)
+      </button>
+      <button (click)="downloadReport('7days', 'sales')" class="btn btn-sm"
+        style="background: #3b82f6; color: white; border: none; font-weight: 700; font-size: 12px;"
+        [disabled]="isDownloading('7days', 'sales')">
+        @if (isDownloading('7days', 'sales')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-calendar-week"></i> }
+        7 दिन (7 Days)
+      </button>
+      <button (click)="downloadReport('15days', 'sales')" class="btn btn-sm"
+        style="background: #8b5cf6; color: white; border: none; font-weight: 700; font-size: 12px;"
+        [disabled]="isDownloading('15days', 'sales')">
+        @if (isDownloading('15days', 'sales')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-calendar"></i> }
+        15 दिन (15 Days)
+      </button>
+      <button (click)="downloadReport('month', 'sales')" class="btn btn-sm"
+        style="background: #f59e0b; color: white; border: none; font-weight: 700; font-size: 12px;"
+        [disabled]="isDownloading('month', 'sales')">
+        @if (isDownloading('month', 'sales')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-calendar-days"></i> }
+        इस महीने (Monthly)
+      </button>
+    </div>
+  </div>
+
+  <!-- Purchase Report Download Buttons -->
+  <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 12px;" *ngIf="!auth.isEmployee()">
+    <div style="color: #fcd34d; font-size: 12px; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+      <i class="fa-solid fa-cart-flatbed"></i> 🏪 PURCHASE REPORT (खरीद रिपोर्ट)
+    </div>
+    <div class="flex gap-2" style="flex-wrap: wrap;">
+      <button (click)="downloadReport('today', 'purchases')" class="btn btn-sm"
+        style="background: #10b981; color: white; border: none; font-weight: 700; font-size: 12px;"
+        [disabled]="isDownloading('today', 'purchases')">
+        @if (isDownloading('today', 'purchases')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-calendar-day"></i> }
+        आज (Today)
+      </button>
+      <button (click)="downloadReport('7days', 'purchases')" class="btn btn-sm"
+        style="background: #3b82f6; color: white; border: none; font-weight: 700; font-size: 12px;"
+        [disabled]="isDownloading('7days', 'purchases')">
+        @if (isDownloading('7days', 'purchases')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-calendar-week"></i> }
+        7 दिन
+      </button>
+      <button (click)="downloadReport('15days', 'purchases')" class="btn btn-sm"
+        style="background: #8b5cf6; color: white; border: none; font-weight: 700; font-size: 12px;"
+        [disabled]="isDownloading('15days', 'purchases')">
+        @if (isDownloading('15days', 'purchases')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-calendar"></i> }
+        15 दिन
+      </button>
+      <button (click)="downloadReport('month', 'purchases')" class="btn btn-sm"
+        style="background: #f59e0b; color: white; border: none; font-weight: 700; font-size: 12px;"
+        [disabled]="isDownloading('month', 'purchases')">
+        @if (isDownloading('month', 'purchases')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-calendar-days"></i> }
+        इस महीने
+      </button>
+    </div>
+  </div>
+
+  <!-- Custom Date Range -->
+  <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 16px;">
+    <div style="color: #f9a8d4; font-size: 12px; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+      <i class="fa-solid fa-sliders"></i> कस्टम तारीख (Custom Date Range)
+    </div>
+    <div class="flex gap-2 items-end" style="flex-wrap: wrap;">
+      <div>
+        <label style="color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px;">शुरू (From)</label>
+        <input type="date" [(ngModel)]="customStart" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; padding: 6px 10px; font-size: 13px;">
+      </div>
+      <div>
+        <label style="color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px;">अंत (To)</label>
+        <input type="date" [(ngModel)]="customEnd" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; padding: 6px 10px; font-size: 13px;">
+      </div>
+      <button (click)="downloadReport('custom', 'sales')" class="btn btn-sm"
+        style="background: #ec4899; color: white; border: none; font-weight: 700;"
+        [disabled]="isDownloading('custom', 'sales')">
+        @if (isDownloading('custom', 'sales')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-download"></i> }
+        Sales Download
+      </button>
+      <button (click)="downloadReport('custom', 'purchases')" class="btn btn-sm"
+        style="background: #f59e0b; color: white; border: none; font-weight: 700;"
+        [disabled]="isDownloading('custom', 'purchases')" *ngIf="!auth.isEmployee()">
+        @if (isDownloading('custom', 'purchases')) { <div class="spinner spinner-sm"></div> } @else { <i class="fa-solid fa-download"></i> }
+        Purchase Download
+      </button>
+    </div>
+  </div>
+
+  <p style="color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 10px; margin-bottom: 0;">
+    💡 CSV file Excel में खुलेगी। इसे Microsoft Excel / Google Sheets / LibreOffice में open करें।
+  </p>
+</div>
+
+
+<!-- ============================================ -->
+<!-- 📋 EXISTING REPORT CARDS -->
+<!-- ============================================ -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Business Reports Center</h1>
+    <p class="page-subtitle">Analyze sales patterns, profit statements, GST summaries, and ledger balances.</p>
+  </div>
+</div>
+
+<div class="grid grid-3">
+  <!-- CA Monthly Report Card -->
+  <div class="card" style="border-left: 4px solid #2563eb; background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);">
+    <div class="card-body flex gap-4 items-center">
+      <div class="stat-icon" style="width: 48px; height: 48px; border-radius: 8px; background: rgba(37, 99, 235, 0.15); color: #2563eb; font-size: 20px;">
+        <i class="fa-solid fa-user-tie"></i>
+      </div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+          <h4 style="font-weight: 800; font-size: 14.5px; margin: 0; color: #1e3a8a;">CA मासिक रिपोर्ट (CA Monthly Pack)</h4>
+          <span class="badge" style="background: #2563eb; color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px;">CA Special</span>
+        </div>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">CA के लिए अलग-अलग Purchase व Sales बिल PDF, GSTR-1/2 समरी व 1-क्लिक WhatsApp शेयर।</p>
+        <a routerLink="/reports/ca" class="btn btn-sm btn-primary" style="font-weight: 700;">
+          <i class="fa-solid fa-file-pdf"></i> Open CA Filing Hub
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment History Card -->
+  <div class="card" style="border-left: 4px solid #10B981;">
+    <div class="card-body flex gap-4 items-center">
+      <div class="stat-icon" style="width: 48px; height: 48px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #10B981;">
+        <i class="fa-solid fa-receipt"></i>
+      </div>
+      <div>
+        <h4 style="font-weight: 700; font-size: 14.5px; margin-bottom: 2px;">भुगतान इतिहास (Payment History)</h4>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">सफल पेमेंट, पेयर का नाम, प्रोडक्ट विवरण और UPI/Cash माध्यम लॉग।</p>
+        <a routerLink="/payments" class="btn btn-sm" style="background: #10B981; color: white; border: none; font-weight: 600;">View Payment History</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sales Report Card -->
+  <div class="card">
+    <div class="card-body flex gap-4 items-center">
+      <div class="stat-icon primary" style="width: 48px; height: 48px; border-radius: 8px;">
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+      </div>
+      <div>
+        <h4 style="font-weight: 700; font-size: 14.5px; margin-bottom: 2px;">Sales Invoice Logs</h4>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">Daily, monthly sales totals, invoice details, and customer lists.</p>
+        <a routerLink="/reports/sales" class="btn btn-outline-primary btn-sm">View Sales Report</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Procurement Report Card -->
+  <div class="card" *ngIf="!auth.isEmployee()">
+    <div class="card-body flex gap-4 items-center">
+      <div class="stat-icon warning" style="width: 48px; height: 48px; border-radius: 8px;">
+        <i class="fa-solid fa-cart-flatbed"></i>
+      </div>
+      <div>
+        <h4 style="font-weight: 700; font-size: 14.5px; margin-bottom: 2px;">Procurement Purchases</h4>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">Wholesale procurement entries, supplier items billing lists.</p>
+        <a routerLink="/reports/purchases" class="btn btn-outline-primary btn-sm">View Purchases Report</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profit & Loss -->
+  <div class="card" *ngIf="!auth.isEmployee()">
+    <div class="card-body flex gap-4 items-center">
+      <div class="stat-icon success" style="width: 48px; height: 48px; border-radius: 8px;">
+        <i class="fa-solid fa-scale-balanced"></i>
+      </div>
+      <div>
+        <h4 style="font-weight: 700; font-size: 14.5px; margin-bottom: 2px;">Profit & Loss Report</h4>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">Calculates gross sales revenue vs purchasing costs vs expenses.</p>
+        <a routerLink="/reports/profit" class="btn btn-outline-primary btn-sm">View Profit Report</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- GST Report -->
+  <div class="card">
+    <div class="card-body flex gap-4 items-center">
+      <div class="stat-icon info" style="width: 48px; height: 48px; border-radius: 8px;">
+        <i class="fa-solid fa-receipt"></i>
+      </div>
+      <div>
+        <h4 style="font-weight: 700; font-size: 14.5px; margin-bottom: 2px;">GST Tax Filing Report</h4>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">Breakdown of CGST, SGST, and IGST collected on billing transactions.</p>
+        <a routerLink="/reports/gst" class="btn btn-outline-primary btn-sm">View GST Filing Report</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock Report -->
+  <div class="card" *ngIf="!auth.isEmployee()">
+    <div class="card-body flex gap-4 items-center">
+      <div class="stat-icon danger" style="width: 48px; height: 48px; border-radius: 8px;">
+        <i class="fa-solid fa-boxes-stacked"></i>
+      </div>
+      <div>
+        <h4 style="font-weight: 700; font-size: 14.5px; margin-bottom: 2px;">Stock Ledger Report</h4>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">View stock counts, low stock warnings, out-of-stock items.</p>
+        <a routerLink="/reports/stock" class="btn btn-outline-primary btn-sm">View Stock Report</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expense Report -->
+  <div class="card" *ngIf="!auth.isEmployee()">
+    <div class="card-body flex gap-4 items-center">
+      <div class="stat-icon secondary" style="width: 48px; height: 48px; border-radius: 8px; background: var(--gray-100); color: var(--gray-600);">
+        <i class="fa-solid fa-receipt"></i>
+      </div>
+      <div>
+        <h4 style="font-weight: 700; font-size: 14.5px; margin-bottom: 2px;">Expense Audit</h4>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">Logs category summaries for salaries, rents, electricities.</p>
+        <a routerLink="/reports/expenses" class="btn btn-outline-primary btn-sm">View Expense Report</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- 🎁 ALL CUSTOMERS REWARDS & PRIZE SCHEME      -->
+<!-- (दुकान के सभी ग्राहकों के लिए ईनाम योजना)  -->
+<!-- ============================================ -->
+<div class="card" style="margin-top: 24px; border-radius: 14px; border: 1.5px solid #fed7aa; overflow: hidden; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.06);">
+  
+  <!-- Header Bar -->
+  <div style="background: linear-gradient(135deg, #fff7ed, #ffedd5); padding: 18px 20px; border-bottom: 1.5px solid #fed7aa; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: #ea580c; color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);">
+        🎁
+      </div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 style="margin: 0; font-size: 17px; font-weight: 900; color: #9a3412;">
+            दुकान के सभी ग्राहकों के लिए ईनाम व रिवॉर्ड योजना (All Customers Rewards Scheme)
+          </h3>
+          <span class="badge" style="background: #ea580c; color: white; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 6px;">
+            {{ getAllCustomersWithRewards().length }} कुल ग्राहक (सभी ईनाम के पात्र)
+          </span>
+        </div>
+        <p style="margin: 3px 0 0; font-size: 12.5px; color: #7c2d12; font-weight: 500;">
+          दुकान पर आने वाले सभी ग्राहकों की सूची — हर ग्राहक को उसकी खरीदारी के आधार पर ईनाम, गिफ्ट व स्पेशल डिस्काउंट वाउचर भेजें!
+        </p>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div style="position: relative; min-width: 260px;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #ea580c; font-size: 13px;"></i>
+        <input 
+          type="text" 
+          [ngModel]="customerSearch()"
+          (ngModelChange)="customerSearch.set($event)"
+          placeholder="ग्राहक का नाम या मोबाइल नंबर खोजें..." 
+          style="width: 100%; padding: 8px 12px 8px 34px; border: 1.5px solid #fdba74; border-radius: 8px; font-size: 12.5px; outline: none; background: white;"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- All Customers Table -->
+  <div style="overflow-x: auto; background: white;">
+    <table class="table" style="width: 100%; border-collapse: collapse; font-size: 13px; margin: 0;">
+      <thead>
+        <tr style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; text-align: left;">
+          <th style="padding: 12px 14px; font-weight: 800; color: #334155; width: 140px;">🎁 क्रमांक / श्रेणी</th>
+          <th style="padding: 12px 14px; font-weight: 800; color: #334155;">ग्राहक का नाम (Customer Name)</th>
+          <th style="padding: 12px 14px; font-weight: 800; color: #334155;">मोबाइल नंबर (Mobile)</th>
+          <th style="padding: 12px 14px; font-weight: 800; color: #334155;">कुल खरीदारी (Total Shopping)</th>
+          <th style="padding: 12px 14px; font-weight: 800; color: #334155;">🎁 पात्र ईनाम / रिवॉर्ड योजना</th>
+          <th style="padding: 12px 14px; font-weight: 800; color: #334155; text-align: center;">ईनाम भेजें (WhatsApp)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr 
+          *ngFor="let c of getAllCustomersWithRewards(); let i = index" 
+          [style.background]="i === 0 ? '#fffbeb' : i === 1 ? '#f8fafc' : i === 2 ? '#fff7ed' : '#ffffff'"
+          style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" 
+          onmouseover="this.style.background='#f0fdf4'" 
+          onmouseout="this.style.background=i === 0 ? '#fffbeb' : i === 1 ? '#f8fafc' : i === 2 ? '#fff7ed' : '#ffffff'"
+        >
+          <!-- 🎁 Reward Badge -->
+          <td style="padding: 12px 14px;">
+            <span 
+              class="badge" 
+              [style.background]="getRewardBadge(c, i).badgeBg" 
+              [style.color]="getRewardBadge(c, i).badgeColor" 
+              style="font-weight: 900; font-size: 11.5px; padding: 4px 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+            >
+              {{ getRewardBadge(c, i).rank }}
+            </span>
+          </td>
+
+          <!-- 👤 Name -->
+          <td style="padding: 12px 14px; font-weight: 800; color: #0f172a; font-size: 13.5px;">
+            👤 {{ c.name }}
+          </td>
+
+          <!-- 📱 Mobile -->
+          <td style="padding: 12px 14px;">
+            <span *ngIf="c.mobile" style="font-weight: 800; color: #0284c7; font-family: monospace; font-size: 13.5px;">
+              📱 {{ c.mobile }}
+            </span>
+            <span *ngIf="!c.mobile" style="color: #94a3b8; font-style: italic;">
+              No Mobile
+            </span>
+          </td>
+
+          <!-- 🛍️ Total Shopping -->
+          <td style="padding: 12px 14px;">
+            <span style="font-weight: 900; color: #16a34a; font-size: 15px;">
+              ₹{{ (c.totalPurchases || 0) | number:'1.2-2' }}
+            </span>
+          </td>
+
+          <!-- 🎁 Prize / Reward Scheme -->
+          <td style="padding: 12px 14px;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: #ffffff; padding: 4px 10px; border-radius: 6px; border: 1px dashed #cbd5e1; font-weight: 800; font-size: 12px; color: #0f172a;">
+              <span>{{ getRewardBadge(c, i).icon }}</span>
+              <span>{{ getRewardBadge(c, i).gift }}</span>
+            </div>
+          </td>
+
+          <!-- 💬 WhatsApp Prize Button -->
+          <td style="padding: 12px 14px; text-align: center;">
+            <button 
+              *ngIf="c.mobile"
+              type="button" 
+              (click)="sendPrizeWhatsApp(c, i)" 
+              class="btn btn-sm"
+              style="background: #25D366; color: white; border: none; font-weight: 800; font-size: 11.5px; padding: 5px 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,211,102,0.3); cursor: pointer;"
+              title="ईनाम बधाई व डिस्काउंट WhatsApp पर भेजें"
+            >
+              <i class="fa-brands fa-whatsapp" style="font-size: 14px;"></i> ईनाम भेजें &rarr;
+            </button>
+            <span *ngIf="!c.mobile" style="color: #94a3b8; font-size: 11px;">
+              -
+            </span>
+          </td>
+        </tr>
+
+        <tr *ngIf="getAllCustomersWithRewards().length === 0">
+          <td colspan="6" style="padding: 35px; text-align: center; color: #64748b;">
+            <div style="font-size: 30px; margin-bottom: 8px;">🎁</div>
+            <div style="font-weight: 800; font-size: 14px; color: #334155;">कोई ग्राहक उपलब्ध नहीं है</div>
+            <div style="font-size: 12px; margin-top: 4px;">बिल बनते ही सभी ग्राहक यहाँ ईनाम व रिवॉर्ड योजना के साथ स्वतः दिखाई देंगे।</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

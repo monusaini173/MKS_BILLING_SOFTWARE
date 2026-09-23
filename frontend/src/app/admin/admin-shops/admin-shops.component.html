@@ -1,0 +1,474 @@
+<div class="admin-page-container">
+  <!-- Page Header -->
+  <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-store text-primary"></i>
+        <span>{{ lang.isHindi() ? 'दुकान प्रबंधन (Shop Management)' : 'Multi-Tenant Shop Management' }}</span>
+      </h1>
+      <p style="font-size: 13px; color: #64748b; margin: 3px 0 0 0;">
+        {{ lang.isHindi() ? 'सभी दुकानों की सूची देखें, प्लान अपडेट करें, ब्लॉक/अनब्लॉक करें या 1-क्लिक में दुकान में लॉगइन करें।' : 'Manage all registered tenant shops, subscription validity, block/unblock, and 1-click shop login.' }}
+      </p>
+    </div>
+
+    <div class="flex gap-2">
+      <button class="btn btn-primary" (click)="showAddModal = true" style="font-weight: 700;">
+        <i class="fa-solid fa-plus"></i> {{ lang.isHindi() ? '+ नई दुकान जोड़ें' : '+ Add New Shop' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Search & Filters Card -->
+  <div class="card mb-4" style="padding: 16px; border-radius: 12px;">
+    <div style="display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr auto; gap: 12px; align-items: center;">
+      <!-- Search -->
+      <div class="form-group" style="margin: 0;">
+        <div class="input-group">
+          <span class="input-group-text" style="background: #f8fafc;"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+          <input 
+            type="text" 
+            [(ngModel)]="searchText" 
+            (keyup.enter)="onSearch()" 
+            class="form-control" 
+            [placeholder]="lang.isHindi() ? 'दुकान, मालिक, मोबाइल या GSTIN खोजें...' : 'Search by shop name, owner, phone or GSTIN...'"
+          >
+        </div>
+      </div>
+
+      <!-- Shop Type Filter -->
+      <div class="form-group" style="margin: 0;">
+        <select [(ngModel)]="selectedShopType" (change)="onSearch()" class="form-control">
+          <option value="ALL">{{ lang.isHindi() ? 'सभी प्रकार (All Types)' : 'All Shop Types' }}</option>
+          @for (t of shopTypes; track t) {
+            <option [value]="t">{{ t }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="form-group" style="margin: 0;">
+        <select [(ngModel)]="selectedStatus" (change)="onSearch()" class="form-control">
+          <option value="ALL">{{ lang.isHindi() ? 'सभी स्थिति (All Status)' : 'All Status' }}</option>
+          <option value="ACTIVE">{{ lang.isHindi() ? 'सक्रिय (Active)' : 'Active' }}</option>
+          <option value="BLOCKED">{{ lang.isHindi() ? 'ब्लॉक्ड (Blocked)' : 'Blocked' }}</option>
+        </select>
+      </div>
+
+      <!-- Plan Filter -->
+      <div class="form-group" style="margin: 0;">
+        <select [(ngModel)]="selectedPlan" (change)="onSearch()" class="form-control">
+          <option value="ALL">{{ lang.isHindi() ? 'सभी प्लान्स (All Plans)' : 'All Plans' }}</option>
+          <option value="TRIAL">TRIAL (फ्री ट्रायल)</option>
+          <option value="BASIC_MONTHLY">BASIC (स्टार्टर)</option>
+          <option value="PRO_MONTHLY">PRO (व्हाट्सएप प्रो)</option>
+          <option value="ENTERPRISE_YEARLY">YEARLY (वार्षिक)</option>
+        </select>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-2">
+        <button class="btn btn-primary btn-sm" (click)="onSearch()" style="padding: 8px 14px; font-weight: 700;">
+          <i class="fa-solid fa-filter"></i> {{ lang.isHindi() ? 'फिल्टर' : 'Filter' }}
+        </button>
+        <button class="btn btn-outline btn-sm" (click)="resetFilters()" title="Reset Filters" style="padding: 8px 10px;">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shops Table Card -->
+  <div class="card" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-header flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+      <div class="card-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+        {{ lang.isHindi() ? 'दुकानों की सूची' : 'Registered Shops Directory' }} ({{ totalShops }})
+      </div>
+      <div style="font-size: 12px; color: #64748b;">
+        Page {{ page }} of {{ totalPages }}
+      </div>
+    </div>
+
+    <div class="card-body" style="padding: 0;">
+      @if (loading()) {
+        <div class="flex justify-between items-center" style="min-height: 250px; width: 100%;">
+          <div class="spinner" style="margin: 0 auto;"></div>
+        </div>
+      } @else if (shops().length === 0) {
+        <div class="empty-state" style="padding: 40px; text-align: center;">
+          <i class="fa-solid fa-store" style="font-size: 48px; color: #cbd5e1; margin-bottom: 12px;"></i>
+          <h3>{{ lang.isHindi() ? 'कोई दुकान नहीं मिली' : 'No Shops Found' }}</h3>
+          <p>{{ lang.isHindi() ? 'खोज या फिल्टर बदलकर दोबारा प्रयास करें।' : 'Try adjusting your search query or filter criteria.' }}</p>
+          <button class="btn btn-outline btn-sm mt-2" (click)="resetFilters()">{{ lang.isHindi() ? 'फिल्टर हटाएं' : 'Reset Filters' }}</button>
+        </div>
+      } @else {
+        <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ lang.isHindi() ? 'दुकान व प्रकार' : 'Shop & Type' }}</th>
+                <th>{{ lang.isHindi() ? 'मालिक व संपर्क' : 'Owner & Contact' }}</th>
+                <th>{{ lang.isHindi() ? 'जीएसटी / स्थान' : 'GSTIN & Location' }}</th>
+                <th>{{ lang.isHindi() ? 'सब्सक्रिप्शन स्थिति' : 'Subscription & Expiry' }}</th>
+                <th>{{ lang.isHindi() ? 'स्थिति' : 'Status' }}</th>
+                <th style="text-align: right;">{{ lang.isHindi() ? 'कार्रवाई (Actions)' : 'Actions' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (shop of shops(); track shop._id) {
+                <tr [style.background]="!shop.isActive ? '#fff1f2' : 'transparent'">
+                  <!-- Shop Name & Type -->
+                  <td>
+                    <div style="font-weight: 800; font-size: 14px; color: #0f172a;">{{ shop.name }}</div>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="badge" style="background: #e0e7ff; color: #4338ca; font-weight: 700; font-size: 10.5px; padding: 2px 6px;">
+                        {{ shop.shopType }}
+                      </span>
+                      <span style="font-size: 11px; color: #64748b;">
+                        Reg: {{ shop.createdAt | date:'dd/MM/yyyy' }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Owner & Contact -->
+                  <td>
+                    <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">
+                      <i class="fa-solid fa-user-tie text-primary" style="font-size: 11px; margin-right: 3px;"></i>
+                      {{ shop.ownerName }}
+                    </div>
+                    <div style="font-size: 12px; color: #475569; margin-top: 2px;">
+                      <i class="fa-solid fa-phone text-muted" style="font-size: 11px; margin-right: 3px;"></i>
+                      {{ shop.mobile || 'N/A' }}
+                    </div>
+                    <div *ngIf="shop.email" style="font-size: 11px; color: #64748b;">
+                      {{ shop.email }}
+                    </div>
+                  </td>
+
+                  <!-- GSTIN & Location -->
+                  <td>
+                    <div *ngIf="shop.gstin" style="font-size: 11.5px; font-weight: 700; color: #2563eb;">
+                      GST: {{ shop.gstin }}
+                    </div>
+                    <div *ngIf="!shop.gstin" style="font-size: 11.5px; color: #94a3b8;">
+                      URP (Unregistered)
+                    </div>
+                    <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+                      {{ shop.city ? shop.city + ', ' : '' }}{{ shop.state || 'India' }}
+                    </div>
+                  </td>
+
+                  <!-- Subscription & Expiry -->
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <span class="badge" [style.background]="shop.subscriptionPlan === 'ENTERPRISE_YEARLY' ? '#dcfce7' : shop.subscriptionPlan === 'PRO_MONTHLY' ? '#e0e7ff' : '#fef3c7'" [style.color]="shop.subscriptionPlan === 'ENTERPRISE_YEARLY' ? '#166534' : shop.subscriptionPlan === 'PRO_MONTHLY' ? '#3730a3' : '#92400e'" style="font-weight: 800; font-size: 11px;">
+                        {{ shop.subscriptionPlan }}
+                      </span>
+                      <button class="btn btn-outline btn-sm" (click)="openSubModal(shop)" style="padding: 1px 6px; font-size: 10.5px;" title="सब्सक्रिप्शन बदलें">
+                        <i class="fa-solid fa-pencil"></i>
+                      </button>
+                    </div>
+                    <div style="font-size: 11.5px; margin-top: 3px;" [style.color]="shop.isExpired ? '#dc2626' : shop.daysRemaining <= 7 ? '#d97706' : '#16a34a'">
+                      <i class="fa-regular fa-clock" style="font-size: 10px;"></i>
+                      <strong>{{ shop.isExpired ? (lang.isHindi() ? 'समाप्त (Expired)' : 'Expired') : shop.daysRemaining + ' ' + (lang.isHindi() ? 'दिन बाकी' : 'days left') }}</strong>
+                      ({{ shop.subscriptionExpiry | date:'dd MMM yyyy' }})
+                    </div>
+                  </td>
+
+                  <!-- Status (Active / Blocked) -->
+                  <td>
+                    <button 
+                      class="badge" 
+                      (click)="toggleShop(shop)" 
+                      [style.background]="shop.isActive ? '#ecfdf5' : '#fee2e2'" 
+                      [style.color]="shop.isActive ? '#047857' : '#b91c1c'" 
+                      [style.border]="shop.isActive ? '1px solid #a7f3d0' : '1px solid #fca5a5'"
+                      style="font-weight: 800; font-size: 11px; cursor: pointer; padding: 4px 8px; border-radius: 12px;"
+                      [title]="shop.isActive ? 'क्लिक करके ब्लॉक करें' : 'क्लिक करके अनब्लॉक करें'"
+                    >
+                      <i [class]="shop.isActive ? 'fa-solid fa-lock-open' : 'fa-solid fa-ban'" style="margin-right: 3px;"></i>
+                      {{ shop.isActive ? (lang.isHindi() ? 'सक्रिय (Active)' : 'Active') : (lang.isHindi() ? 'ब्लॉक्ड (Blocked)' : 'Blocked') }}
+                    </button>
+                  </td>
+
+                  <!-- Action Buttons -->
+                  <td style="text-align: right;">
+                    <div class="flex gap-2 justify-end" style="justify-content: flex-end;">
+                      <!-- 🔥 1-Click Shop Impersonate / Login -->
+                      <button 
+                        class="btn btn-sm" 
+                        (click)="impersonate(shop._id)" 
+                        style="background: #0f172a; color: white; font-weight: 700; font-size: 11.5px; padding: 5px 11px; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
+                        title="इस दुकान के लाइव डैशबोर्ड में प्रवेश करें"
+                      >
+                        <i class="fa-solid fa-arrow-right-to-bracket" style="color: #38bdf8;"></i>
+                        <span>{{ lang.isHindi() ? 'लॉगइन' : 'Login' }}</span>
+                      </button>
+
+                      <!-- Edit Shop Details -->
+                      <button class="btn btn-outline btn-sm btn-icon" (click)="openEditModal(shop)" [title]="lang.isHindi() ? 'दुकान विवरण बदलें' : 'Edit Shop Details'">
+                        <i class="fa-solid fa-pencil"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0;">
+      <div style="font-size: 12.5px; color: #64748b;">
+        Showing {{ shops().length }} of {{ totalShops }} shops
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-outline btn-sm" [disabled]="page <= 1" (click)="page = page - 1; loadShops()">
+          <i class="fa-solid fa-chevron-left"></i> Prev
+        </button>
+        <button class="btn btn-outline btn-sm" [disabled]="page >= totalPages" (click)="page = page + 1; loadShops()">
+          Next <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: ADD NEW TENANT SHOP                 -->
+<!-- ========================================== -->
+@if (showAddModal) {
+  <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+    <div class="card" style="width: 100%; max-width: 600px; margin: 20px; border-radius: 12px; box-shadow: var(--shadow-xl); overflow: hidden;">
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-plus text-primary" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'नई दुकान पंजीकृत करें (Add New Tenant Shop)' : 'Register New Tenant Shop' }}
+        </h3>
+        <button class="btn btn-outline btn-sm" (click)="showAddModal = false" style="border: none; font-size: 16px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form [formGroup]="addShopForm" (ngSubmit)="submitAddShop()">
+        <div class="card-body" style="padding: 20px; display: flex; flex-direction: column; gap: 12px; max-height: 75vh; overflow-y: auto;">
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'दुकान का नाम' : 'Shop Name' }} <span class="text-danger">*</span></label>
+              <input type="text" formControlName="name" class="form-control" placeholder="e.g. Royal Fashion Garments">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'दुकान प्रकार (Type)' : 'Shop Type' }} <span class="text-danger">*</span></label>
+              <select formControlName="shopType" class="form-control">
+                @for (t of shopTypes; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'मालिक का नाम' : 'Owner Name' }} <span class="text-danger">*</span></label>
+              <input type="text" formControlName="ownerName" class="form-control" placeholder="e.g. Rajesh Saini">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'मोबाइल नंबर' : 'Mobile Number' }} <span class="text-danger">*</span></label>
+              <input type="text" formControlName="mobile" class="form-control" placeholder="10 digit number">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'लॉगइन ईमेल' : 'Login Email' }} <span class="text-danger">*</span></label>
+              <input type="email" formControlName="email" class="form-control" placeholder="shop@domain.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'पासवर्ड' : 'Password' }} <span class="text-danger">*</span></label>
+              <input type="text" formControlName="password" class="form-control" placeholder="Default: admin123">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सब्सक्रिप्शन प्लान' : 'Initial Plan' }}</label>
+              <select formControlName="plan" class="form-control">
+                <option value="TRIAL">Free Trial (फ्री ट्रायल)</option>
+                <option value="BASIC_MONTHLY">Basic Monthly (₹299)</option>
+                <option value="PRO_MONTHLY">Pro WhatsApp Monthly (₹500)</option>
+                <option value="ENTERPRISE_YEARLY">Yearly VIP (₹5000)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'ट्रायल दिन (Days)' : 'Trial Days' }}</label>
+              <input type="number" formControlName="trialDays" class="form-control" min="1">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">GSTIN</label>
+              <input type="text" formControlName="gstin" class="form-control" placeholder="08AAAAA0000A1Z5" style="text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'शहर' : 'City' }}</label>
+              <input type="text" formControlName="city" class="form-control" placeholder="e.g. Jaipur">
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showAddModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 700;">
+            <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'दुकान सुरक्षित करें' : 'Register Shop' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- MODAL: EDIT SHOP DETAILS                   -->
+<!-- ========================================== -->
+@if (showEditModal) {
+  <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+    <div class="card" style="width: 100%; max-width: 540px; margin: 20px; border-radius: 12px; box-shadow: var(--shadow-xl); overflow: hidden;">
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-pencil text-primary" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'दुकान संपादित करें: ' : 'Edit Shop: ' }} {{ selectedShopForEdit?.name }}
+        </h3>
+        <button class="btn btn-outline btn-sm" (click)="showEditModal = false" style="border: none; font-size: 16px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form [formGroup]="editShopForm" (ngSubmit)="submitEditShop()">
+        <div class="card-body" style="padding: 20px; display: flex; flex-direction: column; gap: 12px; max-height: 75vh; overflow-y: auto;">
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'दुकान का नाम' : 'Shop Name' }}</label>
+              <input type="text" formControlName="name" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'दुकान प्रकार' : 'Shop Type' }}</label>
+              <select formControlName="shopType" class="form-control">
+                @for (t of shopTypes; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'मालिक का नाम' : 'Owner Name' }}</label>
+              <input type="text" formControlName="ownerName" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'मोबाइल नंबर' : 'Mobile Number' }}</label>
+              <input type="text" formControlName="mobile" class="form-control">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'ईमेल' : 'Email' }}</label>
+              <input type="email" formControlName="email" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">GSTIN</label>
+              <input type="text" formControlName="gstin" class="form-control" style="text-transform: uppercase;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'शहर' : 'City' }}</label>
+              <input type="text" formControlName="city" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'राज्य' : 'State' }}</label>
+              <input type="text" formControlName="state" class="form-control">
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showEditModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 700;">
+            <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'अपडेट सुरक्षित करें' : 'Save Changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- MODAL: QUICK SUBSCRIPTION UPDATE           -->
+<!-- ========================================== -->
+@if (showSubModal) {
+  <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+    <div class="card" style="width: 100%; max-width: 480px; margin: 20px; border-radius: 12px; box-shadow: var(--shadow-xl); overflow: hidden;">
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+          <i class="fa-solid fa-crown text-warning" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'सब्सक्रिप्शन मैनेज करें: ' : 'Manage Subscription: ' }} {{ selectedShopForSub?.name }}
+        </h3>
+        <button class="btn btn-outline btn-sm" (click)="showSubModal = false" style="border: none; font-size: 16px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form [formGroup]="subForm" (ngSubmit)="submitSubUpdate()">
+        <div class="card-body" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 12.5px;">
+            <div>वर्तमान प्लान: <strong>{{ selectedShopForSub?.subscriptionPlan }}</strong></div>
+            <div style="color: #64748b; margin-top: 2px;">
+              एक्सपायरी: <strong>{{ selectedShopForSub?.subscriptionExpiry | date:'dd MMM yyyy' }}</strong>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'प्लान चुनें' : 'Choose Plan' }}</label>
+            <select formControlName="plan" class="form-control">
+              <option value="TRIAL">Free Trial (फ्री ट्रायल)</option>
+              <option value="BASIC_MONTHLY">Basic Monthly (₹299)</option>
+              <option value="PRO_MONTHLY">Pro WhatsApp Monthly (₹500)</option>
+              <option value="ENTERPRISE_YEARLY">Yearly VIP (₹5000)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'अतिरिक्त दिन जोड़ें (+Days)' : 'Add Days (+Days)' }}</label>
+            <div class="flex gap-2">
+              <input type="number" formControlName="addDays" class="form-control" style="font-weight: 700;">
+              <button type="button" class="btn btn-outline btn-sm" (click)="subForm.patchValue({ addDays: 7 })">+7d</button>
+              <button type="button" class="btn btn-outline btn-sm" (click)="subForm.patchValue({ addDays: 30 })">+30d</button>
+              <button type="button" class="btn btn-outline btn-sm" (click)="subForm.patchValue({ addDays: 365 })">+1yr</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'कस्टम समाप्ति तिथि (वैकल्पिक)' : 'Custom Expiry Date (Optional)' }}</label>
+            <input type="date" formControlName="customExpiryDate" class="form-control">
+          </div>
+
+          <div class="form-check" style="margin-top: 4px;">
+            <input type="checkbox" formControlName="isLifetimeFree" id="lifetimeCheck" class="form-check-input">
+            <label for="lifetimeCheck" class="form-check-label" style="font-weight: 700; color: #059669;">
+              {{ lang.isHindi() ? 'आजीवन फ्री प्लान (Lifetime Free Access 2099)' : 'Grant Lifetime Free VIP Access (2099)' }}
+            </label>
+          </div>
+        </div>
+
+        <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showSubModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 700;">
+            <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'सब्सक्रिप्शन अपडेट करें' : 'Apply Subscription' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

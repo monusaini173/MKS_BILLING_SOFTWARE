@@ -1,0 +1,215 @@
+<div class="admin-page-container">
+  <!-- Page Header -->
+  <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-tags text-primary"></i>
+        <span>{{ lang.isHindi() ? 'दुकान प्रकार इंजन (Shop Types Engine)' : 'Dynamic Shop Types Engine' }}</span>
+      </h1>
+      <p style="font-size: 13px; color: #64748b; margin: 3px 0 0 0;">
+        {{ lang.isHindi() ? 'विभिन्न व्यवसायों के लिए स्टोर प्रकार, थीम रंग, और डिफ़ॉल्ट इन्वेंटरी श्रेणियां।' : 'Configure business store niches, custom theme colors, and automated inventory category blueprints.' }}
+      </p>
+    </div>
+
+    <button class="btn btn-primary" (click)="openAddModal()" style="font-weight: 700;">
+      <i class="fa-solid fa-plus"></i> {{ lang.isHindi() ? '+ नया दुकान प्रकार जोड़ें' : '+ Add Shop Type' }}
+    </button>
+  </div>
+
+  <!-- Shop Types Cards Grid -->
+  @if (loading()) {
+    <div class="flex justify-between items-center" style="min-height: 250px; width: 100%;">
+      <div class="spinner" style="margin: 0 auto;"></div>
+    </div>
+  } @else {
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+      @for (st of shopTypes(); track st.key) {
+        <div class="card" style="border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; background: white; transition: all 0.2s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.04); display: flex; flex-direction: column;">
+          
+          <!-- Card Header with Accent Background -->
+          <div style="padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05);" [style.background]="st.accentBg || '#f8fafc'">
+            <div class="flex items-center gap-3" style="min-width: 0;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.06); flex-shrink: 0;">
+                <span>{{ st.emoji }}</span>
+              </div>
+              <div style="min-width: 0;">
+                <div style="font-weight: 800; font-size: 15px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ st.labelHindi }}</div>
+                <div style="font-size: 12px; font-weight: 600; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ st.label }}</div>
+              </div>
+            </div>
+            
+            <div style="flex-shrink: 0; margin-left: 10px;">
+              <span class="badge" [style.background]="st.accentColor" style="color: white; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                {{ st.key }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Card Body: Theme Style & Categories -->
+          <div class="card-body" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; flex: 1;">
+            
+            <!-- Store Theme Bar -->
+            <div class="flex items-center justify-between" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 12px;">
+              <div class="flex items-center gap-2">
+                <div style="width: 15px; height: 15px; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" [style.background]="st.accentColor"></div>
+                <span style="font-size: 12px; font-weight: 700; color: #334155;">{{ lang.isHindi() ? 'थीम स्टाइल' : 'Store Theme' }}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <i [class]="st.icon" [style.color]="st.accentColor" style="font-size: 16px;"></i>
+              </div>
+            </div>
+
+            <!-- Categories Blueprint with Scroll & Clean Wrapping -->
+            <div style="flex: 1;">
+              <div style="font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                {{ lang.isHindi() ? 'डिफ़ॉल्ट श्रेणियां (Default Categories):' : 'Pre-configured Categories:' }}
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 95px; overflow-y: auto; padding: 2px 2px 2px 0;">
+                @for (cat of (st?.defaultCategories || []); track $index) {
+                  <span style="background: #f1f5f9; color: #1e293b; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: inline-block; white-space: nowrap;">
+                    {{ cat }}
+                  </span>
+                }
+                @if (!st?.defaultCategories || st.defaultCategories?.length === 0) {
+                  <span style="font-size: 11.5px; color: #94a3b8; font-style: italic;">
+                    {{ lang.isHindi() ? 'कोई श्रेणी कॉन्फ़िगर नहीं' : 'No default categories' }}
+                  </span>
+                }
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Card Footer -->
+          <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 10px 18px; border-top: 1px solid #e2e8f0; margin-top: auto;">
+            <button class="btn btn-outline btn-sm" (click)="openEditModal(st)" style="font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 6px;">
+              <i class="fa-solid fa-pencil" style="margin-right: 4px;"></i> {{ lang.isHindi() ? 'संपादित करें' : 'Edit' }}
+            </button>
+            <button *ngIf="!st.isSystem" class="btn btn-outline btn-sm btn-icon text-danger" (click)="deleteShopType(st)" title="Delete" style="border-radius: 6px;">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Modal Add/Edit Shop Type -->
+@if (showModal) {
+  <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+    <div class="card" style="width: 100%; max-width: 520px; margin: 20px; border-radius: 14px; box-shadow: var(--shadow-xl); overflow: hidden;">
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-tags text-primary" style="margin-right: 6px;"></i>
+          {{ editMode ? (lang.isHindi() ? 'दुकान प्रकार संपादित करें' : 'Edit Shop Type') : (lang.isHindi() ? 'नया दुकान प्रकार बनाएं' : 'Create New Shop Type') }}
+        </h3>
+        <button class="btn btn-outline btn-sm" (click)="showModal = false" style="border: none; font-size: 16px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form [formGroup]="shopTypeForm" (ngSubmit)="onSubmit()">
+        <div class="card-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 75vh; overflow-y: auto;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'यूनिक कोड (Key)' : 'Unique Key' }} <span class="text-danger">*</span></label>
+              <input 
+                type="text" 
+                formControlName="key" 
+                [readonly]="editMode" 
+                class="form-control" 
+                [class.is-invalid]="shopTypeForm.get('key')?.touched && shopTypeForm.get('key')?.invalid"
+                placeholder="e.g. DAIRY या BAKERY" 
+                style="text-transform: uppercase;"
+              >
+              @if (shopTypeForm.get('key')?.touched && shopTypeForm.get('key')?.invalid) {
+                <div class="form-error" style="color: #ef4444; font-size: 11px; margin-top: 3px;">
+                  यूनिक कोड आवश्यक है (जैसे: DAIRY)
+                </div>
+              }
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'इमोजी (Emoji)' : 'Emoji' }}</label>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <input 
+                  type="text" 
+                  formControlName="emoji" 
+                  class="form-control" 
+                  placeholder="e.g. 🎂" 
+                  style="width: 70px; text-align: center; font-size: 18px;"
+                >
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                  @for (em of ['🎂', '🥛', '🍕', '👗', '👟', '📱', '💊', '🎁']; track em) {
+                    <button 
+                      type="button" 
+                      (click)="setEmoji(em)" 
+                      style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; padding: 2px 6px; font-size: 14px;"
+                    >{{ em }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'हिन्दी नाम' : 'Hindi Label' }} <span class="text-danger">*</span></label>
+              <input 
+                type="text" 
+                formControlName="labelHindi" 
+                class="form-control" 
+                [class.is-invalid]="shopTypeForm.get('labelHindi')?.touched && shopTypeForm.get('labelHindi')?.invalid"
+                placeholder="जैसे: बेकरी व स्वीट्स"
+              >
+              @if (shopTypeForm.get('labelHindi')?.touched && shopTypeForm.get('labelHindi')?.invalid) {
+                <div class="form-error" style="color: #ef4444; font-size: 11px; margin-top: 3px;">
+                  हिन्दी नाम आवश्यक है
+                </div>
+              }
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'अंग्रेज़ी नाम' : 'English Label' }} <span class="text-danger">*</span></label>
+              <input 
+                type="text" 
+                formControlName="label" 
+                class="form-control" 
+                [class.is-invalid]="shopTypeForm.get('label')?.touched && shopTypeForm.get('label')?.invalid"
+                placeholder="e.g. Bakery & Sweets"
+              >
+              @if (shopTypeForm.get('label')?.touched && shopTypeForm.get('label')?.invalid) {
+                <div class="form-error" style="color: #ef4444; font-size: 11px; margin-top: 3px;">
+                  अंग्रेज़ी नाम आवश्यक है
+                </div>
+              }
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">FontAwesome Icon</label>
+              <input type="text" formControlName="icon" class="form-control" placeholder="fa-solid fa-cake-candles">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">Accent Color</label>
+              <input type="color" formControlName="accentColor" class="form-control" style="height: 38px; padding: 2px;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">
+              {{ lang.isHindi() ? 'डिफ़ॉल्ट श्रेणियां (अल्पविराम से अलग करें)' : 'Default Categories (comma separated)' }}
+            </label>
+            <input type="text" formControlName="defaultCategoriesStr" class="form-control" placeholder="पेस्ट्री, बिस्कुट, केक, ब्रेड, नमकीन">
+          </div>
+        </div>
+
+        <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 700;">
+            <i class="fa-solid fa-check"></i> {{ editMode ? (lang.isHindi() ? 'अपडेट करें' : 'Save Changes') : (lang.isHindi() ? 'प्रकार सुरक्षित करें' : 'Create Shop Type') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

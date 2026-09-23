@@ -1,0 +1,567 @@
+<div class="page-header flex justify-between items-center flex-wrap gap-3">
+  <div>
+    <h1 class="page-title" style="display: flex; align-items: center; gap: 8px;">
+      <i class="fa-solid fa-boxes-stacked text-primary"></i>
+      <span>{{ lang.isHindi() ? 'इन्वेंटरी व स्टॉक कंट्रोल (Inventory Control)' : 'Inventory & Stock Control' }}</span>
+    </h1>
+    <p class="page-subtitle">
+      {{ lang.isHindi() ? 'कम स्टॉक वाले सामान की तुरंत पहचान करें और 1-क्लिक में नया माल जोड़कर स्टॉक फुल करें।' : 'Monitor low inventory levels and replenish stock instantly with 1-click restock.' }}
+    </p>
+  </div>
+
+  <!-- Header Quick Actions -->
+  <div class="page-actions flex gap-2 flex-wrap">
+    <!-- Bulk Full Restock Button -->
+    <button 
+      type="button" 
+      class="btn btn-sm" 
+      (click)="fullRestockAllLowStock()" 
+      [disabled]="bulkRestocking() || lowStockProducts().length === 0"
+      style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; font-weight: 700; font-size: 12.5px; padding: 7px 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(16,185,129,0.35);"
+      title="सभी कम स्टॉक वाले प्रोडक्ट्स का स्टॉक फुल करें"
+    >
+      @if (bulkRestocking()) {
+        <div class="spinner spinner-sm" style="border-top-color: white;"></div>
+      } @else {
+        <i class="fa-solid fa-bolt"></i>
+      }
+      {{ lang.isHindi() ? '⚡ सभी कम स्टॉक फुल करें (+50)' : '⚡ Restock All Low Stock' }}
+    </button>
+
+    <!-- Create Purchase Bill Inward -->
+    <a 
+      routerLink="/billing" 
+      class="btn btn-sm btn-primary" 
+      style="font-weight: 700; font-size: 12.5px; padding: 7px 16px; border-radius: 8px;"
+    >
+      <i class="fa-solid fa-truck-ramp-box"></i> {{ lang.isHindi() ? '🔵 नया खरीद बिल बनाएं' : '🔵 Purchase Inward' }}
+    </a>
+  </div>
+</div>
+
+<!-- Stock KPI Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+  <!-- Total Products -->
+  <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #4f46e5;">
+    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+      {{ lang.isHindi() ? 'कुल कैटलॉग आइटम्स' : 'Total Catalog Items' }}
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 4px;">
+      {{ products().length }}
+    </div>
+  </div>
+
+  <!-- Low Stock Alert Card -->
+  <div 
+    class="card" 
+    (click)="activeTab.set('LOW_STOCK')" 
+    style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #f59e0b; cursor: pointer; transition: all 0.2s;"
+    [style.boxShadow]="activeTab() === 'LOW_STOCK' ? '0 0 0 2px #f59e0b' : 'none'"
+  >
+    <div class="flex justify-between items-center">
+      <div style="font-size: 12px; font-weight: 700; color: #d97706; text-transform: uppercase;">
+        ⚠️ {{ lang.isHindi() ? 'कम स्टॉक वाले (Low Stock)' : 'Low Stock Items' }}
+      </div>
+      <span class="badge badge-warning" style="font-weight: 800;">{{ lowStockProducts().length }}</span>
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: #b45309; margin-top: 4px;">
+      {{ lowStockProducts().length }}
+    </div>
+  </div>
+
+  <!-- Out of Stock Card -->
+  <div 
+    class="card" 
+    (click)="activeTab.set('LOW_STOCK')" 
+    style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #ef4444; cursor: pointer;"
+  >
+    <div class="flex justify-between items-center">
+      <div style="font-size: 12px; font-weight: 700; color: #dc2626; text-transform: uppercase;">
+        🚫 {{ lang.isHindi() ? 'स्टॉक खत्म (Out of Stock)' : 'Out of Stock' }}
+      </div>
+      <span class="badge badge-danger" style="font-weight: 800;">{{ outOfStockProducts().length }}</span>
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: #b91c1c; margin-top: 4px;">
+      {{ outOfStockProducts().length }}
+    </div>
+  </div>
+</div>
+
+<!-- Main Inventory Card -->
+<div class="card" style="border-radius: 12px; overflow: hidden;">
+  <!-- Tab Header & Filter Toolbar -->
+  <div class="card-header" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+    <div class="flex justify-between items-center flex-wrap gap-3">
+      <!-- Tabs -->
+      <div style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 30px; flex-wrap: wrap;">
+        <!-- Tab 1: Low Stock -->
+        <button 
+          type="button" 
+          (click)="activeTab.set('LOW_STOCK')"
+          style="border: none; border-radius: 25px; padding: 6px 18px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;"
+          [style.background]="activeTab() === 'LOW_STOCK' ? '#dc2626' : 'transparent'"
+          [style.color]="activeTab() === 'LOW_STOCK' ? 'white' : '#475569'"
+          [style.boxShadow]="activeTab() === 'LOW_STOCK' ? '0 2px 6px rgba(220,38,38,0.4)' : 'none'"
+        >
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>{{ lang.isHindi() ? 'कम स्टॉक अलर्ट (Low Stock)' : 'Low Stock Alerts' }}</span>
+          <span class="badge" style="background: white; color: #dc2626; font-size: 11px; padding: 1px 6px; border-radius: 12px; margin-left: 4px;">
+            {{ lowStockProducts().length }}
+          </span>
+        </button>
+
+        <!-- Tab 2: All Inventory -->
+        <button 
+          type="button" 
+          (click)="activeTab.set('ALL')"
+          style="border: none; border-radius: 25px; padding: 6px 18px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;"
+          [style.background]="activeTab() === 'ALL' ? '#0f172a' : 'transparent'"
+          [style.color]="activeTab() === 'ALL' ? 'white' : '#475569'"
+          [style.boxShadow]="activeTab() === 'ALL' ? '0 2px 6px rgba(15,23,42,0.4)' : 'none'"
+        >
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>{{ lang.isHindi() ? 'सभी स्टॉक लेजर (All Stock)' : 'All Stock Ledger' }} ({{ products().length }})</span>
+        </button>
+
+        <!-- 💊 Tab 3: Expiring & Expiry Alert (For Medical Store) -->
+        @if (shopConfig().posFeatures.hasBatchExpiry) {
+          <button 
+            type="button" 
+            (click)="activeTab.set('EXPIRING')"
+            style="border: none; border-radius: 25px; padding: 6px 18px; font-weight: 800; font-size: 13px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;"
+            [style.background]="activeTab() === 'EXPIRING' ? '#0d9488' : 'transparent'"
+            [style.color]="activeTab() === 'EXPIRING' ? 'white' : '#475569'"
+            [style.boxShadow]="activeTab() === 'EXPIRING' ? '0 2px 6px rgba(13,148,136,0.4)' : 'none'"
+          >
+            <i class="fa-solid fa-prescription-bottle-medical"></i>
+            <span>{{ lang.isHindi() ? '🔴 एक्सपायरी रडार' : 'Expiring Medicines' }}</span>
+            <span class="badge" style="background: white; color: #0d9488; font-size: 11px; padding: 1px 6px; border-radius: 12px; margin-left: 4px;">
+              {{ expiringProducts().length }}
+            </span>
+          </button>
+        }
+      </div>
+
+      <!-- Search & Category Filters -->
+      <div class="flex gap-2 items-center flex-wrap" style="flex: 1; max-width: 500px; justify-content: flex-end;">
+        <div style="flex: 1; min-width: 180px;">
+          <input 
+            type="text" 
+            [(ngModel)]="searchText" 
+            class="form-control" 
+            style="font-size: 12.5px; padding: 6px 12px; background: white;"
+            [placeholder]="lang.isHindi() ? 'सामान का नाम, बारकोड, SKU खोजें...' : 'Search product, barcode, SKU...'"
+          >
+        </div>
+
+        <select 
+          [(ngModel)]="categoryFilter" 
+          class="form-control" 
+          style="width: auto; min-width: 130px; font-size: 12.5px; padding: 6px 10px; background: white;"
+        >
+          <option value="ALL">{{ lang.isHindi() ? 'सभी श्रेणियां' : 'All Categories' }}</option>
+          @for (c of categories(); track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Body -->
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 250px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (displayedProducts().length === 0) {
+      <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+        @if (activeTab() === 'LOW_STOCK') {
+          <i class="fa-solid fa-circle-check text-success" style="font-size: 48px; margin-bottom: 12px;"></i>
+          <h3 style="color: #065f46;">{{ lang.isHindi() ? 'बहुत बढ़िया! कोई कम स्टॉक नहीं है' : 'Great! No Low Stock Items' }}</h3>
+          <p class="text-muted">{{ lang.isHindi() ? 'आपकी दुकान में सभी प्रोडक्ट्स का स्टॉक पर्याप्त मात्रा में उपलब्ध है।' : 'All products in your store currently have sufficient stock.' }}</p>
+        } @else if (activeTab() === 'EXPIRING') {
+          <i class="fa-solid fa-shield-heart text-success" style="font-size: 48px; margin-bottom: 12px;"></i>
+          <h3 style="color: #0d9488;">{{ lang.isHindi() ? 'कोई भी दवा एक्सपायर नहीं हो रही है' : 'No Expiring Medicines' }}</h3>
+          <p class="text-muted">{{ lang.isHindi() ? 'अगले 90 दिनों में कोई भी दवाई एक्सपायर नहीं हो रही।' : 'All medicines are fresh.' }}</p>
+        } @else {
+          <i class="fa-solid fa-warehouse" style="font-size: 48px; color: var(--gray-300); margin-bottom: 12px;"></i>
+          <h3>{{ lang.isHindi() ? 'कोई प्रोडक्ट नहीं मिला' : 'No Products Found' }}</h3>
+        }
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+        <table>
+          <thead>
+            <tr style="background: #f8fafc; font-size: 12.5px;">
+              <th>{{ lang.isHindi() ? 'सामान का नाम व ब्रांड' : 'Product & Brand' }}</th>
+              <th>{{ lang.isHindi() ? 'श्रेणी (Category)' : 'Category' }}</th>
+              <th>{{ lang.isHindi() ? 'पहचान / Identifiers' : 'Identifiers' }}</th>
+              <!-- Specialized Columns -->
+              @if (shopConfig().posFeatures.hasBatchExpiry) {
+                <th>बैच व एक्सपायरी (Batch & Exp)</th>
+              }
+              @if (shopConfig().posFeatures.hasSizeColor) {
+                <th>साइज व कलर (Size/Color)</th>
+              }
+              <th style="text-align: center;">{{ lang.isHindi() ? 'वर्तमान स्टॉक' : 'Current Stock' }}</th>
+              <th style="text-align: center;">{{ lang.isHindi() ? 'न्यूनतम सीमा' : 'Min Alert' }}</th>
+              <th>{{ lang.isHindi() ? 'स्थिति (Status)' : 'Status' }}</th>
+              <th style="text-align: right; min-width: 200px;">{{ lang.isHindi() ? '⚡ त्वरित स्टॉक भरें (Quick Restock)' : '⚡ Quick Restock Actions' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (prod of displayedProducts(); track prod._id) {
+              <tr [style.background]="prod.quantity <= 0 ? '#fff1f2' : prod.quantity <= prod.minStockLevel ? '#fffbeb' : 'transparent'">
+                <!-- Product Details -->
+                <td>
+                  <div style="font-weight: 700; font-size: 13.5px; color: #0f172a;">{{ prod.name }}</div>
+                  <div style="font-size: 11.5px; color: #64748b;">
+                    @if (prod.genericName) { <span style="color: #0d9488; font-weight: 700;">🧪 {{ prod.genericName }} | </span> }
+                    {{ prod.brand ? '🏷️ ' + prod.brand + ' | ' : '' }}₹{{ prod.sellingPrice | number:'1.2-2' }} (MRP: ₹{{ prod.mrp | number:'1.2-2' }})
+                  </div>
+                </td>
+
+                <!-- Category -->
+                <td>
+                  <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 11.5px; font-weight: 600;">
+                    {{ prod.category || 'General' }}
+                  </span>
+                </td>
+
+                <!-- Barcode & SKU -->
+                <td>
+                  <div style="font-size: 11.5px; color: #475569; font-family: monospace;">{{ prod.barcode || 'N/A' }}</div>
+                  <div style="font-size: 10.5px; color: #94a3b8;">SKU: {{ prod.sku || 'N/A' }}</div>
+                </td>
+
+                <!-- Specialized Data Cells -->
+                @if (shopConfig().posFeatures.hasBatchExpiry) {
+                  <td>
+                    <div style="font-size: 11px; font-family: monospace; font-weight: 700;">{{ prod.batchNumber || 'N/A' }}</div>
+                    @if (prod.expiryDate) {
+                      <span style="font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px;"
+                            [style.background]="isItemExpired(prod.expiryDate) ? '#fee2e2' : '#fef3c7'"
+                            [style.color]="isItemExpired(prod.expiryDate) ? '#991b1b' : '#92400e'">
+                        Exp: {{ prod.expiryDate | date:'MM/yy' }}
+                      </span>
+                    }
+                  </td>
+                }
+
+                @if (shopConfig().posFeatures.hasSizeColor) {
+                  <td>
+                    <span *ngIf="prod.size" class="badge" style="background: #faf5ff; color: #7e22ce; font-weight: 800; font-size: 10.5px;">{{ prod.size }}</span>
+                    <span *ngIf="prod.color" class="badge" style="background: #f8fafc; color: #334155; font-size: 10.5px; margin-left: 4px;">{{ prod.color }}</span>
+                  </td>
+                }
+
+                <!-- Current Stock Quantity -->
+                <td style="text-align: center;">
+                  <span 
+                    style="font-size: 15px; font-weight: 800; padding: 3px 10px; border-radius: 6px; display: inline-block;"
+                    [style.background]="prod.quantity <= 0 ? '#fee2e2' : prod.quantity <= prod.minStockLevel ? '#fef3c7' : '#ecfdf5'"
+                    [style.color]="prod.quantity <= 0 ? '#b91c1c' : prod.quantity <= prod.minStockLevel ? '#b45309' : '#047857'"
+                  >
+                    {{ prod.quantity }} {{ prod.unit || 'PCS' }}
+                  </span>
+                </td>
+
+                <!-- Min Stock Alert Level -->
+                <td style="text-align: center; font-size: 12.5px; color: #64748b; font-weight: 600;">
+                  {{ prod.minStockLevel || 5 }} {{ prod.unit || 'PCS' }}
+                </td>
+
+                <!-- Status Badge -->
+                <td>
+                  @if (prod.quantity <= 0) {
+                    <span class="badge badge-danger" style="font-weight: 800; font-size: 11px; padding: 4px 8px;">
+                      🚫 {{ lang.isHindi() ? 'स्टॉक खत्म' : 'Out of Stock' }}
+                    </span>
+                  } @else if (prod.quantity <= (prod.minStockLevel || 5)) {
+                    <span class="badge badge-warning" style="font-weight: 800; font-size: 11px; padding: 4px 8px;">
+                      ⚠️ {{ lang.isHindi() ? 'कम स्टॉक' : 'Low Stock' }}
+                    </span>
+                  } @else {
+                    <span class="badge badge-success" style="font-weight: 700; font-size: 11px; padding: 4px 8px;">
+                      🟢 {{ lang.isHindi() ? 'पर्याप्त स्टॉक' : 'In Stock' }}
+                    </span>
+                  }
+                </td>
+
+                <!-- Actions: 1-Click Restock Presets -->
+                <td style="text-align: right;">
+                  <div class="flex gap-1 justify-end items-center" style="justify-content: flex-end;">
+                    <!-- Quick +50 Restock Button -->
+                    <button 
+                      type="button" 
+                      class="btn btn-sm" 
+                      (click)="quickRestock(prod, 50)"
+                      style="background: #10b981; color: white; font-weight: 700; font-size: 11.5px; padding: 4px 10px; border-radius: 6px; border: none;"
+                      [title]="lang.isHindi() ? 'तुरंत +50 पीस जोड़ें' : 'Add +50 pieces instantly'"
+                    >
+                      <i class="fa-solid fa-plus"></i> 50
+                    </button>
+
+                    <!-- Quick +100 Restock Button -->
+                    <button 
+                      type="button" 
+                      class="btn btn-sm" 
+                      (click)="quickRestock(prod, 100)"
+                      style="background: #059669; color: white; font-weight: 700; font-size: 11.5px; padding: 4px 10px; border-radius: 6px; border: none;"
+                      [title]="lang.isHindi() ? 'तुरंत +100 पीस जोड़ें' : 'Add +100 pieces instantly'"
+                    >
+                      <i class="fa-solid fa-plus"></i> 100
+                    </button>
+
+                    <!-- Custom Restock Dialog Button -->
+                    <button 
+                      type="button" 
+                      class="btn btn-outline btn-sm" 
+                      (click)="openQuickRestockModal(prod)"
+                      style="font-size: 11px; padding: 4px 8px; font-weight: 700;"
+                      [title]="lang.isHindi() ? 'कस्टम मात्रा जोड़ें' : 'Custom Restock'"
+                    >
+                      <i class="fa-solid fa-bolt text-primary"></i> {{ lang.isHindi() ? 'फुल करें' : 'Restock' }}
+                    </button>
+
+                    <!-- Manual Adjust Stock -->
+                    <button 
+                      type="button" 
+                      class="btn btn-outline btn-sm btn-icon" 
+                      (click)="openAdjustModal(prod)"
+                      style="padding: 4px 7px;"
+                      [title]="lang.isHindi() ? 'स्टॉक एडिट / सुधारें' : 'Adjust Stock'"
+                    >
+                      <i class="fa-solid fa-pencil"></i>
+                    </button>
+
+                    <!-- Inter-Branch Stock Transfer Button -->
+                    <button 
+                      *ngIf="otherBranches().length > 0 && prod.quantity > 0"
+                      type="button" 
+                      class="btn btn-outline btn-sm" 
+                      (click)="openTransferModal(prod)"
+                      style="padding: 4px 8px; font-size: 11px; font-weight: 700; border-color: #0284c7; color: #0284c7;"
+                      [title]="lang.isHindi() ? 'दूसरी दुकान / शाखा में माल भेजें' : 'Transfer Stock to Another Branch'"
+                    >
+                      <i class="fa-solid fa-truck-ramp-box"></i> {{ lang.isHindi() ? 'शाखा में भेजें' : 'Transfer' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ⚡ QUICK RESTOCK CUSTOM QUANTITY MODAL -->
+<!-- ========================================== -->
+@if (showQuickRestockModal) {
+  <div class="modal-overlay" (click)="showQuickRestockModal = false">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 440px; border-radius: 14px; overflow: hidden; padding: 0;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 20px;">
+        <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-bolt" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'स्टॉक फुल करें (Restock Product)' : 'Restock Product' }}
+        </h3>
+        <button class="modal-close" (click)="showQuickRestockModal = false" style="color: white;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+          <div style="font-weight: 800; font-size: 14px; color: #0f172a;">{{ restockTargetProduct?.name }}</div>
+          <div class="flex justify-between mt-2" style="font-size: 12.5px; color: #475569;">
+            <span>वर्तमान स्टॉक: <strong style="color: #dc2626;">{{ restockTargetProduct?.quantity }} {{ restockTargetProduct?.unit }}</strong></span>
+            <span>न्यूनतम सीमा: <strong>{{ restockTargetProduct?.minStockLevel }} {{ restockTargetProduct?.unit }}</strong></span>
+          </div>
+        </div>
+
+        <!-- Quick Preset Badges -->
+        <div>
+          <label class="form-label" style="font-weight: 700; margin-bottom: 6px;">{{ lang.isHindi() ? 'क्विक मात्रा चुनें (+ Add Qty):' : 'Select Quantity to Add:' }}</label>
+          <div class="flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-outline" (click)="quickAddQty = 25" [style.background]="quickAddQty === 25 ? '#10b981' : 'white'" [style.color]="quickAddQty === 25 ? 'white' : '#1e293b'">+25</button>
+            <button type="button" class="btn btn-sm btn-outline" (click)="quickAddQty = 50" [style.background]="quickAddQty === 50 ? '#10b981' : 'white'" [style.color]="quickAddQty === 50 ? 'white' : '#1e293b'">+50</button>
+            <button type="button" class="btn btn-sm btn-outline" (click)="quickAddQty = 100" [style.background]="quickAddQty === 100 ? '#10b981' : 'white'" [style.color]="quickAddQty === 100 ? 'white' : '#1e293b'">+100</button>
+            <button type="button" class="btn btn-sm btn-outline" (click)="quickAddQty = 200" [style.background]="quickAddQty === 200 ? '#10b981' : 'white'" [style.color]="quickAddQty === 200 ? 'white' : '#1e293b'">+200</button>
+            <button type="button" class="btn btn-sm btn-outline" (click)="quickAddQty = 500" [style.background]="quickAddQty === 500 ? '#10b981' : 'white'" [style.color]="quickAddQty === 500 ? 'white' : '#1e293b'">+500</button>
+          </div>
+        </div>
+
+        <!-- Custom Input -->
+        <div class="form-group">
+          <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'जोड़ने की मात्रा दर्ज करें (Quantity)' : 'Enter Quantity to Add' }}</label>
+          <input 
+            type="number" 
+            [(ngModel)]="quickAddQty" 
+            class="form-control" 
+            style="font-size: 16px; font-weight: 800; color: #047857;"
+            min="1"
+          >
+          <span style="font-size: 12px; color: #059669; margin-top: 4px; display: block; font-weight: 600;">
+            नया कुल स्टॉक होगा: <strong>{{ (restockTargetProduct?.quantity || 0) + quickAddQty }} {{ restockTargetProduct?.unit }}</strong>
+          </span>
+        </div>
+      </div>
+
+      <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+        <button type="button" class="btn btn-secondary" (click)="showQuickRestockModal = false">
+          {{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          (click)="quickRestock(restockTargetProduct, quickAddQty)"
+          style="background: #10b981; border-color: #10b981; font-weight: 800;"
+        >
+          <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? '+ स्टॉक जोड़ें व फुल करें' : '+ Add Stock Now' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- ✏️ MANUAL STOCK ADJUST MODAL -->
+<!-- ========================================== -->
+@if (showAdjustModal) {
+  <div class="modal-overlay" (click)="showAdjustModal = false">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 440px; border-radius: 14px; overflow: hidden; padding: 0;">
+      <div class="modal-header" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+          <i class="fa-solid fa-arrows-up-down text-primary" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'स्टॉक एडजस्ट करें: ' : 'Adjust Stock: ' }} {{ selectedProduct?.name }}
+        </h3>
+        <button class="modal-close" (click)="showAdjustModal = false">&times;</button>
+      </div>
+      <form [formGroup]="adjustForm" (ngSubmit)="submitAdjustment()">
+        <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'स्टॉक बदलाव मात्रा (Adjustment Quantity)' : 'Adjustment Quantity' }}</label>
+            <input type="number" formControlName="quantity" class="form-control" placeholder="Use negative for reduction (e.g. -5)">
+            <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; display: block;">
+              वर्तमान स्टॉक: <strong>{{ selectedProduct?.quantity }} {{ selectedProduct?.unit }}</strong>
+            </span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'कारण / नोट (Reason)' : 'Reason / Notes' }} <span class="text-danger">*</span></label>
+            <input type="text" formControlName="notes" class="form-control" placeholder="e.g. Audit correction, Damaged stock">
+          </div>
+        </div>
+        <div class="modal-footer flex justify-between items-center" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showAdjustModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 700;">
+            @if (submitting) {
+              <div class="spinner spinner-sm"></div>
+            }
+            {{ lang.isHindi() ? 'एडजस्टमेंट लागू करें' : 'Apply Adjustment' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- 🏢 INTER-BRANCH STOCK TRANSFER MODAL -->
+<!-- ========================================== -->
+@if (showTransferModal()) {
+  <div class="modal-overlay" (click)="showTransferModal.set(false)" style="z-index: 10000;">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 480px; border-radius: 14px; overflow: hidden; padding: 0; background: white; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 16px 20px;">
+        <div>
+          <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: white;">
+            <i class="fa-solid fa-truck-ramp-box" style="margin-right: 6px;"></i>
+            {{ lang.isHindi() ? 'इंटर-ब्रांच स्टॉक ट्रांसफर' : 'Inter-Branch Stock Transfer' }}
+          </h3>
+          <div style="font-size: 12px; color: #e0f2fe; margin-top: 2px;">
+            {{ transferProduct?.name }} (वर्तमान स्टॉक: <strong>{{ transferProduct?.quantity || transferProduct?.stock }} {{ transferProduct?.unit || 'PCS' }}</strong>)
+          </div>
+        </div>
+        <button class="modal-close" (click)="showTransferModal.set(false)" style="color: white; font-size: 20px;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <label class="form-label" style="font-weight: 700; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">
+            {{ lang.isHindi() ? 'किस शाखा में माल भेजना है? (Destination Branch) *' : 'Destination Branch *' }}
+          </label>
+          <select 
+            [ngModel]="transferTargetShopId()" 
+            (ngModelChange)="transferTargetShopId.set($event)"
+            class="form-control" 
+            style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;"
+          >
+            @for (b of otherBranches(); track b._id) {
+              <option [value]="b._id">
+                {{ b.name }} ({{ b.branchCode || 'BR' }} - {{ b.branchName || 'Branch' }})
+              </option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label" style="font-weight: 700; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">
+            {{ lang.isHindi() ? 'ट्रांसफर करने की मात्रा (Quantity to Transfer) *' : 'Transfer Quantity *' }}
+          </label>
+          <div class="flex gap-2 items-center">
+            <input 
+              type="number" 
+              [ngModel]="transferQty()" 
+              (ngModelChange)="transferQty.set($event)"
+              min="1" 
+              [max]="transferProduct?.quantity || transferProduct?.stock || 9999" 
+              class="form-control" 
+              style="width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 700;"
+            />
+            <span style="font-weight: 700; color: #64748b; font-size: 13px;">{{ transferProduct?.unit || 'PCS' }}</span>
+          </div>
+          <span style="font-size: 11.5px; color: #64748b; margin-top: 3px; display: block;">
+            दुकान से <strong>{{ transferQty() }}</strong> पीस कटकर चुनी गई शाखा में स्वतः जुड़ जाएंगे।
+          </span>
+        </div>
+
+        <div>
+          <label class="form-label" style="font-weight: 700; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">
+            {{ lang.isHindi() ? 'रिमार्क्स / नोट (Remarks)' : 'Remarks / Note' }}
+          </label>
+          <input 
+            type="text" 
+            [ngModel]="transferRemarks()" 
+            (ngModelChange)="transferRemarks.set($event)"
+            class="form-control" 
+            placeholder="उदा. Urgent restock demand from branch" 
+            style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;"
+          />
+        </div>
+      </div>
+
+      <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+        <button type="button" class="btn btn-secondary" (click)="showTransferModal.set(false)">
+          {{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}
+        </button>
+        <button 
+          type="button" 
+          (click)="submitTransfer()" 
+          class="btn btn-primary" 
+          [disabled]="transferringStock()"
+          style="background: #0284c7; border-color: #0284c7; font-weight: 800; padding: 8px 20px; display: inline-flex; align-items: center; gap: 6px;"
+        >
+          @if (transferringStock()) {
+            <div class="spinner spinner-sm"></div>
+          } @else {
+            <i class="fa-solid fa-paper-plane"></i>
+          }
+          {{ lang.isHindi() ? 'ट्रांसफर कन्फर्म करें' : 'Confirm Transfer' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

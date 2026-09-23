@@ -1,0 +1,372 @@
+<div class="page-header no-print">
+  <div>
+    <h1 class="page-title">{{ lang.isHindi() ? '🏷️ बारकोड लेबल व स्टिकर प्रिंटर' : '🏷️ Barcode Label & Sticker Studio' }}</h1>
+    <p class="page-subtitle">{{ lang.isHindi() ? 'थर्मल रोल (50×25mm, 38×25mm) व A4 शीट पर कपड़ों, जूतों, किराना व मोबाइल हेतु बारकोड स्टिकर प्रिंट करें।' : 'Design & print barcode price tags on Thermal Sticker Rolls & A4 Sticker Sheets.' }}</p>
+  </div>
+
+  <div class="flex gap-2">
+    <button 
+      type="button" 
+      class="btn btn-primary" 
+      (click)="printLabels()"
+      [disabled]="flattenedStickers().length === 0"
+      style="font-weight: 800; font-size: 14px; padding: 10px 22px; box-shadow: 0 4px 14px rgba(37,99,235,0.35);"
+    >
+      <i class="fa-solid fa-print"></i> 
+      {{ lang.isHindi() ? 'स्टिकर प्रिंट करें (Print ' + totalStickersCount() + ' Labels)' : 'Print ' + totalStickersCount() + ' Labels' }}
+    </button>
+  </div>
+</div>
+
+<div class="barcode-studio-container">
+  
+  <!-- ======================================================== -->
+  <!-- LEFT COLUMN: PRODUCT SELECTION & QUANTITIES             -->
+  <!-- ======================================================== -->
+  <div class="no-print">
+    <!-- Selected Items Card -->
+    <div class="card mb-4" style="border: 2px solid #e2e8f0;">
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 12px 16px;">
+        <div style="font-weight: 800; font-size: 14px; color: #1e293b;">
+          {{ lang.isHindi() ? 'प्रिंट लिस्ट (' + selectedItems().length + ' प्रोडक्ट्स)' : 'Print List (' + selectedItems().length + ' Products)' }}
+        </div>
+        <button 
+          *ngIf="selectedItems().length > 0"
+          type="button" 
+          class="btn btn-danger btn-xs" 
+          (click)="clearAll()"
+        >
+          {{ lang.isHindi() ? 'सब हटाएं' : 'Clear' }}
+        </button>
+      </div>
+
+      <div class="card-body p-2" style="max-height: 280px; overflow-y: auto;">
+        @if (selectedItems().length === 0) {
+          <div class="text-center p-4 text-muted" style="font-size: 13px;">
+            <i class="fa-solid fa-tags" style="font-size: 28px; margin-bottom: 6px; color: #cbd5e1;"></i>
+            <div>{{ lang.isHindi() ? 'नीचे सूची में से प्रोडक्ट चुनें' : 'Select products from the list below' }}</div>
+          </div>
+        } @else {
+          @for (item of selectedItems(); track item.product._id; let i = $index) {
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; background: #ffffff; border-radius: 8px; margin-bottom: 4px;">
+              <div style="flex: 1; overflow: hidden; margin-right: 8px;">
+                <div style="font-size: 12.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ item.product.name }}
+                </div>
+                <div style="font-size: 11px; color: #64748b; font-family: monospace;">
+                  ₹{{ item.product.sellingPrice }} | {{ item.product.barcode || 'NO-BARCODE' }}
+                </div>
+              </div>
+
+              <!-- Quantity Input -->
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="500" 
+                  [(ngModel)]="item.quantity" 
+                  style="width: 54px; padding: 4px 6px; border: 1.5px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: 800; font-size: 12px;"
+                  title="Number of labels"
+                />
+                <button 
+                  type="button" 
+                  (click)="removeItem(i)"
+                  style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px;"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Product Picker from Inventory Card -->
+    <div class="card product-picker-card">
+      <div class="card-header flex justify-between items-center" style="padding: 12px 16px;">
+        <div style="font-weight: 800; font-size: 13.5px;">
+          {{ lang.isHindi() ? 'इन्वेंट्री से जोड़ें' : 'Add from Inventory' }}
+        </div>
+        <button type="button" class="btn btn-outline btn-xs" (click)="addAllProducts()">
+          {{ lang.isHindi() ? 'सभी जोड़ें' : 'Add All' }}
+        </button>
+      </div>
+
+      <div class="p-2" style="border-bottom: 1px solid #f1f5f9;">
+        <input 
+          type="text" 
+          class="form-control" 
+          [placeholder]="lang.isHindi() ? '🔍 नाम या बारकोड खोजें...' : '🔍 Search product or barcode...'"
+          [(ngModel)]="searchTerm"
+          style="font-size: 12.5px; padding: 7px 10px;"
+        />
+      </div>
+
+      <div class="product-scroll-list">
+        @if (loading()) {
+          <div class="p-4 text-center text-muted">Loading...</div>
+        } @else if (filteredProducts().length === 0) {
+          <div class="p-4 text-center text-muted" style="font-size: 12.5px;">कोई प्रोडक्ट नहीं मिला।</div>
+        } @else {
+          @for (prod of filteredProducts(); track prod._id) {
+            <div class="product-pick-item">
+              <div style="flex: 1; overflow: hidden; margin-right: 8px;">
+                <div style="font-size: 12.5px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ prod.name }}
+                </div>
+                <div style="font-size: 11px; color: #64748b;">
+                  Rate: <strong>₹{{ prod.sellingPrice }}</strong> (MRP: ₹{{ prod.mrp || prod.sellingPrice }})
+                  <span *ngIf="prod.size" class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 9.5px; padding: 2px 4px; margin-left: 4px;">{{ prod.size }}</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <button 
+                  type="button" 
+                  class="btn btn-outline btn-xs" 
+                  (click)="testGoogleLens(prod, $event)"
+                  title="Google Lens वेब पेज टेस्ट करें"
+                  style="font-size: 10px; padding: 3px 6px; color: #4338ca; border-color: #c7d2fe;"
+                >
+                  <i class="fa-solid fa-qrcode"></i> Lens
+                </button>
+                <button 
+                  type="button" 
+                  class="btn btn-primary btn-xs" 
+                  (click)="addToPrint(prod)"
+                  style="font-weight: 800; padding: 4px 10px;"
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- RIGHT COLUMN: LABEL CONFIGURATION & LIVE PRINT PREVIEW   -->
+  <!-- ======================================================== -->
+  <div>
+    <!-- Label Format & Toggles Control Bar (No Print) -->
+    <div class="card mb-3 no-print" style="padding: 14px 18px; border: 1.5px solid #cbd5e1; background: #ffffff;">
+      
+      <!-- Top Row: Mode & Size Selector -->
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;">
+        
+        <!-- Sticker Type Selector -->
+        <div class="flex items-center gap-2">
+          <label style="font-size: 13px; font-weight: 800; color: #1e293b; margin: 0;">
+            <i class="fa-solid fa-camera text-primary"></i> {{ lang.isHindi() ? 'स्टिकर प्रकार:' : 'Sticker Type:' }}
+          </label>
+          <select class="form-control" style="width: auto; font-weight: 800; font-size: 13px; padding: 6px 12px; background: #f0fdf4; border-color: #86efac; color: #166534;" [(ngModel)]="stickerMode">
+            <option value="HYBRID">🔥 Hybrid (Barcode + Google Lens QR)</option>
+            <option value="LENS_QR">🔍 Google Lens Smart QR Code</option>
+            <option value="BARCODE_1D">🏷️ 1D Barcode (Laser Gun Only)</option>
+          </select>
+        </div>
+
+        <!-- Sticker Format Selector -->
+        <div class="flex items-center gap-2">
+          <label style="font-size: 12.5px; font-weight: 800; color: #334155; margin: 0;">
+            {{ lang.isHindi() ? 'रोल / शीट साइज़:' : 'Paper Size:' }}
+          </label>
+          <select class="form-control" style="width: auto; font-weight: 700; font-size: 13px; padding: 6px 12px;" [(ngModel)]="labelSize">
+            <option value="50x25">50 × 25 mm (Standard Thermal Roll)</option>
+            <option value="38x25">38 × 25 mm (Compact Thermal Roll)</option>
+            <option value="a4_24">A4 Sheet (24 Stickers / Page)</option>
+          </select>
+        </div>
+
+        <!-- Custom Shop Name -->
+        <div class="flex items-center gap-2">
+          <label style="font-size: 12.5px; font-weight: 700; margin: 0;">Shop Title:</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [(ngModel)]="customShopName" 
+            style="width: 150px; font-size: 12px; padding: 5px 8px;"
+            placeholder="Shop Title"
+          />
+        </div>
+      </div>
+
+      <!-- Google Lens Info Banner -->
+      <div *ngIf="stickerMode() !== 'BARCODE_1D'" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 11.5px; color: #1e40af;">
+        <div class="flex items-center gap-2">
+          <span style="font-size: 15px;">📲</span>
+          <span><strong>Google Lens Ready:</strong> कोई भी ग्राहक या स्टाफ मोबाइल कैमरे या Google Lens से स्कैन करेगा तो सीधे प्रोडक्ट का नाम, फोटो, कीमत व स्टॉक खुल जाएगा।</span>
+        </div>
+        <span class="badge" style="background: #2563eb; color: white; font-size: 10px; font-weight: 800; padding: 3px 8px;">100% Mobile Ready</span>
+      </div>
+
+      <!-- Toggle checkboxes -->
+      <div style="display: flex; gap: 16px; font-size: 12px; font-weight: 700; color: #475569; flex-wrap: wrap;">
+        <label class="flex items-center gap-1 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="showShopName" /> Shop Name
+        </label>
+        <label class="flex items-center gap-1 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="showProductName" /> Product Name
+        </label>
+        <label class="flex items-center gap-1 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="showMrp" /> MRP (Strike)
+        </label>
+        <label class="flex items-center gap-1 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="showOurPrice" /> Our Price
+        </label>
+        <label class="flex items-center gap-1 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="showVariant" /> Size / Color
+        </label>
+      </div>
+    </div>
+
+    <!-- Live Preview Sheet / Printable Area -->
+    <div class="preview-sheet-wrapper print-area">
+      
+      @if (flattenedStickers().length === 0) {
+        <div class="text-center p-5 text-muted no-print" style="margin: auto;">
+          <i class="fa-solid fa-qrcode" style="font-size: 48px; color: #94a3b8; margin-bottom: 12px;"></i>
+          <h3 style="font-size: 16px; font-weight: 700; color: #475569;">
+            {{ lang.isHindi() ? 'लाइव बारकोड व Google Lens QR प्रीव्यू' : 'Live Barcode & Google Lens QR Preview' }}
+          </h3>
+          <p style="font-size: 13px; color: #64748b;">
+            {{ lang.isHindi() ? 'बाईं तरफ से प्रोडक्ट जोड़ें और स्टिकर की संख्या दर्ज करें।' : 'Add products from the left to preview and print labels.' }}
+          </p>
+        </div>
+      } @else {
+
+        <!-- 50x25 mm Stickers Grid -->
+        @if (labelSize() === '50x25') {
+          <div class="stickers-grid-50x25">
+            @for (prod of flattenedStickers(); track $index) {
+              <div class="sticker-50x25">
+                <div class="sticker-shop-name" *ngIf="showShopName()">{{ customShopName() }}</div>
+                <div class="sticker-product-name" *ngIf="showProductName()">{{ prod.name }}</div>
+
+                <!-- HYBRID MODE (QR + Barcode together) -->
+                <div *ngIf="stickerMode() === 'HYBRID'" style="display: flex; align-items: center; justify-content: space-between; gap: 2mm; margin: 0.5mm 0; height: 11mm;">
+                  <!-- QR -->
+                  <div style="width: 11mm; height: 11mm; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img [src]="getQrCode(prod)" alt="Lens QR" style="width: 10.5mm; height: 10.5mm; display: block;" />
+                  </div>
+                  <!-- 1D Barcode & Prices -->
+                  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: hidden; text-align: right;">
+                    <img [src]="getBarcodeUrl(prod.barcode || prod._id)" alt="Barcode" style="height: 5.5mm; width: 100%; object-fit: fill; display: block;" />
+                    <div style="font-family: monospace; font-size: 5.5pt; font-weight: 800; color: #000; letter-spacing: 0.5px; line-height: 1;">
+                      {{ prod.barcode || prod._id }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- LENS QR ONLY MODE -->
+                <div *ngIf="stickerMode() === 'LENS_QR'" style="display: flex; align-items: center; justify-content: center; gap: 3mm; margin: 0.5mm 0;">
+                  <img [src]="getQrCode(prod)" alt="Lens QR" style="width: 11.5mm; height: 11.5mm; display: block;" />
+                  <div style="text-align: left; font-size: 5.5pt; color: #334155; line-height: 1.1;">
+                    <strong style="display: block; font-size: 6pt; color: #000;">Google Lens QR</strong>
+                    <span>Scan for Info</span>
+                  </div>
+                </div>
+
+                <!-- BARCODE 1D ONLY MODE -->
+                <div *ngIf="stickerMode() === 'BARCODE_1D'" class="sticker-barcode-box">
+                  <img [src]="getBarcodeUrl(prod.barcode || prod._id)" alt="Barcode" class="sticker-barcode-img" />
+                </div>
+
+                <div class="sticker-price-row">
+                  <span class="sticker-mrp" *ngIf="showMrp() && prod.mrp && prod.mrp > prod.sellingPrice">MRP: ₹{{ prod.mrp }}</span>
+                  <span *ngIf="showVariant() && (prod.size || prod.color)" style="font-size: 6.5pt; color: #334155;">{{ prod.size || prod.color }}</span>
+                  <span class="sticker-our-price" *ngIf="showOurPrice()">₹{{ prod.sellingPrice }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- 38x25 mm Stickers Grid -->
+        @if (labelSize() === '38x25') {
+          <div class="stickers-grid-38x25">
+            @for (prod of flattenedStickers(); track $index) {
+              <div class="sticker-38x25">
+                <div class="sticker-shop-name" *ngIf="showShopName()">{{ customShopName() }}</div>
+                <div class="sticker-product-name" *ngIf="showProductName()">{{ prod.name }}</div>
+
+                <!-- HYBRID MODE -->
+                <div *ngIf="stickerMode() === 'HYBRID'" style="display: flex; align-items: center; justify-content: space-between; gap: 1.5mm; margin: 0.5mm 0; height: 10mm;">
+                  <img [src]="getQrCode(prod)" alt="Lens QR" style="width: 9.5mm; height: 9.5mm; display: block; flex-shrink: 0;" />
+                  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: hidden; text-align: right;">
+                    <img [src]="getBarcodeUrl(prod.barcode || prod._id)" alt="Barcode" style="height: 5mm; width: 100%; object-fit: fill; display: block;" />
+                    <div style="font-family: monospace; font-size: 5pt; font-weight: 800; line-height: 1;">{{ prod.barcode || prod._id }}</div>
+                  </div>
+                </div>
+
+                <!-- LENS QR ONLY -->
+                <div *ngIf="stickerMode() === 'LENS_QR'" style="display: flex; align-items: center; justify-content: center; margin: 0.5mm 0;">
+                  <img [src]="getQrCode(prod)" alt="Lens QR" style="width: 10.5mm; height: 10.5mm; display: block;" />
+                </div>
+
+                <!-- BARCODE 1D ONLY -->
+                <div *ngIf="stickerMode() === 'BARCODE_1D'" class="sticker-barcode-box">
+                  <img [src]="getBarcodeUrl(prod.barcode || prod._id)" alt="Barcode" class="sticker-barcode-img" style="height: 8mm;" />
+                </div>
+
+                <div class="sticker-price-row">
+                  <span class="sticker-mrp" *ngIf="showMrp() && prod.mrp">₹{{ prod.mrp }}</span>
+                  <span class="sticker-our-price" *ngIf="showOurPrice()">₹{{ prod.sellingPrice }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- A4 Sheet (24 labels per sheet) -->
+        @if (labelSize() === 'a4_24') {
+          <div class="stickers-grid-a4_24">
+            @for (prod of flattenedStickers(); track $index) {
+              <div class="sticker-a4_24">
+                <div class="sticker-shop-name" *ngIf="showShopName()" style="font-size: 9pt;">{{ customShopName() }}</div>
+                <div class="sticker-product-name" *ngIf="showProductName()" style="font-size: 8.5pt;">{{ prod.name }}</div>
+
+                <!-- HYBRID MODE -->
+                <div *ngIf="stickerMode() === 'HYBRID'" style="display: flex; align-items: center; justify-content: space-between; gap: 3mm; margin: 1mm 0;">
+                  <div style="display: flex; flex-direction: column; align-items: center;">
+                    <img [src]="getQrCode(prod)" alt="Lens QR" style="width: 13mm; height: 13mm; display: block;" />
+                    <span style="font-size: 5pt; font-weight: 800; margin-top: 0.5mm;">Lens QR</span>
+                  </div>
+                  <div style="flex: 1; text-align: right;">
+                    <img [src]="getBarcodeUrl(prod.barcode || prod._id)" alt="Barcode" style="height: 8mm; width: 100%; object-fit: fill;" />
+                    <div style="font-family: monospace; font-size: 6.5pt; font-weight: 800;">{{ prod.barcode || prod._id }}</div>
+                  </div>
+                </div>
+
+                <!-- LENS QR ONLY -->
+                <div *ngIf="stickerMode() === 'LENS_QR'" style="display: flex; align-items: center; justify-content: center; gap: 3mm; margin: 1mm 0;">
+                  <img [src]="getQrCode(prod)" alt="Lens QR" style="width: 14mm; height: 14mm; display: block;" />
+                  <div style="text-align: left; font-size: 7pt; color: #334155;">
+                    <strong style="display: block; font-size: 8pt; color: #000;">Google Lens QR</strong>
+                    <span>Scan with mobile camera</span>
+                  </div>
+                </div>
+
+                <!-- BARCODE 1D ONLY -->
+                <div *ngIf="stickerMode() === 'BARCODE_1D'" class="sticker-barcode-box">
+                  <img [src]="getBarcodeUrl(prod.barcode || prod._id)" alt="Barcode" class="sticker-barcode-img" style="height: 12mm;" />
+                </div>
+
+                <div class="sticker-price-row" style="font-size: 8.5pt;">
+                  <span class="sticker-mrp" *ngIf="showMrp() && prod.mrp && prod.mrp > prod.sellingPrice">MRP: ₹{{ prod.mrp }}</span>
+                  <span *ngIf="showVariant() && (prod.size || prod.color)">{{ prod.size || prod.color }}</span>
+                  <span class="sticker-our-price" *ngIf="showOurPrice()" style="font-size: 10.5pt;">₹{{ prod.sellingPrice }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+      }
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,397 @@
+<div class="admin-page-container">
+  <!-- Page Header -->
+  <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-gears text-primary"></i>
+        <span>{{ lang.isHindi() ? 'सिस्टम व प्लेटफॉर्म सेटिंग्स (System Settings)' : 'System & Platform Configuration' }}</span>
+      </h1>
+      <p style="font-size: 13px; color: #64748b; margin: 3px 0 0 0;">
+        {{ lang.isHindi() ? 'एप्लिकेशन नाम, सपोर्ट नंबर, Razorpay पेमेंट गेटवे व WhatsApp सेटिंग्स कॉन्फ़िगर करें।' : 'Configure app branding, support contacts, Razorpay credentials, and WhatsApp gateway.' }}
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-between items-center" style="min-height: 250px; width: 100%;">
+      <div class="spinner" style="margin: 0 auto;"></div>
+    </div>
+  } @else {
+    <form [formGroup]="settingsForm" (ngSubmit)="onSubmit()">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px;">
+        
+        <!-- 1. App Branding & Support Contacts -->
+        <div class="card" style="border-radius: 12px; padding: 20px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-palette text-primary"></i>
+            {{ lang.isHindi() ? 'ब्रांडिंग व सपोर्ट जानकारी' : 'Platform Branding & Support' }}
+          </h3>
+
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सॉफ़्टवेयर का नाम' : 'Application Name' }} <span class="text-danger">*</span></label>
+            <input type="text" formControlName="appName" class="form-control">
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'टैगलाइन / सबटाइटल' : 'Platform Tagline' }}</label>
+            <input type="text" formControlName="tagline" class="form-control">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="mb-3">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सपोर्ट फ़ोन' : 'Support Phone' }}</label>
+              <input type="text" formControlName="supportPhone" class="form-control">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सपोर्ट व्हाट्सएप' : 'Support WhatsApp' }}</label>
+              <input type="text" formControlName="supportWhatsApp" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सपोर्ट ईमेल' : 'Support Email' }}</label>
+            <input type="email" formControlName="supportEmail" class="form-control">
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'डिफ़ॉल्ट फ्री ट्रायल दिन (Default Free Trial Days)' : 'Default Free Trial Days' }}</label>
+            <input type="number" formControlName="defaultTrialDays" class="form-control" min="1" max="30">
+          </div>
+        </div>
+
+        <!-- 2. Razorpay & Online Payment Gateway -->
+        <div class="card" style="border-radius: 12px; padding: 20px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-credit-card text-success"></i>
+            {{ lang.isHindi() ? 'पेमेंट गेटवे (Razorpay Credentials)' : 'Razorpay Payment Gateway' }}
+          </h3>
+
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 700;">Razorpay Key ID</label>
+            <input type="text" formControlName="razorpayKeyId" class="form-control" placeholder="rzp_live_...">
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 700;">Razorpay Key Secret</label>
+            <input type="password" formControlName="razorpayKeySecret" class="form-control">
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 700;">Master UPI VPA ID</label>
+            <input type="text" formControlName="upiQrVpa" class="form-control" placeholder="mksbilling@upi">
+          </div>
+
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #065f46;">
+            <i class="fa-solid fa-circle-check"></i>
+            {{ lang.isHindi() ? 'दुकानदार जब ऑनलाइन पेमेंट से सब्सक्रिप्शन अपग्रेड करेंगे, तो पेमेंट आपके इस Razorpay खाते में जमा होगा।' : 'Shopkeeper subscription renewals via UPI/Cards will credit to this Razorpay master account.' }}
+          </div>
+        </div>
+
+        <!-- 3. Platform Invoice & GST Configuration -->
+        <div class="card" style="border-radius: 12px; padding: 20px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-invoice text-indigo"></i>
+            {{ lang.isHindi() ? 'बिल व GST डिफ़ॉल्ट सेटिंग्स' : 'Invoice & GST Defaults' }}
+          </h3>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="mb-3">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'डिफ़ॉल्ट बिल प्रीफ़िक्स' : 'Invoice Prefix' }}</label>
+              <input type="text" formControlName="defaultInvoicePrefix" class="form-control" placeholder="e.g. INV">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'डिफ़ॉल्ट GST दर (%)' : 'Default GST (%)' }}</label>
+              <input type="number" formControlName="defaultGSTRate" class="form-control" placeholder="18">
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'बिल फ़ुटर संदेश / शर्तें' : 'Invoice Footer / Terms' }}</label>
+            <input type="text" formControlName="termsAndConditions" class="form-control">
+          </div>
+
+          <div class="flex items-center gap-2 mt-2">
+            <input type="checkbox" formControlName="enableGstBilling" id="enableGstBilling" style="width: 16px; height: 16px;">
+            <label for="enableGstBilling" style="font-size: 13px; font-weight: 700; color: #334155; cursor: pointer;">
+              {{ lang.isHindi() ? 'नए पंजीकृत स्टोरों के लिए GST इनवॉइसिंग डिफ़ॉल्ट सक्षम रखें' : 'Enable GST Billing for new stores by default' }}
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Notifications & SMS/WhatsApp Gateway -->
+        <div class="card" style="border-radius: 12px; padding: 20px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-bell text-warning"></i>
+            {{ lang.isHindi() ? 'सूचनाएं व बैकअप गेटवे' : 'Notifications & Automation' }}
+          </h3>
+
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'WhatsApp प्रोवाइडर' : 'WhatsApp Provider' }}</label>
+            <select formControlName="whatsAppProvider" class="form-control">
+              <option value="DIRECT_WEB">WhatsApp Web / Direct API (No Third-Party Cost)</option>
+              <option value="META_CLOUD">Meta WhatsApp Cloud API</option>
+              <option value="TWILIO">Twilio Gateway</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2 mb-3">
+            <input type="checkbox" formControlName="enableSmsNotifications" id="enableSmsNotifications" style="width: 16px; height: 16px;">
+            <label for="enableSmsNotifications" style="font-size: 13px; font-weight: 700; color: #334155; cursor: pointer;">
+              {{ lang.isHindi() ? 'दैनिक बिल SMS सूचनाएं सक्षम करें' : 'Enable SMS Invoicing Alerts' }}
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input type="checkbox" formControlName="enableDailyBackup" id="enableDailyBackup" style="width: 16px; height: 16px;">
+            <label for="enableDailyBackup" style="font-size: 13px; font-weight: 700; color: #334155; cursor: pointer;">
+              {{ lang.isHindi() ? 'स्वचालित दैनिक डेटाबेस बैकअप सक्षम रखें' : 'Automated Daily Database Backups' }}
+            </label>
+          </div>
+        </div>
+
+        <!-- 5. Face Lock & Biometric Security Card -->
+        <div class="card" style="border-radius: 12px; padding: 20px; background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%); border: 1px solid #bae6fd;">
+          <div class="flex justify-between items-center mb-3">
+            <h3 style="font-size: 15px; font-weight: 800; color: #0369a1; margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-face-viewfinder text-primary"></i>
+              {{ lang.isHindi() ? 'फेस लॉक व बायोमेट्रिक सुरक्षा' : 'Face ID & Biometric Security' }}
+            </h3>
+            <span *ngIf="faceService.faceStatus().hasFaceRegistered" class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 800; border-radius: 20px; padding: 4px 10px;">
+              <i class="fa-solid fa-shield-check" style="margin-right: 4px;"></i> {{ lang.isHindi() ? 'सक्रिय (Active)' : 'Enrolled & Active' }}
+            </span>
+            <span *ngIf="!faceService.faceStatus().hasFaceRegistered" class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 800; border-radius: 20px; padding: 4px 10px;">
+              {{ lang.isHindi() ? 'रजिस्टर नहीं है' : 'Not Enrolled' }}
+            </span>
+          </div>
+
+          <p style="font-size: 12.5px; color: #475569; margin: 0 0 16px 0; line-height: 1.5;">
+            {{ lang.isHindi() ? 'वेबकैम के जरिए फेस स्कैन करके एडमिन कंसोल व लॉगिन को बिना पासवर्ड 1 सेकंड में सुरक्षित अनलॉक करें।' : 'Unlock admin console and sign in within 1 second using camera facial biometric recognition.' }}
+          </p>
+
+          <!-- Face Preview & Quick Actions -->
+          <div class="flex items-center gap-3 p-3 mb-3" style="background: rgba(255,255,255,0.8); border: 1px solid #e0f2fe; border-radius: 12px;">
+            <div style="width: 52px; height: 52px; border-radius: 50%; background: #0284c7; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #38bdf8; box-shadow: 0 4px 10px rgba(2,132,199,0.25);">
+              <img *ngIf="faceService.faceStatus().faceThumbnail" [src]="faceService.faceStatus().faceThumbnail" alt="Admin Face" style="width: 100%; height: 100%; object-fit: cover;" />
+              <span *ngIf="!faceService.faceStatus().faceThumbnail" style="font-size: 22px;">👤</span>
+            </div>
+
+            <div style="flex: 1;">
+              <div style="font-weight: 700; font-size: 13.5px; color: #0f172a;">
+                {{ faceService.faceStatus().userName || 'Super Admin' }}
+              </div>
+              <div style="font-size: 11.5px; color: #64748b;">
+                {{ faceService.faceStatus().hasFaceRegistered ? (lang.isHindi() ? 'बायोमेट्रिक डेटा सुरक्षित सेव है' : 'Face Biometric Profile Linked') : (lang.isHindi() ? 'कोई चेहरा लिंक नहीं है' : 'No face enrolled yet') }}
+              </div>
+            </div>
+
+            <!-- Enable/Disable Switch -->
+            <label class="flex items-center gap-2" style="cursor: pointer;" title="Enable/Disable Face Lock">
+              <input 
+                type="checkbox" 
+                [checked]="faceService.faceStatus().faceLockEnabled" 
+                (change)="toggleFaceLockSwitch($event)"
+                style="width: 18px; height: 18px; accent-color: #0284c7;"
+              />
+              <span style="font-size: 12px; font-weight: 700; color: #0369a1;">
+                {{ faceService.faceStatus().faceLockEnabled ? (lang.isHindi() ? 'चालू' : 'ON') : (lang.isHindi() ? 'बंद' : 'OFF') }}
+              </span>
+            </label>
+          </div>
+
+          <div class="flex gap-2 flex-wrap">
+            <button 
+              type="button" 
+              class="btn btn-sm btn-primary" 
+              (click)="showFaceEnrollModal.set(true)"
+              style="font-weight: 700; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;"
+            >
+              <i class="fa-solid fa-camera"></i>
+              <span>{{ faceService.faceStatus().hasFaceRegistered ? (lang.isHindi() ? 'कैमरे से स्कैन करें' : 'Camera 3D Scan') : (lang.isHindi() ? 'कैमरे से रजिस्टर करें' : 'Enroll via Camera') }}</span>
+            </button>
+
+            <!-- Upload Photo to Register Face -->
+            <input 
+              #photoFileInput 
+              type="file" 
+              accept="image/*" 
+              style="display: none;" 
+              (change)="onFacePhotoUploaded($event)"
+            />
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              (click)="photoFileInput.click()"
+              style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 700; font-size: 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;"
+            >
+              <i class="fa-solid fa-image"></i>
+              <span>{{ lang.isHindi() ? '🖼️ फोटो अपलोड करके रजिस्टर करें' : '🖼️ Upload Face Photo' }}</span>
+            </button>
+
+            <button 
+              *ngIf="faceService.faceStatus().hasFaceRegistered"
+              type="button" 
+              class="btn btn-sm btn-outline" 
+              (click)="showFaceTestModal.set(true)"
+              style="font-weight: 700; font-size: 12px; border-radius: 8px; border-color: #0284c7; color: #0284c7; display: inline-flex; align-items: center; gap: 6px;"
+            >
+              <i class="fa-solid fa-check-double"></i>
+              <span>{{ lang.isHindi() ? 'टेस्ट फेस अनलॉक' : 'Test Face Unlock' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 6. 🛡️ Ultra-Secure Admin Master PIN & Emergency Recovery Key -->
+        <div class="card" style="border-radius: 12px; padding: 20px; border: 2px solid #6366f1; background: linear-gradient(to bottom, #ffffff, #f8fafc); grid-column: 1 / -1;">
+          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+            <div>
+              <h3 style="font-size: 16px; font-weight: 800; color: #1e1b4b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-shield-halved text-primary" style="font-size: 20px;"></i>
+                <span>{{ lang.isHindi() ? '6-अंकों का मास्टर सिक्योरिटी पिन व इमरजेंसी रिकवरी की' : '6-Digit Master Security PIN & Emergency Recovery' }}</span>
+              </h3>
+              <p style="font-size: 12px; color: #64748b; margin: 3px 0 0 0;">
+                {{ lang.isHindi() ? 'यह 6-अंकों का पिन एडमिन कंसोल खोलने, दुकान ब्लॉक/डिलीट करने पर मांगा जाएगा। गलत 3 प्रयासों पर 3 मिनट का लॉक लग जाएगा।' : 'This 6-digit PIN protects Admin Console access and sensitive operations with a randomized anti-peep keypad.' }}
+              </p>
+            </div>
+
+            <!-- Lock Console Now Button -->
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              (click)="adminSecurity.lockSession()"
+              style="background: #1e1b4b; color: white; font-weight: 700; font-size: 11.5px; border-radius: 6px; padding: 6px 14px;"
+            >
+              <i class="fa-solid fa-lock" style="margin-right: 4px;"></i>
+              {{ lang.isHindi() ? '🔒 अभी लॉक करें (Lock Console)' : '🔒 Lock Console Now' }}
+            </button>
+          </div>
+
+          <!-- Status Indicator -->
+          <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-circle-check text-success" style="font-size: 16px;"></i>
+              <span style="font-size: 12.5px; font-weight: 700; color: #3730a3;">
+                {{ adminSecurityStatus()?.isPinConfigured ? (lang.isHindi() ? 'मास्टर सिक्योरिटी पिन सक्रिय है' : 'Master PIN is Active & Protecting Console') : (lang.isHindi() ? 'डिफ़ॉल्ट पिन सेट है (889900)' : 'Default PIN Active (889900)') }}
+              </span>
+            </div>
+            <span class="badge badge-success" style="font-size: 11px; padding: 4px 10px;">
+              🛡️ Anti-Brute Force Active (3 Attempts Max)
+            </span>
+          </div>
+
+          <!-- Change PIN Form -->
+          <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px;">
+            <h4 style="font-size: 13.5px; font-weight: 800; color: #0f172a; margin: 0 0 12px 0;">
+              <i class="fa-solid fa-key" style="margin-right: 4px; color: #4f46e5;"></i>
+              {{ lang.isHindi() ? 'मास्टर सिक्योरिटी पिन बदलें (Change PIN)' : 'Update Master Security PIN' }}
+            </h4>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;" class="mb-3">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 11.5px; font-weight: 700;">नया 6-डिजिट पिन (New 6-Digit PIN)</label>
+                <input 
+                  type="password" 
+                  maxlength="6" 
+                  class="form-control" 
+                  [(ngModel)]="newMasterPin" 
+                  [ngModelOptions]="{standalone: true}"
+                  placeholder="e.g. 984210"
+                >
+              </div>
+
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 11.5px; font-weight: 700;">नया पिन दोबारा डालें (Confirm PIN)</label>
+                <input 
+                  type="password" 
+                  maxlength="6" 
+                  class="form-control" 
+                  [(ngModel)]="confirmMasterPin" 
+                  [ngModelOptions]="{standalone: true}"
+                  placeholder="Re-enter 6-Digit PIN"
+                >
+              </div>
+
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 11.5px; font-weight: 700;">वर्तमान एडमिन पासवर्ड (वैकल्पिक / Optional)</label>
+                <input 
+                  type="password" 
+                  class="form-control" 
+                  [(ngModel)]="currentAdminPassword" 
+                  [ngModelOptions]="{standalone: true}"
+                  placeholder="खाली छोड़ सकते हैं"
+                >
+              </div>
+            </div>
+
+            <button 
+              type="button" 
+              class="btn btn-primary btn-sm" 
+              (click)="updateMasterPin()"
+              [disabled]="isPinUpdating()"
+              style="font-weight: 700; font-size: 12.5px; padding: 6px 16px;"
+            >
+              @if (isPinUpdating()) {
+                <div class="spinner spinner-sm"></div> अपडेट हो रहा है...
+              } @else {
+                <i class="fa-solid fa-lock"></i> नया मास्टर पिन सुरक्षित करें
+              }
+            </button>
+          </div>
+
+          <!-- Generated Recovery Key Display -->
+          @if (generatedRecoveryKey()) {
+            <div style="margin-top: 16px; background: #fffbeb; border: 1.5px dashed #f59e0b; border-radius: 10px; padding: 14px;">
+              <div class="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                  <div style="font-size: 12px; font-weight: 800; color: #b45309;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> आपकी 16-अक्षरों की इमरजेंसी मास्टर रिकवरी की (Emergency Key):
+                  </div>
+                  <div style="font-size: 18px; font-weight: 900; color: #78350f; font-family: monospace; letter-spacing: 1px; margin-top: 4px;">
+                    {{ generatedRecoveryKey() }}
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  class="btn btn-sm btn-warning" 
+                  (click)="copyRecoveryKey()"
+                  style="font-weight: 800; font-size: 12px;"
+                >
+                  <i class="fa-solid fa-copy"></i> कॉपी करें (Copy Key)
+                </button>
+              </div>
+              <p style="font-size: 11px; color: #92400e; margin: 6px 0 0 0;">
+                ⚠️ कृपया इसे सुरक्षित डायरी या पासवर्ड मैनेजर में लिख लें। पिन भूलने पर इसके बिना एडमिन अनलॉक नहीं होगा।
+              </p>
+            </div>
+          }
+
+        </div>
+
+      </div>
+
+      <div class="card mt-4" style="border-radius: 12px; padding: 16px 20px; display: flex; justify-content: flex-end;">
+        <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 800; padding: 10px 24px; font-size: 14px;">
+          <i class="fa-solid fa-check" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'सभी सेटिंग्स सुरक्षित करें' : 'Save System Settings' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>
+
+<!-- Face Enrollment Modal -->
+@if (showFaceEnrollModal()) {
+  <app-face-lock-modal 
+    mode="ENROLL"
+    (closed)="showFaceEnrollModal.set(false)"
+    (enrolled)="onFaceEnrolled($event)"
+  ></app-face-lock-modal>
+}
+
+<!-- Face Test Modal -->
+@if (showFaceTestModal()) {
+  <app-face-lock-modal 
+    mode="UNLOCK"
+    (closed)="showFaceTestModal.set(false)"
+    (unlocked)="onFaceTested($event)"
+  ></app-face-lock-modal>
+}

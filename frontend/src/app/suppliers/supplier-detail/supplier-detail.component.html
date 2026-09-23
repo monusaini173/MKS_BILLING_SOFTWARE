@@ -1,0 +1,589 @@
+<div class="page-header no-print flex justify-between items-center flex-wrap gap-3">
+  <div>
+    <div class="flex items-center gap-2">
+      <a routerLink="/suppliers" class="btn btn-outline btn-sm" style="font-weight: 700;">
+        <i class="fa-solid fa-arrow-left"></i> {{ lang.isHindi() ? 'वापस' : 'Back' }}
+      </a>
+      <h1 class="page-title" style="margin: 0;">
+        {{ supplier()?.companyName || supplier()?.name }}
+      </h1>
+      <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 11.5px;">
+        {{ supplier()?.supplierType || 'Wholesaler' }}
+      </span>
+    </div>
+    <p class="page-subtitle" style="margin-top: 4px;">
+      {{ lang.isHindi() ? 'सप्लायर लेजर खाता, खरीद बिल और भुगतान का संपूर्ण विवरण।' : 'Comprehensive supplier procurement ledger, invoices, and payments.' }}
+    </p>
+  </div>
+
+  <div class="page-actions flex gap-2 flex-wrap items-center">
+    <button class="btn btn-outline" (click)="printLedger()" style="font-weight: 700;">
+      <i class="fa-solid fa-print"></i> {{ lang.isHindi() ? 'लेजर प्रिंट करें' : 'Print Statement' }}
+    </button>
+    <button class="btn btn-sm" (click)="openDueModal()" style="font-weight: 700; background: #dc2626; color: white; border: none; padding: 7px 14px; border-radius: 8px;">
+      <i class="fa-solid fa-plus-circle"></i> {{ lang.isHindi() ? '+ बकाया जोड़ें' : '+ Add Due' }}
+    </button>
+    <a routerLink="/billing" class="btn btn-secondary" style="font-weight: 700;">
+      <i class="fa-solid fa-cart-plus"></i> {{ lang.isHindi() ? '+ नया खरीद बिल दर्ज करें' : '+ Inward Purchase' }}
+    </a>
+    @if ((supplier()?.pendingAmount || 0) > 0) {
+      <button class="btn btn-success" (click)="openPaymentModal()" style="font-weight: 700; background: #059669;">
+        <i class="fa-solid fa-hand-holding-dollar"></i> {{ lang.isHindi() ? 'भुगतान दर्ज करें' : 'Pay Supplier' }}
+      </button>
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="flex justify-between items-center" style="min-height: 250px; width: 100%;">
+    <div class="spinner" style="margin: 0 auto;"></div>
+  </div>
+} @else if (!supplier()) {
+  <div class="card">
+    <div class="card-body text-center" style="padding: 40px;">
+      <h3 class="text-danger">{{ lang.isHindi() ? 'सप्लायर नहीं मिला' : 'Supplier Not Found' }}</h3>
+      <a routerLink="/suppliers" class="btn btn-primary btn-sm mt-3">
+        <i class="fa-solid fa-arrow-left"></i> {{ lang.isHindi() ? 'सप्लायर सूची पर वापस जाएं' : 'Back to Suppliers' }}
+      </a>
+    </div>
+  </div>
+} @else {
+
+  <!-- 📊 4 KPI Overview Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 20px;">
+    
+    <!-- Total Purchased -->
+    <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #0284c7;">
+      <div style="font-size: 11.5px; font-weight: 700; color: #0284c7; text-transform: uppercase;">
+        {{ lang.isHindi() ? 'कुल खरीद (Total Purchases)' : 'Total Purchases' }}
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: #0369a1; margin-top: 4px;">
+        ₹{{ supplier()?.totalPurchases | number:'1.2-2' }}
+      </div>
+      <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+        {{ purchases().length }} {{ lang.isHindi() ? 'कुल इनवॉइस' : 'Inward Bills' }}
+      </div>
+    </div>
+
+    <!-- Total Paid -->
+    <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #10b981;">
+      <div style="font-size: 11.5px; font-weight: 700; color: #059669; text-transform: uppercase;">
+        {{ lang.isHindi() ? 'कुल चुकता भुगतान (Total Paid)' : 'Total Paid' }}
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: #047857; margin-top: 4px;">
+        ₹{{ supplier()?.totalPaid | number:'1.2-2' }}
+      </div>
+      <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+        {{ payments().length }} {{ lang.isHindi() ? 'भुगतान दर्ज' : 'Payments Settled' }}
+      </div>
+    </div>
+
+    <!-- Pending Dues -->
+    <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #ef4444;">
+      <div style="font-size: 11.5px; font-weight: 700; color: #dc2626; text-transform: uppercase;">
+        {{ lang.isHindi() ? 'वर्तमान बकाया देनदारी (Pending Due)' : 'Current Balance Due' }}
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: #b91c1c; margin-top: 4px;">
+        ₹{{ supplier()?.pendingAmount | number:'1.2-2' }}
+      </div>
+      <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+        {{ pendingBills().length }} {{ lang.isHindi() ? 'बकाया इनवॉइस' : 'Unpaid Bills' }}
+      </div>
+    </div>
+
+    <!-- Terms & Last Date -->
+    <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #8b5cf6;">
+      <div style="font-size: 11.5px; font-weight: 700; color: #7c3aed; text-transform: uppercase;">
+        {{ lang.isHindi() ? 'भुगतान शर्तें व अंतिम खरीद' : 'Payment Terms & Last Purchase' }}
+      </div>
+      <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 4px;">
+        {{ supplier()?.paymentTerms || 'Net 30 Days' }}
+      </div>
+      <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+        @if (lastPurchaseDate()) {
+          {{ lang.isHindi() ? 'अंतिम खरीद:' : 'Last:' }} {{ lastPurchaseDate() | date:'dd MMM yyyy' }}
+        } @else {
+          {{ lang.isHindi() ? 'कोई खरीद नहीं' : 'No purchases yet' }}
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- 🏢 SECTION 1, 2 & 3: Profile & Business Credentials Overview Card -->
+  <div class="card mb-4" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-bottom: 1px solid #e2e8f0;">
+      <div class="card-title flex items-center gap-2" style="font-size: 15px;">
+        <i class="fa-solid fa-address-card text-primary"></i>
+        <span>{{ lang.isHindi() ? 'सप्लायर प्रोफाइल व व्यापारिक साख (Supplier Profile)' : 'Supplier Profile & Credentials' }}</span>
+      </div>
+      @if (supplier()?.openingBalance) {
+        <span class="badge" style="background: #fef3c7; color: #92400e; font-weight: 700; font-size: 11.5px;">
+          {{ lang.isHindi() ? 'शुरुआती बकाया:' : 'Opening Balance:' }} ₹{{ supplier()?.openingBalance | number:'1.2-2' }}
+        </span>
+      }
+    </div>
+    
+    <div class="card-body" style="padding: 16px 20px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        
+        <!-- 1. Basic Details -->
+        <div>
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 4px;">
+            1. 👤 {{ lang.isHindi() ? 'संपर्क व्यक्ति व कंपनी' : 'Contact & Company' }}
+          </strong>
+          <div style="font-size: 15px; font-weight: 800; color: #0f172a;">{{ supplier()?.name }}</div>
+          <div style="font-size: 13px; font-weight: 600; color: #334155;">🏢 {{ supplier()?.companyName || 'Personal' }}</div>
+          <div style="font-size: 12.5px; color: #0f172a; margin-top: 4px;">📱 {{ supplier()?.mobile }}</div>
+          @if (supplier()?.altMobile) {
+            <div style="font-size: 12px; color: #64748b;">📞 Alt: {{ supplier()?.altMobile }}</div>
+          }
+          @if (supplier()?.email) {
+            <div style="font-size: 12px; color: #2563eb;">✉️ {{ supplier()?.email }}</div>
+          }
+        </div>
+
+        <!-- 2. Address & Location -->
+        <div>
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 4px;">
+            📍 {{ lang.isHindi() ? 'पता व स्थान' : 'Address & Location' }}
+          </strong>
+          <div style="font-size: 13px; color: #1e293b;">
+            {{ supplier()?.address || 'N/A' }}
+          </div>
+          <div style="font-size: 12.5px; font-weight: 600; color: #334155; margin-top: 4px;">
+            {{ supplier()?.city || '' }} {{ supplier()?.state ? ', ' + supplier()?.state : '' }} {{ supplier()?.pincode ? '- ' + supplier()?.pincode : '' }}
+          </div>
+        </div>
+
+        <!-- 3. Business Details -->
+        <div>
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 4px;">
+            2. 💼 {{ lang.isHindi() ? 'व्यापारिक विवरण (GST/PAN)' : 'Business Details' }}
+          </strong>
+          <div style="font-size: 13px;">
+            <span style="color: #64748b;">GSTIN:</span> 
+            <strong style="font-family: monospace; color: #0f172a; margin-left: 4px;">{{ supplier()?.gstin || 'Unregistered' }}</strong>
+          </div>
+          @if (supplier()?.pan) {
+            <div style="font-size: 12.5px; margin-top: 3px;">
+              <span style="color: #64748b;">PAN:</span> 
+              <strong style="font-family: monospace; color: #0f172a; margin-left: 4px;">{{ supplier()?.pan }}</strong>
+            </div>
+          }
+          <div style="font-size: 12.5px; margin-top: 3px;">
+            <span style="color: #64748b;">{{ lang.isHindi() ? 'श्रेणी:' : 'Category:' }}</span> 
+            <strong style="color: #0f172a; margin-left: 4px;">{{ supplier()?.category || 'General' }}</strong>
+          </div>
+        </div>
+
+        <!-- 4. Account Details & Credit Limit -->
+        <div>
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 4px;">
+            3. 💰 {{ lang.isHindi() ? 'क्रेडिट सीमा व शर्तें' : 'Credit Limit & Terms' }}
+          </strong>
+          <div style="font-size: 13px;">
+            <span style="color: #64748b;">{{ lang.isHindi() ? 'क्रेडिट लिमिट:' : 'Credit Limit:' }}</span> 
+            <strong style="color: #047857; margin-left: 4px;">₹{{ (supplier()?.creditLimit || 0) | number:'1.2-2' }}</strong>
+          </div>
+          <div style="font-size: 12.5px; margin-top: 3px;">
+            <span style="color: #64748b;">{{ lang.isHindi() ? 'भुगतान अवधि:' : 'Terms:' }}</span> 
+            <strong style="color: #1d4ed8; margin-left: 4px;">{{ supplier()?.paymentTerms || 'Net 30 Days' }}</strong>
+          </div>
+          @if (supplier()?.notes) {
+            <div style="font-size: 11.5px; color: #64748b; margin-top: 4px; font-style: italic;">
+              📝 {{ supplier()?.notes }}
+            </div>
+          }
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 4. SUPPLIER KE SAATH TRANSACTION TABS -->
+  <!-- ========================================== -->
+  <div class="card" style="border-radius: 12px; overflow: hidden;">
+    
+    <!-- Tabs Header -->
+    <div style="background: #f8fafc; padding: 10px 20px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px; flex-wrap: wrap;">
+      
+      <!-- Purchase History Tab -->
+      <button 
+        type="button" 
+        (click)="activeTab.set('PURCHASES')"
+        [style.background]="activeTab() === 'PURCHASES' ? '#0284c7' : 'white'"
+        [style.color]="activeTab() === 'PURCHASES' ? 'white' : '#475569'"
+        style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 16px; font-weight: 700; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+      >
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span>{{ lang.isHindi() ? 'खरीद इतिहास (Purchase History)' : 'Purchase History' }}</span>
+        <span class="badge" style="background: rgba(255,255,255,0.25); font-size: 11px; padding: 1px 6px;">{{ purchases().length }}</span>
+      </button>
+
+      <!-- Payments History Tab -->
+      <button 
+        type="button" 
+        (click)="activeTab.set('PAYMENTS')"
+        [style.background]="activeTab() === 'PAYMENTS' ? '#059669' : 'white'"
+        [style.color]="activeTab() === 'PAYMENTS' ? 'white' : '#475569'"
+        style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 16px; font-weight: 700; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+      >
+        <i class="fa-solid fa-receipt"></i>
+        <span>{{ lang.isHindi() ? 'भुगतान इतिहास (Payment History)' : 'Payment History' }}</span>
+        <span class="badge" style="background: rgba(255,255,255,0.25); font-size: 11px; padding: 1px 6px;">{{ payments().length }}</span>
+      </button>
+
+      <!-- Pending Payments Tab -->
+      <button 
+        type="button" 
+        (click)="activeTab.set('PENDING')"
+        [style.background]="activeTab() === 'PENDING' ? '#dc2626' : 'white'"
+        [style.color]="activeTab() === 'PENDING' ? 'white' : '#475569'"
+        style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 16px; font-weight: 700; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
+      >
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>{{ lang.isHindi() ? 'बकाया इनवॉइस (Pending Bills)' : 'Pending Bills' }}</span>
+        <span class="badge" style="background: rgba(255,255,255,0.25); font-size: 11px; padding: 1px 6px;">{{ pendingBills().length }}</span>
+      </button>
+    </div>
+
+    <div class="card-body" style="padding: 0;">
+      
+      <!-- ========================================== -->
+      <!-- TAB 1: PURCHASE HISTORY -->
+      <!-- ========================================== -->
+      @if (activeTab() === 'PURCHASES') {
+        @if (purchases().length === 0) {
+          <div class="empty-state" style="padding: 50px 20px; text-align: center;">
+            <i class="fa-solid fa-cart-shopping" style="font-size: 44px; color: var(--gray-400); margin-bottom: 10px;"></i>
+            <h3>{{ lang.isHindi() ? 'कोई खरीद बिल दर्ज नहीं है' : 'No Purchases Logged' }}</h3>
+            <p class="text-muted">{{ lang.isHindi() ? 'इस सप्लायर से माल खरीदने पर खरीद बिल दर्ज करें।' : 'Record purchases from this supplier in Billing.' }}</p>
+            <a routerLink="/billing" class="btn btn-primary btn-sm mt-3">
+              <i class="fa-solid fa-plus"></i> {{ lang.isHindi() ? '+ खरीद बिल बनाएं' : '+ New Purchase Bill' }}
+            </a>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+            <table>
+              <thead>
+                <tr style="background: #f8fafc; font-size: 12px;">
+                  <th>#</th>
+                  <th>{{ lang.isHindi() ? 'खरीद बिल नं.' : 'Purchase #' }}</th>
+                  <th>{{ lang.isHindi() ? 'सप्लायर इनवॉइस नं.' : 'Supplier Inv #' }}</th>
+                  <th>{{ lang.isHindi() ? 'खरीद दिनांक' : 'Date' }}</th>
+                  <th style="text-align: center;">{{ lang.isHindi() ? 'आइटम' : 'Items' }}</th>
+                  <th style="text-align: right;">{{ lang.isHindi() ? 'कुल राशि (₹)' : 'Grand Total' }}</th>
+                  <th style="text-align: right;">{{ lang.isHindi() ? 'भुगतान किया (₹)' : 'Paid' }}</th>
+                  <th style="text-align: right;">{{ lang.isHindi() ? 'बकाया (₹)' : 'Balance Due' }}</th>
+                  <th style="text-align: center;">{{ lang.isHindi() ? 'स्थिति' : 'Status' }}</th>
+                  <th style="text-align: center;" class="no-print">{{ lang.isHindi() ? 'कार्रवाई' : 'Action' }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pur of purchases(); track pur._id; let idx = $index) {
+                  <tr>
+                    <td>{{ idx + 1 }}</td>
+                    <td style="font-weight: 800; font-family: monospace; color: #0284c7;">
+                      {{ pur.purchaseNumber }}
+                    </td>
+                    <td style="font-weight: 600; color: #475569;">
+                      {{ pur.supplierInvoiceNumber || 'Direct' }}
+                    </td>
+                    <td>{{ pur.purchaseDate | date:'dd MMM yyyy' }}</td>
+                    <td style="text-align: center;">
+                      <span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 700;">
+                        {{ pur.items?.length || 1 }}
+                      </span>
+                    </td>
+                    <td style="text-align: right; font-weight: 800; color: #0f172a;">
+                      ₹{{ pur.grandTotal | number:'1.2-2' }}
+                    </td>
+                    <td style="text-align: right; font-weight: 700; color: #059669;">
+                      ₹{{ (pur.amountPaid || 0) | number:'1.2-2' }}
+                    </td>
+                    <td style="text-align: right; font-weight: 800;" [style.color]="(pur.balanceDue || 0) > 0 ? '#dc2626' : '#059669'">
+                      ₹{{ (pur.balanceDue || 0) | number:'1.2-2' }}
+                    </td>
+                    <td style="text-align: center;">
+                      <span class="badge" [ngClass]="{
+                        'badge-success': pur.status === 'PAID',
+                        'badge-warning': pur.status === 'PARTIAL',
+                        'badge-danger': pur.status === 'PENDING'
+                      }" style="font-weight: 800; font-size: 11px;">
+                        {{ pur.status }}
+                      </span>
+                    </td>
+                    <td style="text-align: center;" class="no-print">
+                      @if ((pur.balanceDue || 0) > 0) {
+                        <button 
+                          type="button" 
+                          class="btn btn-sm btn-primary" 
+                          (click)="openPaymentModal(pur)"
+                          style="font-size: 11px; padding: 3px 8px; font-weight: 700;"
+                        >
+                          <i class="fa-solid fa-hand-holding-dollar"></i> {{ lang.isHindi() ? 'भुगतान करें' : 'Pay' }}
+                        </button>
+                      } @else {
+                        <span class="text-success" style="font-size: 12px; font-weight: 700;">
+                          <i class="fa-solid fa-check-circle"></i> चुकता
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      <!-- ========================================== -->
+      <!-- TAB 2: PAYMENT HISTORY -->
+      <!-- ========================================== -->
+      @if (activeTab() === 'PAYMENTS') {
+        @if (payments().length === 0) {
+          <div class="empty-state" style="padding: 50px 20px; text-align: center;">
+            <i class="fa-solid fa-receipt" style="font-size: 44px; color: var(--gray-400); margin-bottom: 10px;"></i>
+            <h3>{{ lang.isHindi() ? 'कोई भुगतान रिकॉर्ड नहीं मिला' : 'No Payments Found' }}</h3>
+            <p class="text-muted">{{ lang.isHindi() ? 'सप्लायर को किया गया भुगतान दर्ज करें।' : 'Log settlements made to this supplier.' }}</p>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+            <table>
+              <thead>
+                <tr style="background: #f8fafc; font-size: 12px;">
+                  <th>#</th>
+                  <th>{{ lang.isHindi() ? 'भुगतान दिनांक' : 'Payment Date' }}</th>
+                  <th style="text-align: right;">{{ lang.isHindi() ? 'भुगतान राशि (₹)' : 'Amount Paid' }}</th>
+                  <th>{{ lang.isHindi() ? 'माध्यम (Method)' : 'Payment Method' }}</th>
+                  <th>{{ lang.isHindi() ? 'ट्रांजेक्शन / UTR / चेक नं.' : 'Transaction / Ref ID' }}</th>
+                  <th>{{ lang.isHindi() ? 'विवरण / रिमार्क' : 'Notes & Remarks' }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pay of payments(); track pay._id; let idx = $index) {
+                  <tr>
+                    <td>{{ idx + 1 }}</td>
+                    <td style="font-weight: 600;">{{ pay.date | date:'dd MMM yyyy, hh:mm a' }}</td>
+                    <td style="text-align: right; font-weight: 800; font-size: 14px; color: #047857;">
+                      ₹{{ pay.amount | number:'1.2-2' }}
+                    </td>
+                    <td>
+                      <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 11.5px;">
+                        {{ pay.method }}
+                      </span>
+                    </td>
+                    <td style="font-family: monospace; font-weight: 600; color: #334155;">
+                      {{ pay.transactionId || 'Cash Settlement' }}
+                    </td>
+                    <td style="font-size: 12px; color: #64748b;">
+                      {{ pay.notes || 'Ledger Payment' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      <!-- ========================================== -->
+      <!-- TAB 3: PENDING BILLS (UNPAID PURCHASES) -->
+      <!-- ========================================== -->
+      @if (activeTab() === 'PENDING') {
+        @if (pendingBills().length === 0) {
+          <div class="empty-state" style="padding: 50px 20px; text-align: center;">
+            <i class="fa-solid fa-circle-check" style="font-size: 48px; color: #10b981; margin-bottom: 10px;"></i>
+            <h3 class="text-success">{{ lang.isHindi() ? 'बधाई! इस सप्लायर का कोई बकाया इनवॉइस नहीं है' : 'All Invoices Fully Settled' }}</h3>
+            <p class="text-muted">{{ lang.isHindi() ? 'सभी खरीद बिलों का पूरा भुगतान किया जा चुका है।' : 'No outstanding balance on inward invoices.' }}</p>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+            <table>
+              <thead>
+                <tr style="background: #fff1f2; font-size: 12px;">
+                  <th>#</th>
+                  <th>{{ lang.isHindi() ? 'खरीद बिल नं.' : 'Purchase #' }}</th>
+                  <th>{{ lang.isHindi() ? 'बिल दिनांक' : 'Date' }}</th>
+                  <th style="text-align: right;">{{ lang.isHindi() ? 'कुल बिल राशि (₹)' : 'Total Bill' }}</th>
+                  <th style="text-align: right;">{{ lang.isHindi() ? 'जमा राशि (₹)' : 'Paid' }}</th>
+                  <th style="text-align: right;">{{ lang.isHindi() ? 'बकाया देनदारी (₹)' : 'Pending Due' }}</th>
+                  <th style="text-align: center;" class="no-print">{{ lang.isHindi() ? 'कार्रवाई' : 'Action' }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pur of pendingBills(); track pur._id; let idx = $index) {
+                  <tr style="background: #fffbeb;">
+                    <td>{{ idx + 1 }}</td>
+                    <td style="font-weight: 800; font-family: monospace; color: #b91c1c;">
+                      {{ pur.purchaseNumber }}
+                    </td>
+                    <td>{{ pur.purchaseDate | date:'dd MMM yyyy' }}</td>
+                    <td style="text-align: right; font-weight: 700;">
+                      ₹{{ pur.grandTotal | number:'1.2-2' }}
+                    </td>
+                    <td style="text-align: right; font-weight: 700; color: #059669;">
+                      ₹{{ (pur.amountPaid || 0) | number:'1.2-2' }}
+                    </td>
+                    <td style="text-align: right; font-weight: 800; font-size: 14px; color: #b91c1c;">
+                      ₹{{ pur.balanceDue | number:'1.2-2' }}
+                    </td>
+                    <td style="text-align: center;" class="no-print">
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-primary" 
+                        (click)="openPaymentModal(pur)"
+                        style="font-size: 11.5px; padding: 4px 10px; font-weight: 700;"
+                      >
+                        <i class="fa-solid fa-hand-holding-dollar"></i> {{ lang.isHindi() ? 'इस बिल का भुगतान करें' : 'Pay This Bill' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+    </div>
+  </div>
+
+}
+
+<!-- ========================================== -->
+<!-- 💳 MAKE PAYMENT MODAL -->
+<!-- ========================================== -->
+@if (showPaymentModal) {
+  <div class="modal-overlay" (click)="showPaymentModal = false">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 450px; border-radius: 14px; overflow: hidden; padding: 0;">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 14px 20px;">
+        <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-hand-holding-dollar" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'सप्लायर भुगतान दर्ज करें' : 'Record Supplier Payment' }}
+        </h3>
+        <button class="modal-close" (click)="showPaymentModal = false" style="color: white;">&times;</button>
+      </div>
+
+      <form [formGroup]="paymentForm" (ngSubmit)="submitPayment()">
+        <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+            <div style="font-weight: 800; font-size: 15px; color: #0f172a;">{{ supplier()?.companyName || supplier()?.name }}</div>
+            @if (selectedPurchase) {
+              <div style="font-size: 12.5px; color: #0284c7; font-weight: 700; margin-top: 2px;">
+                खरीद इनवॉइस: #{{ selectedPurchase.purchaseNumber }}
+              </div>
+            }
+            <div class="flex justify-between mt-2" style="font-size: 13px;">
+              <span>देय बकाया राशि:</span>
+              <strong style="color: #dc2626;">₹{{ (selectedPurchase ? selectedPurchase.balanceDue : supplier()?.pendingAmount) | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'भुगतान राशि (Amount ₹)' : 'Payment Amount (₹)' }} <span class="text-danger">*</span></label>
+            <input type="number" formControlName="amount" class="form-control" style="font-size: 16px; font-weight: 800; color: #047857;" min="1">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'भुगतान का माध्यम (Payment Method)' : 'Payment Method' }}</label>
+            <select formControlName="method" class="form-control" style="font-weight: 600;">
+              <option value="CASH">💵 CASH (नकद)</option>
+              <option value="UPI">📱 UPI / QR / Google Pay / PhonePe</option>
+              <option value="BANK_TRANSFER">🏦 Bank Transfer / NEFT / RTGS</option>
+              <option value="CHEQUE">📝 Cheque (चेक)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'ट्रांजेक्शन / UTR / चेक नं.' : 'Transaction / UTR ID' }}</label>
+            <input type="text" formControlName="transactionId" class="form-control" placeholder="e.g. UTR12345678 or Cheque #">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'विवरण / रिमार्क (Notes)' : 'Payment Notes' }}</label>
+            <input type="text" formControlName="notes" class="form-control" placeholder="Payment remarks...">
+          </div>
+
+        </div>
+
+        <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showPaymentModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submittingPayment" style="background: #059669; border-color: #059669; font-weight: 800;">
+            @if (submittingPayment) {
+              <div class="spinner spinner-sm"></div>
+            }
+            <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'भुगतान सुरक्षित करें' : 'Save Payment' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- ⚠️ ADD DUE / DEBIT ENTRY MODAL -->
+<!-- ========================================== -->
+@if (showDueModal) {
+  <div class="modal-overlay" (click)="showDueModal = false">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 450px; border-radius: 14px; overflow: hidden; padding: 0;">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #dc2626, #ef4444); color: white; padding: 14px 20px;">
+        <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-plus-circle" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'सप्लायर के खाते में नया बकाया जोड़ें' : 'Add Due to Supplier' }}
+        </h3>
+        <button class="modal-close" (click)="showDueModal = false" style="color: white;">&times;</button>
+      </div>
+
+      <form [formGroup]="dueForm" (ngSubmit)="submitDue()">
+        <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px;">
+            <div style="font-weight: 800; font-size: 15px; color: #991b1b;">{{ supplier()?.companyName || supplier()?.name }}</div>
+            <div class="flex justify-between mt-2" style="font-size: 13px;">
+              <span>वर्तमान बकाया:</span>
+              <strong style="color: #dc2626;">₹{{ supplier()?.pendingAmount | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'नया बकाया राशि (Due Amount ₹)' : 'Due Amount (₹)' }} <span class="text-danger">*</span></label>
+            <input type="number" formControlName="amount" class="form-control" style="font-size: 16px; font-weight: 800; color: #b91c1c;" min="1" placeholder="0.00">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'कारण / विवरण (Reason)' : 'Reason' }} <span class="text-danger">*</span></label>
+            <input type="text" formControlName="reason" class="form-control" placeholder="e.g. पुराना माल बकाया / भाड़ा / समायोजन">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सप्लायर बिल / संदर्भ नं.' : 'Bill Ref #' }}</label>
+              <input type="text" formControlName="invoiceNumber" class="form-control" placeholder="e.g. INV-1002">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'दिनांक (Date)' : 'Date' }}</label>
+              <input type="date" formControlName="date" class="form-control">
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showDueModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submittingDue" style="background: #dc2626; border-color: #dc2626; font-weight: 800;">
+            @if (submittingDue) {
+              <div class="spinner spinner-sm"></div>
+            }
+            <i class="fa-solid fa-plus-circle"></i> {{ lang.isHindi() ? 'बकाया जोड़ें (Save Due)' : 'Save Due' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

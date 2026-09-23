@@ -1,0 +1,21 @@
+<router-outlet></router-outlet>
+
+<!-- Master Admin PIN Shield Modal -->
+<app-admin-pin-modal></app-admin-pin-modal>
+
+<!-- 🤖 MKS मुनीम जी AI (दुकानदार 24/7 AI सहायक) -->
+<app-ai-assistant-modal></app-ai-assistant-modal>
+
+<!-- Global Toast Notifications -->
+<div class="toast-container no-print">
+  @for (toast of toasts(); track toast.id) {
+    <div class="toast" [ngClass]="toast.type">
+      <i class="fa-solid toast-icon" [ngClass]="getIcon(toast.type)"></i>
+      <div class="toast-content">
+        <div class="toast-title">{{ toast.title }}</div>
+        <div class="toast-message">{{ toast.message }}</div>
+      </div>
+      <button class="modal-close" (click)="toastService.remove(toast.id)" style="font-size: 14px; margin-top: -4px;">&times;</button>
+    </div>
+  }
+</div>

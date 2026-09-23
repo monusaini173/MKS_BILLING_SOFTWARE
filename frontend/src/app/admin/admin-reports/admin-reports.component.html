@@ -1,0 +1,179 @@
+<div class="admin-page-container">
+  <!-- Page Header -->
+  <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-chart-line text-primary"></i>
+        <span>{{ lang.isHindi() ? 'प्लेटफॉर्म रिपोर्ट्स व ग्रोथ (Platform Reports)' : 'Platform Analytics & Growth Reports' }}</span>
+      </h1>
+      <p style="font-size: 13px; color: #64748b; margin: 3px 0 0 0;">
+        {{ lang.isHindi() ? 'सभी दुकानों का प्रदर्शन, टॉप सेलिंग स्टोर्स व दैनिक बिक्री विश्लेषण।' : 'Analyze gross transaction volume across tenant shops, top performing stores, and sales timeline.' }}
+      </p>
+    </div>
+
+    <!-- Range Selector -->
+    <div class="flex gap-2">
+      <select [(ngModel)]="selectedRange" (change)="loadReports()" class="form-control" style="font-weight: 700;">
+        <option value="WEEK">{{ lang.isHindi() ? 'पिछले 7 दिन (Past Week)' : 'Past 7 Days' }}</option>
+        <option value="MONTH">{{ lang.isHindi() ? 'इस महीने (Past Month)' : 'Past 30 Days' }}</option>
+        <option value="YEAR">{{ lang.isHindi() ? 'इस साल (Past Year)' : 'Past 1 Year' }}</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-between items-center" style="min-height: 250px; width: 100%;">
+      <div class="spinner" style="margin: 0 auto;"></div>
+    </div>
+  } @else {
+    <!-- Platform Report KPI Overview Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      
+      <!-- Total Sales Across Platform -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #10b981; border-radius: 12px;">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'प्लेटफ़ॉर्म कुल बिक्री (Gross Sales)' : 'Total Platform Sales' }}</div>
+            <div style="font-size: 22px; font-weight: 800; color: #064e3b; margin-top: 4px;">₹{{ reportData()?.totalSalesVolume || 0 | number:'1.2-2' }}</div>
+            <div style="font-size: 11px; color: #10b981; font-weight: 600; margin-top: 2px;">
+              {{ reportData()?.totalInvoicesCount || 0 }} {{ lang.isHindi() ? 'बिल बने' : 'Invoices Billed' }}
+            </div>
+          </div>
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            <i class="fa-solid fa-chart-pie"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Platform Shops -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #4f46e5; border-radius: 12px;">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'कुल दुकानें (Total Shops)' : 'Total Shops' }}</div>
+            <div style="font-size: 22px; font-weight: 800; color: #1e1b4b; margin-top: 4px;">{{ reportData()?.totalShopsCount || 0 }}</div>
+            <div style="font-size: 11px; color: #4f46e5; font-weight: 600; margin-top: 2px;">
+              {{ reportData()?.activeShopsCount || 0 }} {{ lang.isHindi() ? 'सक्रिय दुकानें' : 'Active Stores' }}
+            </div>
+          </div>
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            <i class="fa-solid fa-shop"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subscription Revenue -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #ec4899; border-radius: 12px;">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'सब्सक्रिप्शन रेवेन्यू (Fees)' : 'Subscription Revenue' }}</div>
+            <div style="font-size: 22px; font-weight: 800; color: #831843; margin-top: 4px;">₹{{ reportData()?.totalSubscriptionRevenue || 0 | number:'1.2-2' }}</div>
+            <div style="font-size: 11px; color: #db2777; font-weight: 600; margin-top: 2px;">
+              {{ lang.isHindi() ? 'प्लेटफ़ॉर्म कमाई' : 'Platform Recurring Fees' }}
+            </div>
+          </div>
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: #fdf2f8; color: #ec4899; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Most Popular Shop Type -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #f59e0b; border-radius: 12px;">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'सबसे लोकप्रिय दुकान प्रकार' : 'Most Popular Niche' }}</div>
+            <div style="font-size: 16px; font-weight: 800; color: #78350f; margin-top: 6px;">{{ reportData()?.mostPopularShopType || 'Kirana & Grocery' }}</div>
+            <div style="font-size: 11px; color: #d97706; font-weight: 600; margin-top: 2px;">
+              {{ reportData()?.newShopsCount || 0 }} {{ lang.isHindi() ? 'नई दुकानें जुड़ीं' : 'New registrations in range' }}
+            </div>
+          </div>
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: #fffbeb; color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            <i class="fa-solid fa-fire"></i>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Top Performing Shops -->
+    <div class="card mb-4" style="border-radius: 12px; overflow: hidden;">
+
+      <div class="card-header" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+          <i class="fa-solid fa-trophy text-warning" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'टॉप 10 बिक्री करने वाली दुकानें (Top Performing Shops)' : 'Top 10 Shops by Gross Sales Volume' }}
+        </h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{{ lang.isHindi() ? 'दुकान का नाम' : 'Shop Name' }}</th>
+                <th>{{ lang.isHindi() ? 'प्रकार (Type)' : 'Type' }}</th>
+                <th>{{ lang.isHindi() ? 'मालिक' : 'Owner' }}</th>
+                <th>{{ lang.isHindi() ? 'बिल संख्या' : 'Invoices' }}</th>
+                <th>{{ lang.isHindi() ? 'कुल बिक्री (Gross Volume)' : 'Gross Sales' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (shop of reportData()?.topShops; track shop.shopId; let i = $index) {
+                <tr>
+                  <td>
+                    <span style="font-weight: 800; font-size: 13px; color: #4338ca;">#{{ i + 1 }}</span>
+                  </td>
+                  <td>
+                    <div style="font-weight: 800; font-size: 14px; color: #0f172a;">{{ shop.shopName }}</div>
+                  </td>
+                  <td>
+                    <span class="badge" style="background: #e0e7ff; color: #4338ca; font-weight: 700; font-size: 11px;">
+                      {{ shop.shopType }}
+                    </span>
+                  </td>
+                  <td>{{ shop.ownerName }} ({{ shop.mobile || 'N/A' }})</td>
+                  <td style="font-weight: 700;">{{ shop.invoiceCount }}</td>
+                  <td style="font-weight: 800; font-size: 14px; color: #059669;">
+                    ₹{{ shop.totalSales | number:'1.2-2' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Sales Timeline Breakdown -->
+    <div class="card" style="border-radius: 12px; overflow: hidden;">
+      <div class="card-header" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+          <i class="fa-regular fa-calendar text-primary" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'दैनिक बिक्री टाइमलाइन (Daily Platform Sales Timeline)' : 'Daily Platform Sales Timeline' }}
+        </h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ lang.isHindi() ? 'तारीख (Date)' : 'Date' }}</th>
+                <th>{{ lang.isHindi() ? 'कुल बिल (Invoices)' : 'Invoices' }}</th>
+                <th>{{ lang.isHindi() ? 'कुल बिक्री राशि (Gross Volume)' : 'Total Sales' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of reportData()?.salesByDate; track row._id) {
+                <tr>
+                  <td style="font-weight: 700; color: #1e293b;">{{ row._id | date:'dd MMMM yyyy' }}</td>
+                  <td><span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 700;">{{ row.count }} bills</span></td>
+                  <td style="font-weight: 800; font-size: 14px; color: #059669;">₹{{ row.totalSales | number:'1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+</div>

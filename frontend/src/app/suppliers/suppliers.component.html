@@ -1,0 +1,657 @@
+<div class="page-header flex justify-between items-center flex-wrap gap-3">
+  <div>
+    <h1 class="page-title" style="display: flex; align-items: center; gap: 8px;">
+      <i class="fa-solid fa-building-wheat text-primary"></i>
+      <span>{{ lang.isHindi() ? '🏢 सप्लायर रजिस्ट्री (Supplier Registry)' : '🏢 Supplier Registry' }}</span>
+    </h1>
+    <p class="page-subtitle">
+      {{ lang.isHindi() ? 'सप्लायर प्रोफाइल, व्यापार विवरण, खरीद इतिहास और लेजर भुगतान का संपूर्ण रिकॉर्ड।' : 'Manage supplier profiles, business credentials, purchase invoices, and ledger settlements.' }}
+    </p>
+  </div>
+
+  <div class="page-actions flex gap-2 flex-wrap">
+    <a routerLink="/purchases" class="btn btn-outline" style="font-weight: 700;">
+      <i class="fa-solid fa-cart-shopping"></i> {{ lang.isHindi() ? 'खरीद बिल सूची' : 'Purchases List' }}
+    </a>
+    <button class="btn btn-primary" (click)="openAddModal()" style="font-weight: 700;">
+      <i class="fa-solid fa-plus"></i> {{ lang.isHindi() ? '+ नया सप्लायर जोड़ें' : '+ Add Supplier' }}
+    </button>
+  </div>
+</div>
+
+<!-- 📊 Supplier KPI Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 20px;">
+  <!-- Total Suppliers -->
+  <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #4f46e5;">
+    <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+      {{ lang.isHindi() ? 'कुल पंजीकृत सप्लायर' : 'Total Suppliers' }}
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 4px;">
+      {{ totalSuppliersCount() }}
+    </div>
+  </div>
+
+  <!-- Total Purchases -->
+  <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #0284c7;">
+    <div style="font-size: 11.5px; font-weight: 700; color: #0284c7; text-transform: uppercase;">
+      {{ lang.isHindi() ? 'कुल खरीद (Purchases)' : 'Total Purchases' }}
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: #0369a1; margin-top: 4px;">
+      ₹{{ totalPurchasesAmount() | number:'1.2-2' }}
+    </div>
+  </div>
+
+  <!-- Total Paid -->
+  <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #10b981;">
+    <div style="font-size: 11.5px; font-weight: 700; color: #059669; text-transform: uppercase;">
+      {{ lang.isHindi() ? 'कुल चुकता भुगतान (Total Paid)' : 'Total Paid' }}
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: #047857; margin-top: 4px;">
+      ₹{{ totalPaidAmount() | number:'1.2-2' }}
+    </div>
+  </div>
+
+  <!-- Total Pending Dues -->
+  <div class="card" style="padding: 14px 18px; border-radius: 12px; border-left: 4px solid #ef4444;">
+    <div style="font-size: 11.5px; font-weight: 700; color: #dc2626; text-transform: uppercase;">
+      {{ lang.isHindi() ? 'कुल बकाया देनदारी (Pending Due)' : 'Pending Balance Due' }}
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: #b91c1c; margin-top: 4px;">
+      ₹{{ totalPendingAmount() | number:'1.2-2' }}
+    </div>
+  </div>
+</div>
+
+<!-- Main Suppliers Registry Card -->
+<div class="card" style="border-radius: 12px; overflow: hidden;">
+  <!-- Filter Toolbar -->
+  <div class="card-header" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+    <div class="flex justify-between items-center flex-wrap gap-3">
+      <div class="card-title flex items-center gap-2" style="font-size: 16px;">
+        <i class="fa-solid fa-list-check text-primary"></i>
+        <span>{{ lang.isHindi() ? 'सप्लायर सूची व लेजर' : 'Suppliers List & Ledger' }}</span>
+        <span class="badge" style="background: #e0e7ff; color: #4338ca; font-weight: 800; font-size: 11.5px; padding: 2px 8px; border-radius: 12px;">
+          {{ filteredSuppliers().length }}
+        </span>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="flex gap-2 items-center flex-wrap" style="flex: 1; max-width: 550px; justify-content: flex-end;">
+        <div style="flex: 1; min-width: 200px;">
+          <input 
+            type="text" 
+            [(ngModel)]="searchQuery" 
+            class="form-control" 
+            style="font-size: 12.5px; padding: 6px 12px; background: white;"
+            [placeholder]="lang.isHindi() ? 'सप्लायर नाम, फर्म, मोबाइल, GSTIN खोजें...' : 'Search supplier, company, mobile, GSTIN...'"
+          >
+        </div>
+
+        <select 
+          [(ngModel)]="typeFilter" 
+          class="form-control" 
+          style="width: auto; min-width: 140px; font-size: 12.5px; padding: 6px 10px; background: white;"
+        >
+          <option value="ALL">{{ lang.isHindi() ? 'सभी प्रकार (All Types)' : 'All Types' }}</option>
+          @for (t of supplierTypes; track t) {
+            <option [value]="t">{{ t }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Body -->
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 250px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (filteredSuppliers().length === 0) {
+      <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+        <i class="fa-solid fa-truck-field" style="font-size: 48px; color: var(--gray-400); margin-bottom: 12px;"></i>
+        <h3>{{ lang.isHindi() ? 'कोई सप्लायर नहीं मिला' : 'No Suppliers Found' }}</h3>
+        <p class="text-muted">{{ lang.isHindi() ? 'दुकान में नए माल की खरीद और हिसाब-किताब के लिए सप्लायर जोड़ें।' : 'Add suppliers to track purchases and ledger accounts.' }}</p>
+        <button class="btn btn-primary btn-sm mt-3" (click)="openAddModal()">
+          <i class="fa-solid fa-plus"></i> {{ lang.isHindi() ? 'नया सप्लायर जोड़ें' : 'Add Supplier' }}
+        </button>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+        <table>
+          <thead>
+            <tr style="background: #f8fafc; font-size: 12px;">
+              <th>#</th>
+              <th>{{ lang.isHindi() ? 'सप्लायर / फर्म विवरण' : 'Supplier & Company' }}</th>
+              <th>{{ lang.isHindi() ? 'प्रकार व श्रेणी' : 'Type & Category' }}</th>
+              <th>{{ lang.isHindi() ? 'संपर्क व पता' : 'Contact & City' }}</th>
+              <th>GSTIN / PAN</th>
+              <th style="text-align: right;">{{ lang.isHindi() ? 'कुल खरीद (₹)' : 'Total Purchases' }}</th>
+              <th style="text-align: right;">{{ lang.isHindi() ? 'कुल भुगतान (₹)' : 'Total Paid' }}</th>
+              <th style="text-align: right;">{{ lang.isHindi() ? 'बकाया देनदारी (₹)' : 'Pending Due' }}</th>
+              <th style="text-align: center; min-width: 170px;" class="no-print">{{ lang.isHindi() ? 'कार्रवाई (Actions)' : 'Actions' }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (supp of filteredSuppliers(); track supp._id; let idx = $index) {
+              <tr [style.background]="supp.pendingAmount > 0 ? '#fffbeb' : 'transparent'">
+                <td>{{ idx + 1 }}</td>
+                
+                <!-- Supplier & Company -->
+                <td>
+                  <a [routerLink]="['/suppliers', supp._id]" style="font-weight: 800; font-size: 13.5px; color: #1d4ed8; text-decoration: none;">
+                    {{ supp.name }}
+                  </a>
+                  <div style="font-size: 12px; font-weight: 600; color: #475569;">
+                    🏢 {{ supp.companyName || 'Personal' }}
+                  </div>
+                </td>
+
+                <!-- Type & Category -->
+                <td>
+                  <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 700;">
+                    {{ supp.supplierType || 'Wholesaler' }}
+                  </span>
+                  @if (supp.category) {
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">🏷️ {{ supp.category }}</div>
+                  }
+                </td>
+
+                <!-- Contact & City -->
+                <td>
+                  <div style="font-size: 12.5px; font-weight: 600; color: #0f172a;">
+                    📱 {{ supp.mobile }}
+                  </div>
+                  @if (supp.city) {
+                    <div style="font-size: 11.5px; color: #64748b;">📍 {{ supp.city }}</div>
+                  }
+                </td>
+
+                <!-- GSTIN / PAN -->
+                <td>
+                  @if (supp.gstin) {
+                    <div style="font-size: 11.5px; font-family: monospace; font-weight: 600; color: #0f172a;">
+                      {{ supp.gstin }}
+                    </div>
+                  }
+                  @if (supp.pan) {
+                    <div style="font-size: 10.5px; font-family: monospace; color: #64748b;">
+                      PAN: {{ supp.pan }}
+                    </div>
+                  }
+                  @if (!supp.gstin && !supp.pan) {
+                    <span class="text-muted" style="font-size: 11.5px;">-</span>
+                  }
+                </td>
+
+                <!-- Total Purchases -->
+                <td style="text-align: right; font-weight: 700; font-size: 13px; color: #0369a1;">
+                  ₹{{ supp.totalPurchases | number:'1.2-2' }}
+                </td>
+
+                <!-- Total Paid -->
+                <td style="text-align: right; font-weight: 700; font-size: 13px; color: #059669;">
+                  ₹{{ supp.totalPaid | number:'1.2-2' }}
+                </td>
+
+                <!-- Pending Due -->
+                <td style="text-align: right;">
+                  <span 
+                    style="font-size: 13.5px; font-weight: 800; padding: 2px 8px; border-radius: 6px; display: inline-block;"
+                    [style.background]="supp.pendingAmount > 0 ? '#fee2e2' : '#ecfdf5'"
+                    [style.color]="supp.pendingAmount > 0 ? '#b91c1c' : '#047857'"
+                  >
+                    ₹{{ supp.pendingAmount | number:'1.2-2' }}
+                  </span>
+                </td>
+
+                <!-- Actions -->
+                <td class="table-actions no-print" style="text-align: center;">
+                  <div class="flex gap-1 items-center justify-center">
+                    <!-- Quick Add Due Button -->
+                    <button 
+                      type="button" 
+                      class="btn btn-sm" 
+                      (click)="openDueModal(supp)"
+                      style="background: #ef4444; color: white; font-weight: 700; font-size: 11px; padding: 4px 7px; border-radius: 6px; border: none;"
+                      [title]="lang.isHindi() ? 'सप्लायर के खाते में नया बकाया जोड़ें' : 'Add Due to Supplier'"
+                    >
+                      <i class="fa-solid fa-plus-circle"></i> {{ lang.isHindi() ? '+ बकाया' : '+ Due' }}
+                    </button>
+
+                    <!-- Quick Pay Button -->
+                    @if (supp.pendingAmount > 0) {
+                      <button 
+                        type="button" 
+                        class="btn btn-sm" 
+                        (click)="openPaymentModal(supp)"
+                        style="background: #10b981; color: white; font-weight: 700; font-size: 11px; padding: 4px 7px; border-radius: 6px; border: none;"
+                        [title]="lang.isHindi() ? 'सप्लायर को बकाया भुगतान करें' : 'Pay Pending Due'"
+                      >
+                        <i class="fa-solid fa-hand-holding-dollar"></i> {{ lang.isHindi() ? 'भुगतान' : 'Pay' }}
+                      </button>
+                    }
+
+                    <!-- Full Ledger History -->
+                    <a 
+                      [routerLink]="['/suppliers', supp._id]" 
+                      class="btn btn-outline btn-sm btn-icon" 
+                      [title]="lang.isHindi() ? 'पूरा लेजर व खरीद इतिहास देखें' : 'View Ledger History'"
+                    >
+                      <i class="fa-solid fa-eye text-primary"></i>
+                    </a>
+
+                    <!-- Edit -->
+                    <button 
+                      type="button" 
+                      class="btn btn-outline btn-sm btn-icon" 
+                      (click)="openEditModal(supp)" 
+                      [title]="lang.isHindi() ? 'एडिट करें' : 'Edit'"
+                    >
+                      <i class="fa-solid fa-pencil"></i>
+                    </button>
+
+                    <!-- Delete -->
+                    <button 
+                      type="button" 
+                      class="btn btn-outline btn-sm btn-icon text-danger" 
+                      (click)="deleteSupplier(supp._id)" 
+                      [title]="lang.isHindi() ? 'हटाएं' : 'Delete'"
+                    >
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 🏢 MULTI-SECTION ADD / EDIT SUPPLIER MODAL -->
+<!-- ========================================== -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="showModal = false">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()" style="max-width: 680px; border-radius: 14px; overflow: hidden; padding: 0;">
+      
+      <!-- Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 16px 20px;">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-building-wheat" style="font-size: 20px;"></i>
+          <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 800;">
+            {{ editMode ? (lang.isHindi() ? 'सप्लायर विवरण अपडेट करें' : 'Edit Supplier Profile') : (lang.isHindi() ? 'नया सप्लायर पंजीकृत करें (Register Supplier)' : 'Register New Supplier') }}
+          </h3>
+        </div>
+        <button class="modal-close" (click)="showModal = false" style="color: white;">&times;</button>
+      </div>
+
+      <!-- Navigation Tabs inside Modal -->
+      <div style="background: #f1f5f9; padding: 8px 20px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px;">
+        <button 
+          type="button" 
+          (click)="activeModalTab = 'BASIC'"
+          [style.background]="activeModalTab === 'BASIC' ? 'white' : 'transparent'"
+          [style.color]="activeModalTab === 'BASIC' ? '#1e40af' : '#64748b'"
+          [style.fontWeight]="activeModalTab === 'BASIC' ? '800' : '600'"
+          style="border: none; border-radius: 6px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;"
+        >
+          1. 👤 {{ lang.isHindi() ? 'बेसिक विवरण' : 'Basic Details' }}
+        </button>
+
+        <button 
+          type="button" 
+          (click)="activeModalTab = 'BUSINESS'"
+          [style.background]="activeModalTab === 'BUSINESS' ? 'white' : 'transparent'"
+          [style.color]="activeModalTab === 'BUSINESS' ? '#1e40af' : '#64748b'"
+          [style.fontWeight]="activeModalTab === 'BUSINESS' ? '800' : '600'"
+          style="border: none; border-radius: 6px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;"
+        >
+          2. 💼 {{ lang.isHindi() ? 'व्यापारिक विवरण' : 'Business Details' }}
+        </button>
+
+        <button 
+          type="button" 
+          (click)="activeModalTab = 'ACCOUNT'"
+          [style.background]="activeModalTab === 'ACCOUNT' ? 'white' : 'transparent'"
+          [style.color]="activeModalTab === 'ACCOUNT' ? '#1e40af' : '#64748b'"
+          [style.fontWeight]="activeModalTab === 'ACCOUNT' ? '800' : '600'"
+          style="border: none; border-radius: 6px; padding: 6px 14px; font-size: 12.5px; cursor: pointer;"
+        >
+          3. 💰 {{ lang.isHindi() ? 'खाता व शर्तें' : 'Account & Terms' }}
+        </button>
+      </div>
+
+      <form [formGroup]="supplierForm" (ngSubmit)="onSubmit()">
+        <div class="modal-body" style="padding: 20px; max-height: 60vh; overflow-y: auto;">
+          
+          <!-- ========================================== -->
+          <!-- 1. SUPPLIER BASIC DETAILS -->
+          <!-- ========================================== -->
+          @if (activeModalTab === 'BASIC') {
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सप्लायर / व्यक्ति का नाम' : 'Supplier Name' }} <span class="text-danger">*</span></label>
+                  <input type="text" formControlName="name" class="form-control" placeholder="e.g. Ramesh Agrawal">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'कंपनी / फर्म का नाम (Agency)' : 'Company / Agency Name' }}</label>
+                  <input type="text" formControlName="companyName" class="form-control" placeholder="e.g. Balaji Footwear Agency">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'मोबाइल नंबर (10-अंक)' : 'Mobile Number' }} <span class="text-danger">*</span></label>
+                  <input type="text" formControlName="mobile" class="form-control" placeholder="10-digit mobile" maxlength="10">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'अतिरिक्त मोबाइल (Alt Mobile)' : 'Alternate Mobile' }}</label>
+                  <input type="text" formControlName="altMobile" class="form-control" placeholder="Optional alternate number">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'ईमेल (Email Address)' : 'Email' }}</label>
+                <input type="email" formControlName="email" class="form-control" placeholder="supplier@example.com">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सप्लायर का पूरा पता (Address)' : 'Address' }}</label>
+                <input type="text" formControlName="address" class="form-control" placeholder="Shop/Office No, Street, Market">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'शहर (City)' : 'City' }}</label>
+                  <input type="text" formControlName="city" class="form-control" placeholder="e.g. Jaipur">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'राज्य (State)' : 'State' }}</label>
+                  <input type="text" formControlName="state" class="form-control" placeholder="e.g. Rajasthan">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'पिनकोड (Pincode)' : 'Pincode' }}</label>
+                  <input type="text" formControlName="pincode" class="form-control" placeholder="302001">
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- ========================================== -->
+          <!-- 2. BUSINESS & MEDICAL DETAILS -->
+          <!-- ========================================== -->
+          @if (activeModalTab === 'BUSINESS') {
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">GSTIN (15-अंकों का GST नंबर)</label>
+                  <input type="text" formControlName="gstin" class="form-control" placeholder="15-digit GSTIN" maxlength="15" style="text-transform: uppercase;">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">PAN (पैन कार्ड नंबर)</label>
+                  <input type="text" formControlName="pan" class="form-control" placeholder="10-digit PAN" maxlength="10" style="text-transform: uppercase;">
+                </div>
+              </div>
+
+              <!-- 💊 Medical & Pharmacy Regulatory Row -->
+              <div class="form-row" style="background: #f0fdfa; padding: 10px; border-radius: 8px; border: 1px solid #99f6e4;">
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700; color: #0d9488;">💊 ड्रग लाइसेंस नंबर (D.L. No. 20B/21B)</label>
+                  <input type="text" formControlName="drugLicenseNumber" class="form-control" placeholder="e.g. DL-20B-12345/21B">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700; color: #0d9488;">📅 लाइसेंस एक्सपायरी (Expiry Date)</label>
+                  <input type="date" formControlName="dlExpiryDate" class="form-control">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सप्लायर का प्रकार (Supplier Type)' : 'Supplier Type' }}</label>
+                  <select formControlName="supplierType" class="form-control">
+                    @for (t of supplierTypes; track t) {
+                      <option [value]="t">{{ t }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सप्लाई श्रेणी (Product Category)' : 'Product Category' }}</label>
+                  <input type="text" formControlName="category" class="form-control" placeholder="e.g. Medicines, Pharmaceuticals, Surgical">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'संपर्क प्रतिनिधि (Contact Person)' : 'Contact Person' }}</label>
+                  <input type="text" formControlName="contactPerson" class="form-control" placeholder="e.g. Area Sales Manager">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'भुगतान की शर्तें (Payment Terms)' : 'Payment Terms' }}</label>
+                  <select formControlName="paymentTerms" class="form-control">
+                    @for (term of paymentTermsList; track term) {
+                      <option [value]="term">{{ term }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- ========================================== -->
+          <!-- 3. ACCOUNT & BANK DETAILS -->
+          <!-- ========================================== -->
+          @if (activeModalTab === 'ACCOUNT') {
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'शुरुआती बकाया (Opening Balance ₹)' : 'Opening Balance (₹)' }}</label>
+                  <input type="number" formControlName="openingBalance" class="form-control" placeholder="0.00" min="0">
+                  <span style="font-size: 11px; color: var(--text-secondary);">सप्लायर का पिछला बकाया जो पहले से देना बाकी है।</span>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'क्रेडिट सीमा (Credit Limit ₹)' : 'Credit Limit (₹)' }}</label>
+                  <input type="number" formControlName="creditLimit" class="form-control" placeholder="0.00" min="0">
+                  <span style="font-size: 11px; color: var(--text-secondary);">सप्लायर से अधिकतम उधार लेने की सीमा।</span>
+                </div>
+              </div>
+
+              <!-- Bank Details for RTGS/NEFT payment -->
+              <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 8px;">🏦 बैंक खाता विवरण (NEFT/RTGS Transfer):</div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" style="font-size: 11px; font-weight: 700;">बैंक का नाम (Bank Name)</label>
+                    <input type="text" formControlName="bankName" class="form-control" placeholder="e.g. SBI, HDFC, ICICI">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" style="font-size: 11px; font-weight: 700;">खाता नंबर (Account Number)</label>
+                    <input type="text" formControlName="accountNumber" class="form-control" placeholder="Account No.">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" style="font-size: 11px; font-weight: 700;">IFSC Code</label>
+                    <input type="text" formControlName="ifscCode" class="form-control" placeholder="IFSC" style="text-transform: uppercase;">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'विशेष टिप्पणी व शर्तें (Notes)' : 'Internal Notes' }}</label>
+                <textarea formControlName="notes" class="form-control" rows="2" placeholder="Additional details or terms with this supplier..."></textarea>
+              </div>
+            </div>
+          }
+
+        </div>
+
+        <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <div class="flex gap-2">
+            @if (activeModalTab === 'BASIC') {
+              <button type="button" class="btn btn-outline btn-sm" (click)="activeModalTab = 'BUSINESS'">
+                {{ lang.isHindi() ? 'अगला: व्यापारिक विवरण ➔' : 'Next: Business Details ➔' }}
+              </button>
+            } @else if (activeModalTab === 'BUSINESS') {
+              <button type="button" class="btn btn-outline btn-sm" (click)="activeModalTab = 'ACCOUNT'">
+                {{ lang.isHindi() ? 'अगला: खाता विवरण ➔' : 'Next: Account Details ➔' }}
+              </button>
+            }
+          </div>
+
+          <div class="flex gap-2">
+            <button type="button" class="btn btn-secondary" (click)="showModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+            <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 800;">
+              @if (submitting) {
+                <div class="spinner spinner-sm"></div>
+              }
+              <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'सप्लायर सुरक्षित करें' : 'Save Supplier' }}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- 💳 QUICK PAY TO SUPPLIER MODAL -->
+<!-- ========================================== -->
+@if (showPaymentModal) {
+  <div class="modal-overlay" (click)="showPaymentModal = false">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 450px; border-radius: 14px; overflow: hidden; padding: 0;">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 14px 20px;">
+        <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-hand-holding-dollar" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'सप्लायर भुगतान दर्ज करें (Pay Supplier)' : 'Pay Supplier Dues' }}
+        </h3>
+        <button class="modal-close" (click)="showPaymentModal = false" style="color: white;">&times;</button>
+      </div>
+
+      <form [formGroup]="paymentForm" (ngSubmit)="submitPayment()">
+        <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+            <div style="font-weight: 800; font-size: 15px; color: #0f172a;">{{ selectedSupplier?.companyName || selectedSupplier?.name }}</div>
+            <div class="flex justify-between mt-2" style="font-size: 13px;">
+              <span>सप्लायर का कुल बकाया:</span>
+              <strong style="color: #dc2626;">₹{{ selectedSupplier?.pendingAmount | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'भुगतान राशि (Amount ₹)' : 'Payment Amount (₹)' }} <span class="text-danger">*</span></label>
+            <input type="number" formControlName="amount" class="form-control" style="font-size: 16px; font-weight: 800; color: #047857;" min="1">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'भुगतान का माध्यम (Payment Method)' : 'Payment Method' }}</label>
+            <select formControlName="method" class="form-control" style="font-weight: 600;">
+              <option value="CASH">💵 CASH (नकद)</option>
+              <option value="UPI">📱 UPI / Google Pay / PhonePe / QR</option>
+              <option value="BANK_TRANSFER">🏦 Bank Transfer / NEFT / RTGS</option>
+              <option value="CHEQUE">📝 Cheque (चेक)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'ट्रांजेक्शन / UTR / चेक नं.' : 'Transaction / UTR ID' }}</label>
+            <input type="text" formControlName="transactionId" class="form-control" placeholder="e.g. UTR12345678 or Cheque #">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'विवरण / रिमार्क (Notes)' : 'Payment Notes' }}</label>
+            <input type="text" formControlName="notes" class="form-control" placeholder="e.g. Payment towards invoice settlement">
+          </div>
+
+        </div>
+
+        <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showPaymentModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="background: #059669; border-color: #059669; font-weight: 800;">
+            @if (submitting) {
+              <div class="spinner spinner-sm"></div>
+            }
+            <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'भुगतान सुरक्षित करें' : 'Save Payment' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- ⚠️ ADD DUE / DEBIT ENTRY MODAL -->
+<!-- ========================================== -->
+@if (showDueModal) {
+  <div class="modal-overlay" (click)="showDueModal = false">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 450px; border-radius: 14px; overflow: hidden; padding: 0;">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #dc2626, #ef4444); color: white; padding: 14px 20px;">
+        <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-plus-circle" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'सप्लायर के खाते में बकाया जोड़ें' : 'Add Due to Supplier' }}
+        </h3>
+        <button class="modal-close" (click)="showDueModal = false" style="color: white;">&times;</button>
+      </div>
+
+      <form [formGroup]="dueForm" (ngSubmit)="submitDue()">
+        <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px;">
+            <div style="font-weight: 800; font-size: 15px; color: #991b1b;">{{ selectedSupplier?.companyName || selectedSupplier?.name }}</div>
+            <div class="flex justify-between mt-2" style="font-size: 13px;">
+              <span>वर्तमान बकाया:</span>
+              <strong style="color: #dc2626;">₹{{ selectedSupplier?.pendingAmount | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'नया बकाया राशि (Due Amount ₹)' : 'Due Amount (₹)' }} <span class="text-danger">*</span></label>
+            <input type="number" formControlName="amount" class="form-control" style="font-size: 16px; font-weight: 800; color: #b91c1c;" min="1" placeholder="0.00">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'कारण / विवरण (Reason)' : 'Reason' }} <span class="text-danger">*</span></label>
+            <input type="text" formControlName="reason" class="form-control" placeholder="e.g. पुराना माल बकाया / भाड़ा / समायोजन">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'सप्लायर बिल / संदर्भ नं.' : 'Bill Ref #' }}</label>
+              <input type="text" formControlName="invoiceNumber" class="form-control" placeholder="e.g. INV-1002">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'दिनांक (Date)' : 'Date' }}</label>
+              <input type="date" formControlName="date" class="form-control">
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showDueModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="background: #dc2626; border-color: #dc2626; font-weight: 800;">
+            @if (submitting) {
+              <div class="spinner spinner-sm"></div>
+            }
+            <i class="fa-solid fa-plus-circle"></i> {{ lang.isHindi() ? 'बकाया जोड़ें (Save Due)' : 'Save Due' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

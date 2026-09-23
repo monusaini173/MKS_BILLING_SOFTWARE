@@ -1,0 +1,905 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ langService.isHindi() ? 'दुकान सेटिंग्स व सिस्टम प्राथमिकताएं' : 'Shop Settings & System Preferences' }}</h1>
+    <p class="page-subtitle">{{ langService.isHindi() ? 'प्लान सब्सक्रिप्शन, भाषा सेटिंग, मुनीम जी AI सहायक, दुकान प्रोफाइल व बिलिंग प्राथमिकताएं प्रबंधित करें।' : 'Manage subscription plans, system language, Munim Ji AI assistant, shop profile, and billing preferences.' }}</p>
+  </div>
+</div>
+
+<!-- Subscription & Plan Overview Card -->
+<div class="card mb-4" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: white; border: none; border-radius: 14px; box-shadow: 0 10px 25px -5px rgba(49,46,129,0.4);">
+  <div class="card-body flex justify-between items-center flex-wrap gap-4" style="padding: 20px 24px;">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span style="font-size: 24px;">👑</span>
+        <h2 style="font-size: 18px; font-weight: 800; color: white; margin: 0;">
+          @if (subService.isTrial()) {
+            {{ langService.isHindi() ? '3 दिन का फ्री ट्रायल' : '3-Day Free Trial' }}
+          } @else if (subService.isBasic()) {
+            {{ langService.isHindi() ? 'लेवल 1: स्टार्टर स्टॉक प्लान (₹150/माह)' : 'Level 1: Starter Stock Plan (₹150/mo)' }}
+          } @else if (subService.isPro()) {
+            {{ langService.isHindi() ? 'लेवल 2: प्रो WhatsApp प्लान (₹500/माह)' : 'Level 2: Pro WhatsApp Plan (₹500/mo)' }}
+          } @else if (subService.isYearly()) {
+            {{ langService.isHindi() ? 'लेवल 3: एंटरप्राइज वार्षिक प्लान (₹4,999/वर्ष)' : 'Level 3: Enterprise Yearly Plan (₹4,999/yr)' }}
+          } @else {
+            {{ langService.isHindi() ? 'MKS सब्सक्रिप्शन प्लान' : 'MKS Subscription Plan' }}
+          }
+        </h2>
+        <span class="badge" [style.background]="subService.isExpired() ? '#ef4444' : '#10b981'" style="color: white; font-weight: 700; font-size: 11px;">
+          {{ subService.isExpired() ? (langService.isHindi() ? '⚠️ समाप्त (Expired)' : '⚠️ Expired') : (langService.isHindi() ? '✅ सक्रिय (Active)' : '✅ Active') }}
+        </span>
+      </div>
+      <p style="font-size: 12.5px; color: rgba(255,255,255,0.85); margin: 0;">
+        @if (subService.isTrial()) {
+          @if (langService.isHindi()) {
+            आपके पास <strong>{{ subService.daysRemaining() }} दिन ({{ subService.hoursRemaining() }} घंटे)</strong> का फ्री ट्रायल बाकी है।
+          } @else {
+            You have <strong>{{ subService.daysRemaining() }} days ({{ subService.hoursRemaining() }} hours)</strong> remaining in your free trial.
+          }
+        } @else {
+          @if (langService.isHindi()) {
+            प्लान: <strong>{{ subService.status()?.subscriptionPlan }}</strong> (वैधता: {{ subService.status()?.subscriptionExpiry | date:'dd MMMM yyyy' }} — <strong>{{ subService.daysRemaining() }} दिन शेष</strong>)
+          } @else {
+            Plan: <strong>{{ subService.status()?.subscriptionPlan }}</strong> (Valid until: {{ subService.status()?.subscriptionExpiry | date:'dd MMMM yyyy' }} — <strong>{{ subService.daysRemaining() }} days left</strong>)
+          }
+        }
+      </p>
+    </div>
+
+    <div class="flex gap-2 items-center">
+      <button 
+        type="button" 
+        class="btn" 
+        (click)="subService.showUpgradeModal.set(true)"
+        style="background: #10b981; color: white; font-weight: 700; font-size: 13.5px; padding: 9px 20px; border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(16,185,129,0.4);"
+      >
+        <i class="fa-solid fa-credit-card"></i> 
+        {{ subService.isTrial() ? (langService.isHindi() ? '3-लेवल प्लान चुनें व अपग्रेड करें' : 'Choose 3-Tier Plan & Upgrade') : (langService.isHindi() ? 'प्लान रिन्यू / अपग्रेड करें (Razorpay)' : 'Renew / Upgrade Plan (Razorpay)') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 🏪 Multi-Shop / My Branches Network Section -->
+<div class="card mb-4" style="border: 2px solid #38bdf8; box-shadow: 0 4px 20px rgba(56, 189, 248, 0.12); border-radius: 14px; overflow: hidden;">
+  <div class="card-header flex justify-between items-center flex-wrap gap-2" style="background: linear-gradient(90deg, #f0f9ff, #e0f2fe); padding: 14px 20px; border-bottom: 1px solid #bae6fd;">
+    <div class="flex items-center gap-2">
+      <span style="font-size: 24px;">🏪</span>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 800; color: #0369a1; margin: 0;">
+          {{ langService.isHindi() ? 'मेरी शाखाएं व मल्टी-दुकान नेटवर्क (Multi-Shop Network)' : 'My Branches & Multi-Shop Network' }}
+        </h3>
+        <p style="font-size: 12px; color: #0284c7; margin: 2px 0 0;">
+          {{ langService.isHindi() ? 'बिना अलग सॉफ्टवेयर खरीदे एक ही खाते में अपनी 3 या अधिक दुकानों का स्टॉक व बिलिंग संभालें।' : 'Manage all your 3+ retail shops and branches under a single unified dashboard.' }}
+        </p>
+      </div>
+    </div>
+
+    <button 
+      type="button" 
+      (click)="openAddBranchModal()" 
+      class="btn btn-sm" 
+      style="background: #0284c7; color: white; font-weight: 700; font-size: 12.5px; padding: 7px 16px; border-radius: 8px; border: none; box-shadow: 0 2px 8px rgba(2,132,199,0.3); display: inline-flex; align-items: center; gap: 6px;"
+    >
+      <i class="fa-solid fa-plus"></i> {{ langService.isHindi() ? '+ नई शाखा / दुकान जोड़ें' : '+ Add New Branch' }}
+    </button>
+  </div>
+
+  <div class="card-body" style="padding: 18px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;">
+      
+      <!-- Branch Card -->
+      <div 
+        *ngFor="let b of auth.myShops()" 
+        [style.borderColor]="b._id === shop()?._id ? '#0284c7' : '#e2e8f0'"
+        [style.background]="b._id === shop()?._id ? '#f0f9ff' : '#ffffff'"
+        [style.boxShadow]="b._id === shop()?._id ? '0 0 0 2px #38bdf8' : 'none'"
+        style="border: 2px solid; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s;"
+      >
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="badge" style="background: #0284c7; color: white; font-weight: 800; font-size: 11px;">
+              {{ b.branchCode || 'BR-1' }}
+            </span>
+
+            <span *ngIf="b._id === shop()?._id" class="badge" style="background: #10b981; color: white; font-weight: 800; font-size: 11px;">
+              {{ langService.isHindi() ? '✓ वर्तमान एक्टिव' : '✓ Active Now' }}
+            </span>
+            <span *ngIf="b._id !== shop()?._id" class="badge" style="background: #f1f5f9; color: #475569; font-size: 10.5px;">
+              {{ b.isMainBranch ? (langService.isHindi() ? 'मुख्य शाखा' : 'Main Branch') : (langService.isHindi() ? 'शाखा' : 'Branch') }}
+            </span>
+          </div>
+
+          <div style="font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 2px;">
+            {{ b.name }}
+          </div>
+          <div style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 6px;">
+            📍 {{ b.branchName || (b.isMainBranch ? 'Main Branch' : 'Outlet') }}
+          </div>
+
+          <div style="font-size: 11.5px; color: #64748b; line-height: 1.5;">
+            <div><i class="fa-solid fa-tag" style="width: 14px;"></i> {{ b.shopType }}</div>
+            <div *ngIf="b.mobile"><i class="fa-solid fa-phone" style="width: 14px;"></i> {{ b.mobile }}</div>
+            <div *ngIf="b.address" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><i class="fa-solid fa-location-dot" style="width: 14px;"></i> {{ b.address }}</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed #cbd5e1;">
+          <button 
+            *ngIf="b._id !== shop()?._id" 
+            type="button" 
+            (click)="switchShop(b._id)"
+            class="btn btn-outline btn-sm" 
+            style="width: 100%; border-color: #0284c7; color: #0284c7; font-weight: 700; font-size: 12px;"
+          >
+            <i class="fa-solid fa-arrow-right-arrow-left"></i> {{ langService.isHindi() ? 'इस दुकान में कार्य करें' : 'Switch To This Branch' }}
+          </button>
+          
+          <div *ngIf="b._id === shop()?._id" style="font-size: 11.5px; font-weight: 800; color: #059669; text-align: center;">
+            <i class="fa-solid fa-circle-check"></i> {{ langService.isHindi() ? 'आप इस दुकान में लॉग-इन हैं' : 'Currently Active Branch' }}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 🌐 Language Settings & ✨ MKS मुनीम जी AI Assistant Grid -->
+<div class="grid grid-2 mb-4" style="gap: 16px;">
+  
+  <!-- 🌐 System Language Switcher Card -->
+  <div class="card" style="border: 2px solid #e0e7ff; box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08); display: flex; flex-direction: column; justify-content: space-between;">
+    <div class="card-header flex justify-between items-center" style="background: linear-gradient(90deg, #eef2ff, #f8fafc); padding: 14px 18px;">
+      <div class="card-title flex items-center gap-2" style="font-size: 15px; font-weight: 800; color: #312e81;">
+        <i class="fa-solid fa-language" style="color: #4f46e5; font-size: 18px;"></i>
+        <span>{{ langService.isHindi() ? 'सिस्टम भाषा सेटिंग' : 'System Language' }}</span>
+      </div>
+      <span class="badge" style="background: #e0e7ff; color: #4338ca; font-weight: 800; font-size: 11.5px; padding: 4px 10px; border-radius: 20px;">
+        {{ langService.activeConfig().flag }} {{ langService.activeConfig().nativeName }}
+      </span>
+    </div>
+    
+    <div class="card-body" style="padding: 18px;">
+      <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px;">
+        {{ langService.isHindi() ? 'सॉफ्टवेयर के मेन्यू, बिलिंग, रिपोर्ट्स व मैसेज हेतु अपनी पसंदीदा भाषा चुनें:' : 'Choose your preferred language for software menus, POS billing, reports, and messages:' }}
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <!-- Hindi Option Box -->
+        <div 
+          (click)="selectLanguage('hi')"
+          [style.borderColor]="langService.isHindi() ? '#4f46e5' : '#e2e8f0'"
+          [style.background]="langService.isHindi() ? '#eef2ff' : '#ffffff'"
+          [style.boxShadow]="langService.isHindi() ? '0 0 0 2px #4f46e5' : 'none'"
+          style="border: 2px solid; border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.2s; position: relative;"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <span style="font-size: 22px;">🇮🇳</span>
+            <span *ngIf="langService.isHindi()" class="badge badge-primary" style="font-size: 10px; font-weight: 800;">
+              {{ langService.isHindi() ? '✓ सक्रिय' : '✓ Active' }}
+            </span>
+          </div>
+          <div style="font-size: 15px; font-weight: 800; color: #1e293b;">हिन्दी (Hindi)</div>
+          <p style="font-size: 11.5px; color: #64748b; margin: 4px 0 0;">
+            {{ langService.isHindi() ? 'पूरा सॉफ्टवेयर व मेन्यू सरल हिन्दी भाषा में चलेगा।' : 'Complete software UI and menus in Hindi language.' }}
+          </p>
+        </div>
+
+        <!-- English Option Box -->
+        <div 
+          (click)="selectLanguage('en')"
+          [style.borderColor]="langService.isEnglish() ? '#4f46e5' : '#e2e8f0'"
+          [style.background]="langService.isEnglish() ? '#eef2ff' : '#ffffff'"
+          [style.boxShadow]="langService.isEnglish() ? '0 0 0 2px #4f46e5' : 'none'"
+          style="border: 2px solid; border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.2s; position: relative;"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <span style="font-size: 22px;">🇬🇧</span>
+            <span *ngIf="langService.isEnglish()" class="badge badge-primary" style="font-size: 10px; font-weight: 800;">
+              ✓ Active
+            </span>
+          </div>
+          <div style="font-size: 15px; font-weight: 800; color: #1e293b;">English</div>
+          <p style="font-size: 11.5px; color: #64748b; margin: 4px 0 0;">
+            {{ langService.isHindi() ? 'पूरा सॉफ्टवेयर व इनवॉइस अंग्रेज़ी भाषा में चलेंगे।' : 'Complete software UI and invoices in English.' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✨ MKS मुनीम जी 24/7 AI Assistant Card -->
+  <div class="card" style="border: 2px solid #ddd6fe; box-shadow: 0 4px 16px rgba(168, 85, 247, 0.08); display: flex; flex-direction: column; justify-content: space-between;">
+    <div class="card-header flex justify-between items-center" style="background: linear-gradient(90deg, #f5f3ff, #faf5ff); padding: 14px 18px;">
+      <div class="card-title flex items-center gap-2" style="font-size: 15px; font-weight: 800; color: #581c87;">
+        <i class="fa-solid fa-robot" style="color: #9333ea; font-size: 18px;"></i>
+        <span>{{ langService.isHindi() ? 'MKS मुनीम जी AI सहायक' : 'MKS Munim Ji AI Assistant' }}</span>
+      </div>
+      <span class="badge" style="background: #10b981; color: white; font-weight: 800; font-size: 10.5px; padding: 3px 8px; border-radius: 12px;">
+        ✨ 24/7 AI
+      </span>
+    </div>
+
+    <div class="card-body" style="padding: 18px;">
+      <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;">
+        {{ langService.isHindi() ? 'व्यापार वृद्धि, WhatsApp बिलिंग, उधारी वसूली व डेड स्टॉक तेजी से निकालने हेतु स्मार्ट AI:' : 'Smart 24/7 AI for sales growth, WhatsApp billing, credit recovery & dead stock clearance:' }}
+      </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
+        <span class="badge" style="background: #f3e8ff; color: #7e22ce; font-size: 11px; padding: 4px 8px;">
+          {{ langService.isHindi() ? '💬 WhatsApp बॉट गाइड' : '💬 WhatsApp Bot Guide' }}
+        </span>
+        <span class="badge" style="background: #ecfdf5; color: #047857; font-size: 11px; padding: 4px 8px;">
+          {{ langService.isHindi() ? '💰 उधारी वसूली टिप्स' : '💰 Udhaar Recovery Tips' }}
+        </span>
+        <span class="badge" style="background: #eff6ff; color: #1d4ed8; font-size: 11px; padding: 4px 8px;">
+          {{ langService.isHindi() ? '📈 बिक्री 2x बढ़ाने के तरीके' : '📈 2x Sales Growth' }}
+        </span>
+        <span class="badge" style="background: #fff7ed; color: #c2410c; font-size: 11px; padding: 4px 8px;">
+          {{ langService.isHindi() ? '📦 डेड स्टॉक निकासी' : '📦 Dead Stock Clearance' }}
+        </span>
+      </div>
+
+      <button 
+        type="button" 
+        class="btn" 
+        (click)="openAiAssistant()"
+        style="width: 100%; background: linear-gradient(135deg, #4338ca, #6366f1); color: white; font-weight: 800; font-size: 13.5px; padding: 10px; border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;"
+      >
+        <span>✨</span>
+        <i class="fa-solid fa-robot"></i>
+        <span>{{ langService.isHindi() ? 'मुनीम जी AI से सहायता प्राप्त करें' : 'Chat with Munim Ji AI' }}</span>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Shop Profile, Logo & Business Category Change -->
+<div class="card mb-4" style="border: 2px solid var(--primary-light); box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+  <div class="card-header flex justify-between items-center" style="background: linear-gradient(90deg, #f0f7ff, #e0f2fe);">
+    <div class="card-title flex items-center gap-2">
+      <i class="fa-solid fa-store text-primary" style="font-size: 20px;"></i> 
+      <div>
+        <span style="font-weight: 800; font-size: 16px;">{{ langService.isHindi() ? 'दुकान प्रोफाइल व लोगो' : 'Shop Profile & Custom Logo' }}</span>
+        <div style="font-size: 12px; color: #64748b; font-weight: normal;">{{ langService.isHindi() ? 'दुकान का नाम, लोगो, मालिक का नाम व मोबाइल नंबर अपडेट करें' : 'Update shop name, logo, owner name, and mobile number' }}</div>
+      </div>
+    </div>
+    <span class="badge badge-primary" style="font-size: 12px; padding: 6px 14px; border-radius: 20px; font-weight: 700;">
+      {{ shop()?.shopType }} {{ langService.isHindi() ? 'स्टोर' : 'STORE' }}
+    </span>
+  </div>
+
+  <form [formGroup]="shopProfileForm" (ngSubmit)="saveShopProfile()">
+    <div class="card-body">
+
+      <!-- 🖼️ Shop Logo Upload Section -->
+      <div class="p-3 mb-4 rounded-3" style="background: #f8fafc; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: space-between; flex-wrap: gap-4;">
+        <div class="flex items-center gap-3">
+          <div style="position: relative; width: 72px; height: 72px; border-radius: 50%; background: white; border: 3px solid #3b82f6; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+            @if (shopLogo()) {
+              <img [src]="shopLogo()" alt="Shop Logo" style="width: 100%; height: 100%; object-fit: cover;" />
+            } @else {
+              <i class="fa-solid fa-store text-muted" style="font-size: 30px; color: #94a3b8;"></i>
+            }
+          </div>
+          <div>
+            <div style="font-weight: 800; font-size: 14.5px; color: #1e293b;">
+              {{ langService.isHindi() ? 'दुकान का लोगो' : 'Shop Custom Logo' }}
+              @if (shopLogo()) {
+                <span class="badge badge-success" style="font-size: 10px; margin-left: 6px;">{{ langService.isHindi() ? 'सक्रिय' : 'Active' }}</span>
+              }
+            </div>
+            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0;">
+              {{ langService.isHindi() ? 'यह लोगो आपके प्रिंट बिल (A4 / Thermal), WhatsApp इनवॉइस व टॉप बार में दिखेगा। (PNG, JPG, WEBP — Max 3MB)' : 'This logo appears on printed invoices (A4 / Thermal), WhatsApp bills, and top navbar. (PNG, JPG, WEBP — Max 3MB)' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex gap-2 items-center">
+          <input type="file" #logoFileInput (change)="onLogoSelected($event)" accept="image/*" style="display: none;" />
+          <button 
+            type="button" 
+            class="btn btn-outline" 
+            (click)="logoFileInput.click()" 
+            style="border-color: #3b82f6; color: #2563eb; font-weight: 700; font-size: 13px;"
+          >
+            <i class="fa-solid fa-upload"></i> {{ shopLogo() ? (langService.isHindi() ? 'लोगो बदलें' : 'Change Logo') : (langService.isHindi() ? 'लोगो अपलोड करें' : 'Upload Logo') }}
+          </button>
+
+          @if (shopLogo()) {
+            <button 
+              type="button" 
+              class="btn btn-danger btn-sm" 
+              (click)="removeLogo()" 
+              [title]="langService.isHindi() ? 'लोगो हटाएं' : 'Remove Logo'"
+              style="padding: 8px 12px;"
+            >
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Shop Name & Category Row -->
+      <div class="form-row">
+        <div class="form-group" style="flex: 1.2;">
+          <label class="form-label font-bold" style="font-size: 13.5px; color: #1e293b;">
+            <i class="fa-solid fa-shop text-primary"></i> {{ langService.isHindi() ? 'दुकान का नाम' : 'Shop / Store Name' }} <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            formControlName="name" 
+            class="form-control" 
+            [placeholder]="langService.isHindi() ? 'उदा. श्री बालाजी गारमेंट्स & फुटवियर' : 'e.g. Balaji Garments & Footwear'"
+            style="font-size: 14.5px; font-weight: 700;"
+          >
+        </div>
+
+        <div class="form-group" style="flex: 1;">
+          <label class="form-label font-bold" style="font-size: 13.5px; color: #1e293b;">
+            <i class="fa-solid fa-layer-group text-primary"></i> {{ langService.isHindi() ? 'व्यापार का प्रकार' : 'Business Category' }} <span class="required">*</span>
+          </label>
+          <select formControlName="shopType" class="form-control" style="font-weight: 700; color: var(--primary); font-size: 14px;">
+            @for (type of shopTypes(); track type.value) {
+              <option [value]="type.value">{{ type.label }}</option>
+            }
+          </select>
+          <small class="text-muted" style="font-size: 11px; margin-top: 4px; display: block;">
+            <i class="fa-solid fa-circle-info"></i> {{ langService.isHindi() ? 'Category बदलने पर प्रोडक्ट्स व साइज/कलर ऑप्शंस उसी अनुसार सेट हो जाएंगे।' : 'Changing category automatically adjusts sizing and product unit defaults.' }}
+          </small>
+        </div>
+      </div>
+
+      <!-- Owner Name & Contact Mobile Row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label font-bold" style="font-size: 13.5px; color: #1e293b;">
+            <i class="fa-solid fa-user-tie text-primary"></i> {{ langService.isHindi() ? 'दुकानदार / मालिक का नाम' : 'Owner / Manager Name' }} <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            formControlName="ownerName" 
+            class="form-control" 
+            [placeholder]="langService.isHindi() ? 'उदा. भंवर लाल सैनी' : 'e.g. Bhanwar Lal Saini'"
+            style="font-size: 14px; font-weight: 600;"
+          >
+        </div>
+
+        <div class="form-group">
+          <div class="flex justify-between items-center mb-1">
+            <label class="form-label font-bold" style="font-size: 13.5px; color: #1e293b; margin-bottom: 0;">
+              <i class="fa-solid fa-phone text-success"></i> {{ langService.isHindi() ? 'अधिकृत मोबाइल नंबर' : 'Contact Mobile Number' }} <span class="required">*</span>
+            </label>
+            <span class="badge badge-warning" style="font-size: 10px;">
+              <i class="fa-solid fa-shield-halved"></i> {{ langService.isHindi() ? 'नंबर बदलने पर OTP सत्यापन होगा' : 'OTP verification required on change' }}
+            </span>
+          </div>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; color: #64748b; font-size: 14px;">+91</span>
+            <input 
+              type="text" 
+              formControlName="mobile" 
+              class="form-control" 
+              maxlength="10"
+              placeholder="9876543210"
+              style="padding-left: 48px; font-weight: 800; font-size: 15px; letter-spacing: 1px;"
+            >
+          </div>
+          <small class="text-muted" style="font-size: 11px; margin-top: 3px; display: block;">
+            {{ langService.isHindi() ? '⚠️ यदि आप नया नंबर डालेंगे, तो सुरक्षा हेतु आपके नये नंबर पर SMS/WhatsApp OTP भेजा जाएगा।' : '⚠️ An OTP will be sent to verify any newly entered phone number.' }}
+          </small>
+        </div>
+      </div>
+
+      <!-- Address, City, State, Pincode -->
+      <div class="form-row">
+        <div class="form-group" style="flex: 2;">
+          <label class="form-label"><i class="fa-solid fa-location-dot text-danger"></i> {{ langService.isHindi() ? 'दुकान का पता' : 'Shop Address' }}</label>
+          <input type="text" formControlName="address" class="form-control" [placeholder]="langService.isHindi() ? 'दुकान नं., मेन मार्केट, रोड / चौराहा' : 'Shop No, Main Market, Road / Crossroad'">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ langService.isHindi() ? 'शहर' : 'City' }}</label>
+          <input type="text" formControlName="city" class="form-control" [placeholder]="langService.isHindi() ? 'उदा. जयपुर' : 'e.g. Jaipur'">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ langService.isHindi() ? 'राज्य' : 'State' }}</label>
+          <select formControlName="state" class="form-control">
+            <option value="">{{ langService.isHindi() ? 'राज्य चुनें' : 'Select State' }}</option>
+            @for (state of states; track state) {
+              <option [value]="state">{{ state }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-group" style="flex: 0.8;">
+          <label class="form-label">{{ langService.isHindi() ? 'पिनकोड' : 'Pincode' }}</label>
+          <input type="text" formControlName="pincode" maxlength="6" class="form-control" placeholder="302001">
+        </div>
+      </div>
+
+      <!-- GSTIN & Optional Medical Details -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label"><i class="fa-solid fa-file-invoice-dollar text-primary"></i> {{ langService.isHindi() ? 'GSTIN नंबर (वैकल्पिक)' : 'GSTIN Number (Optional)' }}</label>
+          <input type="text" formControlName="gstin" class="form-control" placeholder="08AAAAA0000A1Z5" style="text-transform: uppercase;">
+        </div>
+
+        @if (shopProfileForm.get('shopType')?.value === 'MEDICAL') {
+          <div class="form-group">
+            <label class="form-label"><i class="fa-solid fa-prescription text-danger"></i> Drug License Number (DL No.)</label>
+            <input type="text" formControlName="drugLicenseNumber" class="form-control" placeholder="e.g. 20-B/21-B RJ-JPR-1234">
+          </div>
+          <div class="form-group">
+            <label class="form-label"><i class="fa-solid fa-user-doctor text-info"></i> Pharmacist Name</label>
+            <input type="text" formControlName="pharmacistName" class="form-control" placeholder="Registered Pharmacist">
+          </div>
+        }
+      </div>
+
+      <!-- 💳 Dynamic UPI QR Code Configuration Row -->
+      <div class="p-3 mb-3 rounded-3" style="background: #f0fdf4; border: 1.5px solid #bbf7d0;">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fa-solid fa-qrcode text-success" style="font-size: 18px;"></i>
+          <span style="font-weight: 800; font-size: 14px; color: #166534;">
+            {{ langService.isHindi() ? '💳 बिल पर UPI QR कोड सेटिंग (Google Pay / PhonePe / Paytm)' : '💳 Invoice Dynamic UPI QR Code Settings' }}
+          </span>
+        </div>
+        <div class="form-row" style="margin-bottom: 8px;">
+          <div class="form-group" style="flex: 1.2;">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #14532d;">
+              {{ langService.isHindi() ? 'दुकान की UPI ID (VPA)' : 'Shop UPI ID / VPA' }}
+            </label>
+            <input 
+              type="text" 
+              formControlName="upiId" 
+              class="form-control" 
+              placeholder="e.g. 9876543210@paytm or shopname@oksbi" 
+              style="font-family: monospace; font-size: 13.5px; font-weight: 700;"
+            />
+            <small class="text-muted" style="font-size: 11px;">
+              {{ langService.isHindi() ? 'ग्राहक द्वारा स्कैन करने पर यह UPI ID काम करेगी।' : 'This UPI ID will receive direct payments from customers.' }}
+            </small>
+          </div>
+
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #14532d;">
+              {{ langService.isHindi() ? 'खाताधारक का नाम (Payee Name)' : 'Payee Display Name' }}
+            </label>
+            <input 
+              type="text" 
+              formControlName="upiName" 
+              class="form-control" 
+              placeholder="e.g. MKS Store"
+            />
+          </div>
+        </div>
+
+        <label class="flex items-center gap-2" style="font-size: 13px; font-weight: 700; color: #166534; cursor: pointer; margin: 0;">
+          <input type="checkbox" formControlName="enableUpiQrOnInvoice" style="width: 17px; height: 17px; accent-color: #16a34a;" />
+          <span>{{ langService.isHindi() ? 'थर्मल व A4 बिल के नीचे ऑटोमैटिक रकम के साथ UPI QR कोड दिखाएं' : 'Show Dynamic UPI QR Code with exact bill amount on Thermal & A4 Invoices' }}</span>
+        </label>
+      </div>
+
+    </div>
+
+    <div class="card-footer flex justify-between items-center">
+      <div style="font-size: 12.5px; color: #64748b;">
+        <i class="fa-solid fa-circle-check text-success"></i> {{ langService.isHindi() ? 'परिवर्तन तुरंत बिल व सिस्टम में लागू हो जाएंगे।' : 'Changes will take effect across system immediately.' }}
+      </div>
+      <button type="submit" class="btn btn-success" [disabled]="submitting" style="font-weight: 800; padding: 10px 24px; font-size: 14.5px;">
+        <i class="fa-solid" [ngClass]="submitting ? 'fa-spinner fa-spin' : 'fa-floppy-disk'"></i> 
+        {{ submitting ? (langService.isHindi() ? 'अपडेट हो रहा है...' : 'Saving...') : (langService.isHindi() ? 'दुकान प्रोफाइल सुरक्षित करें' : 'Save Shop Profile') }}
+      </button>
+    </div>
+  </form>
+</div>
+
+<div class="grid grid-2">
+  <!-- General and GST settings form -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">{{ langService.isHindi() ? 'दुकान बिलिंग सेटिंग्स' : 'Shop Billing Configurations' }}</div></div>
+    <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+      <div class="card-body">
+        <!-- Invoice Settings -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ langService.isHindi() ? 'इनवॉइस प्रीफिक्स' : 'Invoice Prefix' }}</label>
+            <input type="text" formControlName="invoicePrefix" class="form-control" placeholder="e.g. INV">
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ langService.isHindi() ? 'प्रिंट फॉर्मेट' : 'Print Format' }}</label>
+            <select formControlName="printFormat" class="form-control">
+              <option value="A4">{{ langService.isHindi() ? 'स्टैंडर्ड A4 शीट' : 'Standard A4 Sheet' }}</option>
+              <option value="A5">{{ langService.isHindi() ? 'स्टैंडर्ड A5 शीट' : 'Standard A5 Sheet' }}</option>
+              <option value="THERMAL">{{ langService.isHindi() ? '80mm थर्मल पेपर' : '80mm Thermal Paper' }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ langService.isHindi() ? 'नियम व शर्तें' : 'Terms & Conditions' }}</label>
+          <textarea formControlName="termsConditions" class="form-control" style="min-height: 48px;"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ langService.isHindi() ? 'इनवॉइस फुटर संदेश' : 'Invoice Footer Message' }}</label>
+          <input type="text" formControlName="invoiceFooter" class="form-control">
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 🚨 Customer Credit Limit & Auto-Block System -->
+        <div style="background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+          <div style="font-weight: 800; font-size: 13.5px; color: #c2410c; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+            <span>{{ langService.isHindi() ? 'ग्राहक उधार सीमा व ब्लॉकिंग' : 'Customer Credit Limit & Auto-Block' }}</span>
+          </div>
+          <p style="font-size: 11.5px; color: #9a3412; margin: 0 0 10px 0;">
+            {{ langService.isHindi() ? 'यदि किसी ग्राहक का पिछला उधार सीमा से अधिक हो जाए, तो नया उधार बिल रोकने और पहले पुराना बकाया जमा करवाने का नियम चालू रखें।' : 'Automatically prevent new credit bills if customer previous unpaid balance exceeds their credit limit.' }}
+          </p>
+
+          <div class="form-group mb-3">
+            <label class="flex items-center gap-2" style="cursor: pointer; font-weight: 700; color: #7c2d12;">
+              <input type="checkbox" formControlName="enableCreditLimitBlock" style="width: 18px; height: 18px; accent-color: #ea580c;">
+              <span>{{ langService.isHindi() ? 'उधार सीमा ब्लॉकिंग चालू रखें' : 'Enable Credit Limit Auto-Blocking' }}</span>
+            </label>
+          </div>
+
+          @if (settingsForm.get('enableCreditLimitBlock')?.value) {
+            <div class="form-group mb-2">
+              <label class="form-label" style="font-weight: 700; color: #7c2d12;">{{ langService.isHindi() ? 'अधिकतम डिफ़ॉल्ट उधार सीमा (₹)' : 'Default Credit Limit (₹)' }} <span class="text-danger">*</span></label>
+              <input type="number" formControlName="defaultCreditLimit" class="form-control" placeholder="10000" style="background: white; font-weight: 800; font-size: 14px; color: #c2410c;">
+              <small class="text-muted" style="font-size: 11px;">{{ langService.isHindi() ? 'उदा. ₹10,000 से अधिक बकाया होने पर बिलिंग में लाल अलर्ट व ब्लॉकिंग आएगी।' : 'e.g. Balances over ₹10,000 will show red alert and block credit bills.' }}</small>
+            </div>
+          }
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- GST settings -->
+        <div class="form-group">
+          <label class="flex items-center gap-2" style="cursor: pointer;">
+            <input type="checkbox" formControlName="isGSTRegistered" style="width: 18px; height: 18px; accent-color: var(--primary);">
+            {{ langService.isHindi() ? 'GST पंजीकृत व्यापार (GST Registered Business)' : 'GST Registered Business' }}
+          </label>
+        </div>
+
+        @if (settingsForm.get('isGSTRegistered')?.value) {
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">GSTIN</label>
+              <input type="text" formControlName="gstin" class="form-control" placeholder="15 digits" style="text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ langService.isHindi() ? 'राज्य अधिकार क्षेत्र' : 'State Jurisdiction' }}</label>
+              <select formControlName="gstState" class="form-control">
+                <option value="" disabled>{{ langService.isHindi() ? 'राज्य चुनें' : 'Select State' }}</option>
+                @for (state of states; track state) {
+                  <option [value]="state">{{ state }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        }
+      </div>
+      <div class="card-footer">
+        <button type="submit" class="btn btn-primary" [disabled]="submitting">
+          {{ langService.isHindi() ? 'बिलिंग सेटिंग्स सुरक्षित करें' : 'Save Billing Settings' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Employee User management card -->
+  <div class="card">
+    <div class="card-header flex justify-between items-center">
+      <div class="card-title">{{ langService.isHindi() ? 'कर्मचारी व बिलिंग खाते' : 'Employees / Billing Users' }}</div>
+      <button class="btn btn-outline-primary btn-sm" (click)="showEmployeeModal = true">
+        <i class="fa-solid fa-user-plus"></i> {{ langService.isHindi() ? 'कर्मचारी जोड़ें' : 'Add Employee' }}
+      </button>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      @if (employees().length === 0) {
+        <div class="empty-state" style="padding: 40px 20px;">
+          <i class="fa-solid fa-users-gear" style="font-size: 36px; color: var(--gray-300); margin-bottom: 12px;"></i>
+          <h3>{{ langService.isHindi() ? 'कोई कर्मचारी नहीं मिला' : 'No Employees Logged' }}</h3>
+          <p>{{ langService.isHindi() ? 'कैशियर या दुकान सहायकों के लिए बिलिंग खाता बनाएं।' : 'Create billing accounts for cashier or shop helpers.' }}</p>
+        </div>
+      } @else {
+        <div class="table-wrapper" style="border: none; border-radius: 0;">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ langService.isHindi() ? 'नाम' : 'Name' }}</th>
+                <th>{{ langService.isHindi() ? 'संपर्क' : 'Contact' }}</th>
+                <th>{{ langService.isHindi() ? 'स्थिति' : 'Status' }}</th>
+                <th>{{ langService.isHindi() ? 'एक्शन' : 'Action' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (emp of employees(); track emp._id) {
+                <tr>
+                  <td class="font-semibold">{{ emp.name }}</td>
+                  <td>{{ emp.email }}<br><span class="text-muted" style="font-size: 11px;">{{ emp.mobile }}</span></td>
+                  <td>
+                    <span class="badge" [ngClass]="emp.isActive ? 'badge-success' : 'badge-danger'">
+                      {{ emp.isActive ? (langService.isHindi() ? 'सक्रिय' : 'Active') : (langService.isHindi() ? 'निष्क्रिय' : 'Inactive') }}
+                    </span>
+                  </td>
+                  <td>
+                    <button class="btn btn-outline btn-sm" (click)="toggleEmployeeStatus(emp)">
+                      {{ emp.isActive ? (langService.isHindi() ? 'निष्क्रिय करें' : 'Deactivate') : (langService.isHindi() ? 'सक्रिय करें' : 'Activate') }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Modal Create Employee -->
+@if (showEmployeeModal) {
+  <div class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ langService.isHindi() ? 'नया कर्मचारी बिलिंग खाता पंजीकृत करें' : 'Register Employee Billing Account' }}</h3>
+        <button class="modal-close" (click)="showEmployeeModal = false">&times;</button>
+      </div>
+      <form [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">{{ langService.isHindi() ? 'कर्मचारी का नाम' : 'Employee Name' }} <span class="required">*</span></label>
+            <input type="text" formControlName="name" class="form-control" [placeholder]="langService.isHindi() ? 'पूरा नाम' : 'Full name'">
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ langService.isHindi() ? 'मोबाइल नंबर' : 'Mobile Number' }} <span class="required">*</span></label>
+            <input type="text" formControlName="mobile" class="form-control" [placeholder]="langService.isHindi() ? '10-अंकों का नंबर' : '10 digit number'">
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ langService.isHindi() ? 'ईमेल पता' : 'Email Address' }} <span class="required">*</span></label>
+            <input type="email" formControlName="email" class="form-control" placeholder="name@domain.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ langService.isHindi() ? 'पासवर्ड' : 'Password' }} <span class="required">*</span></label>
+            <input type="password" formControlName="password" class="form-control" [placeholder]="langService.isHindi() ? 'कम से कम 6 अक्षर' : 'Min 6 characters'">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showEmployeeModal = false">{{ langService.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting">{{ langService.isHindi() ? 'खाता पंजीकृत करें' : 'Register Account' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- 📲 Mobile Number Change OTP Verification Modal -->
+@if (showMobileOtpModal()) {
+  <div class="modal-overlay" style="z-index: 1050; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; position: fixed; inset: 0;">
+    <div class="modal" style="max-width: 440px; width: 92%; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 2px solid #3b82f6; overflow: hidden; background: white;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 18px 22px;">
+        <div class="flex items-center gap-2">
+          <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            📲
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; font-size: 16.5px; font-weight: 800; margin: 0;">{{ langService.isHindi() ? 'मोबाइल नंबर सत्यापन (OTP)' : 'Mobile OTP Verification' }}</h3>
+            <p style="color: rgba(255,255,255,0.85); font-size: 11.5px; margin: 2px 0 0;">{{ langService.isHindi() ? 'सुरक्षा हेतु नये नंबर का सत्यापन अनिवार्य है' : 'Security verification for new contact number' }}</p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="cancelMobileOtp()" style="color: white; font-size: 24px; border: none; background: none; cursor: pointer;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 22px; text-align: center;">
+        <div style="background: #eff6ff; border-radius: 10px; padding: 14px; margin-bottom: 18px; border: 1px solid #bfdbfe;">
+          <p style="font-size: 13px; color: #1e40af; margin: 0; line-height: 1.5;">
+            {{ langService.isHindi() ? 'हमने आपके नये मोबाइल नंबर' : 'We sent a 6-digit OTP to your new mobile number' }} <br>
+            <strong style="font-size: 16px; color: #1e3a8a; letter-spacing: 1px;">+91 {{ maskedMobile() }}</strong> <br>
+            {{ langService.isHindi() ? 'पर 6-अंकों का OTP भेजा है।' : '' }}
+          </p>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label font-bold" style="font-size: 13px; color: #334155; margin-bottom: 8px; display: block;">
+            {{ langService.isHindi() ? '6-अंकों का OTP दर्ज करें' : 'Enter 6-Digit OTP' }}
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="otpInput" 
+            maxlength="6" 
+            class="form-control" 
+            placeholder="• • • • • •"
+            style="text-align: center; font-size: 26px; font-weight: 900; letter-spacing: 8px; padding: 10px; border: 2px solid #3b82f6; border-radius: 10px; color: #1e3a8a;"
+            (keyup.enter)="verifyAndSaveMobileOtp()"
+            autofocus
+          >
+        </div>
+
+        <!-- Resend OTP countdown -->
+        <div style="font-size: 12.5px; color: #64748b; margin-bottom: 10px;">
+          @if (otpTimer() > 0) {
+            <span>⏳ {{ langService.isHindi() ? 'दोबारा OTP भेजें: ' : 'Resend in: ' }}<strong>{{ otpTimer() }}s</strong></span>
+          } @else {
+            <button 
+              type="button" 
+              class="btn btn-link" 
+              (click)="resendMobileOtp()" 
+              style="color: #2563eb; font-weight: 700; font-size: 12.5px; text-decoration: underline; padding: 0; background: none; border: none; cursor: pointer;"
+            >
+              🔄 {{ langService.isHindi() ? 'पुनः OTP भेजें' : 'Resend OTP' }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc; padding: 14px 22px; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" (click)="cancelMobileOtp()" style="font-weight: 600;">
+          {{ langService.isHindi() ? 'रद्द करें' : 'Cancel' }}
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-success" 
+          (click)="verifyAndSaveMobileOtp()" 
+          [disabled]="verifyingOtp() || otpInput().length < 6"
+          style="font-weight: 800; padding: 9px 20px;"
+        >
+          <i class="fa-solid" [ngClass]="verifyingOtp() ? 'fa-spinner fa-spin' : 'fa-circle-check'"></i> 
+          {{ langService.isHindi() ? 'सत्यापित करें व सेव करें' : 'Verify & Save' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- 🏢 ADD NEW BRANCH MODAL (SETTINGS) -->
+<div *ngIf="showAddBranchModal()" class="modal-overlay" style="z-index: 10000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+  <div class="modal-card" style="max-width: 540px; width: 94%; border-radius: 14px; background: white; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+    
+    <!-- Modal Header -->
+    <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;">
+      <div class="flex items-center gap-2">
+        <span style="font-size: 20px;">🏪</span>
+        <div>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: white;">
+            {{ langService.isHindi() ? 'नई दुकान / शाखा जोड़ें' : 'Register New Branch / Outlet' }}
+          </h3>
+          <p style="margin: 0; font-size: 11.5px; color: #e0f2fe;">
+            {{ langService.isHindi() ? 'एक ही सॉफ्टवेयर में अपनी सभी शाखाओं का हिसाब रखें' : 'Manage multi-branch retail network under 1 account' }}
+          </p>
+        </div>
+      </div>
+      <button 
+        type="button" 
+        (click)="showAddBranchModal.set(false)" 
+        style="background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px;"
+      >
+        &times;
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <form (ngSubmit)="saveNewBranch()" style="padding: 20px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div style="grid-column: 1 / -1;">
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            {{ langService.isHindi() ? 'दुकान का मुख्य नाम *' : 'Shop Brand Name *' }}
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="newBranchData.name" 
+            name="name" 
+            required 
+            class="form-control" 
+            placeholder="उदा. MKS Footwear & Fashion" 
+            style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;"
+          />
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            {{ langService.isHindi() ? 'शाखा का नाम (Branch Name) *' : 'Branch Title *' }}
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="newBranchData.branchName" 
+            name="branchName" 
+            required 
+            class="form-control" 
+            placeholder="उदा. स्टेशन रोड शाखा / Outlet 2" 
+            style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;"
+          />
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            {{ langService.isHindi() ? 'ब्रांच कोड (Code) *' : 'Branch Code *' }}
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="newBranchData.branchCode" 
+            name="branchCode" 
+            required 
+            class="form-control" 
+            placeholder="उदा. BR-2" 
+            style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;"
+          />
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            {{ langService.isHindi() ? 'दुकान का प्रकार (Category)' : 'Business Type' }}
+          </label>
+          <select 
+            [(ngModel)]="newBranchData.shopType" 
+            name="shopType" 
+            class="form-control" 
+            style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;"
+          >
+            <option value="GARMENTS">👕 कपड़े व गारमेंट्स (Garments)</option>
+            <option value="SHOES">👟 जूते व चप्पल (Footwear)</option>
+            <option value="KIRANA">🛒 किराना व जनरल (Grocery)</option>
+            <option value="MOBILE">📱 मोबाइल व इलेक्ट्रॉनिक्स (Mobile)</option>
+            <option value="MEDICAL">💊 मेडिकल व फार्मेसी (Pharmacy)</option>
+            <option value="COSMETICS">💄 कॉस्मेटिक्स (Beauty)</option>
+            <option value="STATIONERY">📚 स्टेशनरी (Books)</option>
+            <option value="HARDWARE">🛠️ हार्डवेयर (Hardware)</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            {{ langService.isHindi() ? 'शाखा का मोबाइल नंबर' : 'Branch Phone' }}
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="newBranchData.mobile" 
+            name="mobile" 
+            class="form-control" 
+            placeholder="उदा. 9876543210" 
+            style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;"
+          />
+        </div>
+
+        <div style="grid-column: 1 / -1;">
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            {{ langService.isHindi() ? 'शाखा का पता / लोकेशन' : 'Branch Address / Location' }}
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="newBranchData.address" 
+            name="address" 
+            class="form-control" 
+            placeholder="उदा. दुकान नं. 12, मेन मार्केट, जोधपुर" 
+            style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;"
+          />
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+        <button 
+          type="button" 
+          (click)="showAddBranchModal.set(false)" 
+          class="btn btn-outline btn-sm"
+          style="font-weight: 600; padding: 7px 16px;"
+        >
+          {{ langService.isHindi() ? 'रद्द करें' : 'Cancel' }}
+        </button>
+        <button 
+          type="submit" 
+          [disabled]="savingBranch()" 
+          class="btn btn-primary btn-sm"
+          style="background: #0284c7; border-color: #0284c7; font-weight: 700; padding: 7px 20px; display: inline-flex; align-items: center; gap: 6px;"
+        >
+          <span *ngIf="savingBranch()" class="spinner spinner-sm"></span>
+          <i *ngIf="!savingBranch()" class="fa-solid fa-check"></i>
+          {{ langService.isHindi() ? 'शाखा जोड़ें व स्विच करें' : 'Create & Switch Branch' }}
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>

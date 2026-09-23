@@ -1,0 +1,1138 @@
+/* =========================================================
+   TAX INVOICE - EXACT TALLY A4 PRINT LAYOUT
+   ========================================================= */
+
+.invoice-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.copy-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+}
+
+/* Printable Paper Canvas */
+.tally-exact-paper {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: var(--border-radius-lg, 12px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--gray-200, #e2e8f0);
+  font-family: 'Times New Roman', 'Arial', serif, sans-serif;
+  color: #000000;
+}
+
+/* 🏷️ TALLY EXACT OUTER BOX */
+.tally-exact-box {
+  border: 1.5px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  box-sizing: border-box;
+  font-size: 11.5px;
+}
+
+/* 1. Top Title Bar */
+.tally-top-title-bar {
+  text-align: center;
+  padding: 4px 0;
+  font-weight: 900;
+  font-size: 13.5px;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #000000;
+  font-family: 'Times New Roman', serif;
+}
+
+/* 2. Company Banner */
+.tally-company-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #000000;
+  gap: 12px;
+}
+
+.tally-banner-logo {
+  width: 75px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.tally-seal-img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+}
+
+.tally-banner-center {
+  flex: 1;
+  text-align: center;
+}
+
+.tally-company-heading {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 900;
+  color: #1e3a8a;
+  letter-spacing: 1.5px;
+  font-family: 'Times New Roman', serif;
+  text-transform: uppercase;
+}
+
+.tally-company-sub {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #000000;
+  margin-top: 2px;
+}
+
+.tally-company-contact {
+  font-size: 11px;
+  font-weight: 700;
+  color: #000000;
+  margin-top: 2px;
+}
+
+.tally-banner-qr {
+  width: 75px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.tally-header-qr-img {
+  width: 72px;
+  height: 72px;
+  border: 1px solid #000000;
+}
+
+/* 3. IRN & Ack Details Bar */
+.tally-irn-bar {
+  padding: 4px 10px;
+  border-bottom: 1px solid #000000;
+  font-size: 11px;
+  font-family: 'Arial', sans-serif;
+}
+
+.tally-irn-row {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.tally-lbl {
+  width: 60px;
+  font-weight: 700;
+}
+
+.tally-colon {
+  margin: 0 4px;
+}
+
+.tally-irn-val {
+  font-size: 10.5px;
+  word-break: break-all;
+  font-weight: 600;
+}
+
+.tally-ack-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* 4. GSTIN & PAN Bar */
+.tally-gstin-pan-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: #e2e8f0;
+  border-bottom: 1px solid #000000;
+  font-weight: 700;
+  font-size: 11.5px;
+  font-family: 'Arial', sans-serif;
+}
+
+/* 5. Three-Column Party Details Grid */
+.tally-three-col-grid {
+  display: flex;
+  border-bottom: 1px solid #000000;
+}
+
+.tally-party-col {
+  flex: 1;
+  padding: 6px 8px;
+  border-right: 1px solid #000000;
+  font-size: 11px;
+  line-height: 1.35;
+  font-family: 'Arial', sans-serif;
+}
+
+.tally-meta-col {
+  flex: 1.05;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: 'Arial', sans-serif;
+}
+
+.tally-col-head {
+  font-weight: 800;
+  color: #000000;
+  margin-bottom: 2px;
+}
+
+.tally-party-name-blue {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e3a8a;
+}
+
+.tally-party-line {
+  color: #000000;
+}
+
+.tally-col3-meta-tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tally-col3-meta-tbl td {
+  padding: 1.5px 2px;
+  font-size: 11px;
+}
+
+.tally-col3-meta-tbl .m-lbl {
+  width: 95px;
+  color: #000000;
+}
+
+.tally-col3-meta-tbl .m-val {
+  color: #000000;
+}
+
+/* 6. Main Items Table */
+.tally-main-item-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-bottom: 1px solid #000000;
+  font-family: 'Arial', sans-serif;
+}
+
+.tally-main-item-table th,
+.tally-main-item-table td {
+  border-right: 1px solid #000000;
+  padding: 3.5px 4px;
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.tally-main-item-table th:last-child,
+.tally-main-item-table td:last-child {
+  border-right: none;
+}
+
+.tally-grid-head th {
+  background: #e2e8f0;
+  color: #000000;
+  font-weight: 800;
+  text-align: center;
+  border-bottom: 1px solid #000000;
+  line-height: 1.2;
+}
+
+.tally-main-row td {
+  border-bottom: 0.5px solid #cbd5e1;
+}
+
+.item-extra-sub {
+  font-size: 9.5px;
+  color: #475569;
+}
+
+.tally-grid-total-row td {
+  border-top: 1px solid #000000;
+  border-bottom: 1px solid #000000;
+  background: #ffffff;
+  padding: 5px 4px;
+  font-weight: 800;
+}
+
+/* 7. Words & Calculation Split */
+.tally-words-calc-split {
+  display: flex;
+  border-bottom: 1px solid #000000;
+  font-family: 'Arial', sans-serif;
+}
+
+.tally-words-bank-pane {
+  flex: 1.4;
+  border-right: 1px solid #000000;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tally-words-line {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #000000;
+  margin-bottom: 8px;
+}
+
+.tally-bank-box-flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tally-bank-qr img {
+  width: 60px;
+  height: 60px;
+  border: 1px solid #000000;
+  display: block;
+}
+
+.tally-bank-info-lines {
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.b-lbl {
+  display: inline-block;
+  width: 105px;
+}
+
+.b-col {
+  margin-right: 4px;
+}
+
+.tally-calc-pane {
+  flex: 1;
+}
+
+.tally-calc-side-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  height: 100%;
+}
+
+.tally-calc-side-tbl td {
+  padding: 3px 6px;
+  font-size: 11px;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.tally-calc-side-tbl tr:last-child td {
+  border-bottom: none;
+}
+
+.tally-calc-side-tbl .c-lbl {
+  font-weight: 700;
+}
+
+.tally-calc-side-tbl .c-val {
+  text-align: right;
+  font-weight: 700;
+}
+
+.g-total-row td {
+  background: #e2e8f0;
+  font-size: 12px !important;
+}
+
+/* 8. Exact GST Tax Table */
+.tally-exact-tax-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-bottom: 1px solid #000000;
+  font-family: 'Arial', sans-serif;
+  font-size: 10.5px;
+}
+
+.tally-exact-tax-table th,
+.tally-exact-tax-table td {
+  border: 1px solid #000000;
+  padding: 2.5px 4px;
+}
+
+.tally-exact-tax-table thead th {
+  background: #ffffff;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tax-total-row td {
+  background: #ffffff;
+  font-weight: 800;
+}
+
+/* 9. Bottom Sign Split */
+.tally-bottom-sign-split {
+  display: flex;
+  border-bottom: 1px solid #000000;
+  font-family: 'Arial', sans-serif;
+  min-height: 110px;
+}
+
+.tally-terms-box {
+  flex: 1.2;
+  border-right: 1px solid #000000;
+  padding: 6px 8px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.terms-h {
+  font-weight: 800;
+  text-decoration: underline;
+  margin-bottom: 3px;
+}
+
+.terms-item {
+  margin-bottom: 2px;
+}
+
+.tally-sign-box {
+  flex: 1;
+  padding: 6px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.for-text {
+  font-size: 11.5px;
+  font-weight: 700;
+  align-self: flex-end;
+}
+
+.seal-container {
+  margin: 4px 0;
+}
+
+.round-seal-mock {
+  width: 72px;
+  height: 72px;
+  border: 2px solid #1e3a8a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1e3a8a;
+  font-family: 'Arial', sans-serif;
+  box-shadow: inset 0 0 0 1px #1e3a8a;
+}
+
+.seal-inner-circle {
+  width: 62px;
+  height: 62px;
+  border: 1px dashed #1e3a8a;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2px;
+}
+
+.seal-text-top {
+  font-size: 5.5px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+.seal-logo-sym {
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.seal-name {
+  font-size: 8px;
+  font-weight: 800;
+  font-style: italic;
+}
+
+.seal-sign-tag {
+  font-size: 6px;
+  font-weight: 700;
+}
+
+.seal-text-bottom {
+  font-size: 4.5px;
+  font-weight: 800;
+}
+
+.auth-sign-label {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 10. Bottom Jurisdiction Note */
+.tally-jurisdiction-note {
+  text-align: center;
+  padding: 4px 0;
+  font-size: 10px;
+  font-family: 'Arial', sans-serif;
+}
+
+.j-title {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.j-sub {
+  color: #334155;
+}
+
+/* ---- Global Grid Tables ---- */
+.bill-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  padding: 0;
+}
+
+.bill-grid-table td,
+.bill-grid-table th {
+  border: 1px solid #cbd5e1;
+  vertical-align: top;
+}
+
+/* Subheadings Row */
+.table-subheading-row th {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  padding: 6px 12px;
+  text-align: left;
+  border-top: 1.5px solid #0f172a;
+  border-bottom: 1px solid #94a3b8;
+}
+
+/* ---- Header Table (Seller & Metadata) ---- */
+.seller-cell {
+  padding: 14px 16px;
+}
+
+.seller-header-flex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.invoice-logo {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #ffffff;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.seller-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.seller-type {
+  font-size: 10px;
+  font-weight: 700;
+  color: #2563eb;
+  letter-spacing: 0.8px;
+}
+
+.seller-address,
+.seller-city,
+.seller-contact {
+  font-size: 12px;
+  color: #334155;
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+
+.seller-gst {
+  font-size: 12px;
+  margin-top: 6px;
+  color: #0f172a;
+}
+
+.gst-pill {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+}
+
+/* Key-Value Nested Metadata Tables */
+.meta-cell {
+  padding: 0 !important;
+}
+
+.nested-meta-table {
+  width: 100%;
+  border-collapse: collapse;
+  height: 100%;
+}
+
+.nested-meta-table tr {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.nested-meta-table tr:last-child {
+  border-bottom: none;
+}
+
+.nested-meta-table td {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.meta-label {
+  width: 40%;
+  font-weight: 600;
+  color: #475569;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+.meta-val {
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.highlight-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+/* ---- Party / Buyer Table ---- */
+.party-details-cell {
+  padding: 10px 14px;
+}
+
+.party-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.party-meta {
+  font-size: 12px;
+  color: #334155;
+  margin-bottom: 2px;
+}
+
+.summary-details-cell {
+  padding: 0 !important;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.status-badge.paid {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.status-badge.partial {
+  background: #fef9c3;
+  color: #a16207;
+  border: 1px solid #fde047;
+}
+
+.status-badge.credit {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+/* ---- Itemized Table ---- */
+.bill-items-table {
+  border-top: 1.5px solid #0f172a;
+  border-bottom: 1.5px solid #0f172a;
+}
+
+.table-head-row th {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 8px 6px;
+  text-align: center;
+  border: 1px solid #94a3b8;
+  border-bottom: 1.5px solid #0f172a;
+}
+
+.table-head-row th.col-desc {
+  text-align: left;
+  padding-left: 10px;
+}
+
+.table-head-row th.col-rate,
+.table-head-row th.col-taxable,
+.table-head-row th.col-amount {
+  text-align: right;
+  padding-right: 10px;
+}
+
+.item-row td {
+  padding: 7px 6px;
+  font-size: 12px;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+.item-desc-cell {
+  padding-left: 10px !important;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.item-extra-info {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.unit-text {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.items-total-row td {
+  background: #f8fafc;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #0f172a;
+  border-top: 1.5px solid #0f172a;
+  border-bottom: 1.5px solid #0f172a;
+}
+
+/* ---- GST Tax Analysis Mini Table ---- */
+.bill-tax-summary-table {
+  border-bottom: 1.5px solid #0f172a;
+}
+
+.table-head-row-mini th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.bill-tax-summary-table td {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid #e2e8f0;
+}
+
+/* ---- Bottom Section (Words, Bank, Calc Subtable) ---- */
+.bottom-left-cell {
+  padding: 12px 14px;
+}
+
+.label-heading {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #475569;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.words-block {
+  margin-bottom: 12px;
+}
+
+.words-content {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.bank-details-block {
+  margin-bottom: 12px;
+}
+
+.bank-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: 11px;
+  color: #334155;
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.terms-block {
+  font-size: 11px;
+  color: #475569;
+  white-space: pre-line;
+  line-height: 1.4;
+}
+
+/* Nested Calculation Subtable */
+.bottom-right-cell {
+  padding: 0 !important;
+}
+
+.nested-calc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.nested-calc-table td {
+  padding: 6px 12px;
+  font-size: 12px;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.calc-label {
+  width: 55%;
+  color: #475569;
+  font-weight: 500;
+}
+
+.calc-val {
+  width: 45%;
+  text-align: right;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.grand-total-row td {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  padding: 8px 12px !important;
+  border-top: 1.5px solid #0f172a;
+  border-bottom: 1.5px solid #0f172a;
+}
+
+.grand-total-row .calc-label,
+.grand-total-row .calc-val {
+  color: #ffffff !important;
+}
+
+.balance-row.has-due td {
+  background: #fff1f2;
+}
+
+/* ---- Signatures Table ---- */
+.bill-signature-table {
+  border-top: 1.5px solid #0f172a;
+}
+
+.declaration-cell {
+  padding: 12px 14px;
+}
+
+.declaration-text {
+  font-size: 10px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.signature-box {
+  display: inline-block;
+  text-align: center;
+}
+
+.sign-line {
+  width: 180px;
+  border-bottom: 1px dashed #94a3b8;
+  margin-bottom: 4px;
+}
+
+.sign-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.sign-cell {
+  padding: 12px 14px;
+}
+
+.for-company {
+  font-size: 12px;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.sign-space {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.digital-seal {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #2563eb;
+  border: 1px dashed #2563eb;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+/* ---- Bottom Computer Generated Note ---- */
+.bill-bottom-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #cbd5e1;
+  font-size: 10px;
+  color: #64748b;
+}
+
+/* ---- Thermal POS Receipt Styles ---- */
+.thermal-wrapper {
+  padding: 20px 0;
+}
+
+.thermal-receipt {
+  width: 80mm;
+  max-width: 100%;
+  background: #ffffff;
+  padding: 16px 14px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  border: 1px dashed #cbd5e1;
+  font-family: 'Courier New', Courier, monospace, system-ui;
+  color: #0f172a;
+  font-size: 11.5px;
+  box-sizing: border-box;
+}
+
+.thermal-receipt.thermal-58 {
+  width: 58mm;
+  padding: 10px 8px;
+  font-size: 10.5px;
+}
+
+.thermal-shop-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.thermal-shop-type {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.thermal-meta {
+  font-size: 10px;
+  color: #334155;
+  line-height: 1.3;
+}
+
+.thermal-divider {
+  border-top: 1px dashed #94a3b8;
+  margin: 8px 0;
+}
+
+.thermal-info-grid {
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.thermal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.thermal-table th {
+  border-bottom: 1px solid #0f172a;
+  padding: 4px 0;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.thermal-table td {
+  padding: 2px 0;
+}
+
+.thermal-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11.5px;
+}
+
+.thermal-grand-total {
+  font-size: 14px;
+  font-weight: 900;
+  border-top: 1px solid #0f172a;
+  border-bottom: 1px solid #0f172a;
+  padding: 4px 0;
+  margin: 4px 0;
+  color: #0f172a;
+}
+
+.thermal-footer {
+  font-size: 10.5px;
+  padding-top: 4px;
+}
+
+/* Utilities */
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-danger { color: #dc2626 !important; }
+.text-success { color: #16a34a !important; }
+
+/* ---- High Fidelity Print Styles ---- */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 6mm 8mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11px;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .invoice-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* A4 Tally Prime Print Layout */
+  .print-mode-a4 .tally-exact-paper {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+  }
+
+  .print-mode-a4 .tally-exact-box {
+    border: 1.5px solid #000000 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .print-mode-a4 .tally-main-item-table,
+  .print-mode-a4 .tally-exact-tax-table,
+  .print-mode-a4 .tally-col3-meta-tbl {
+    width: 100% !important;
+    table-layout: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .print-mode-a4 .tally-main-item-table th,
+  .print-mode-a4 .tally-main-item-table td,
+  .print-mode-a4 .tally-exact-tax-table th,
+  .print-mode-a4 .tally-exact-tax-table td {
+    border-color: #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-mode-a4 .tally-grid-head th,
+  .print-mode-a4 .tally-gstin-pan-bar,
+  .print-mode-a4 .g-total-row td {
+    background: #e2e8f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Thermal Print Layout */
+  .print-mode-thermal {
+    width: 100% !important;
+  }
+
+  .print-mode-thermal .thermal-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .print-mode-thermal .thermal-receipt {
+    width: 76mm !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 2mm !important;
+    margin: 0 auto !important;
+  }
+
+  .no-print,
+  .page-header,
+  .navbar,
+  .sidebar,
+  .modal-overlay {
+    display: none !important;
+  }
+}

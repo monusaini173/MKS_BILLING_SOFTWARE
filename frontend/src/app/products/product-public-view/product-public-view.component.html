@@ -1,0 +1,244 @@
+<div class="lens-public-page">
+  <div class="lens-container">
+
+    <!-- Top Brand Header Bar -->
+    <header class="lens-header-bar">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="lens-logo-badge">
+          <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <div>
+          <div style="font-size: 13.5px; font-weight: 800; color: #ffffff; line-height: 1.2;">MKS Verified Product</div>
+          <div style="font-size: 11px; color: #93c5fd; font-weight: 600;">Google Lens & Smart QR System</div>
+        </div>
+      </div>
+
+      <button (click)="shareProduct()" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-share-nodes"></i> Share
+      </button>
+    </header>
+
+    <!-- Loading State -->
+    @if (loading()) {
+      <div class="lens-state-card" style="margin-top: 40px;">
+        <div class="spinner-lens"></div>
+        <h3 style="font-size: 17px; font-weight: 800; color: #ffffff; margin: 0 0 6px;">लोड हो रहा है...</h3>
+        <p style="font-size: 12.5px; color: #94a3b8; margin: 0;">Google Lens द्वारा प्रोडक्ट की प्रामाणिकता जांची जा रही है</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (error() && !loading()) {
+      <div class="lens-state-card" style="margin-top: 40px;">
+        <div class="state-icon err">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 style="font-size: 18px; font-weight: 800; color: #f87171; margin: 0 0 8px;">प्रोडक्ट नहीं मिला</h3>
+        <p style="font-size: 13px; color: #cbd5e1; margin: 0 0 20px; line-height: 1.4;">{{ error() }}</p>
+        <a routerLink="/" style="display: inline-block; background: #2563eb; color: white; padding: 10px 22px; border-radius: 12px; font-size: 13.5px; font-weight: 800; text-decoration: none;">
+          <i class="fa-solid fa-house" style="margin-right: 6px;"></i> होम पेज पर जाएं
+        </a>
+      </div>
+    }
+
+    <!-- Main Product Card -->
+    @if (product() && !loading()) {
+      <main class="lens-main-card">
+        
+        <!-- Product Visual Banner -->
+        <div class="lens-hero-banner">
+          
+          <!-- Verified Badge -->
+          <div class="badge-verified">
+            <i class="fa-solid fa-circle-check"></i> 100% Verified
+          </div>
+
+          <!-- Stock Status Badge -->
+          @if (product().quantity > (product().minStockLevel || 0)) {
+            <div class="badge-stock">
+              <i class="fa-solid fa-boxes-stacked"></i> उपलब्ध है (In Stock)
+            </div>
+          } @else if (product().quantity > 0) {
+            <div class="badge-stock low">
+              <i class="fa-solid fa-triangle-exclamation"></i> केवल {{ product().quantity }} शेष
+            </div>
+          } @else {
+            <div class="badge-stock out">
+              <i class="fa-solid fa-circle-xmark"></i> आउट ऑफ स्टॉक
+            </div>
+          }
+
+          <!-- Product Icon or Image -->
+          @if (product().image) {
+            <img [src]="product().image" [alt]="product().name" style="max-height: 180px; max-width: 90%; object-fit: contain; border-radius: 14px;" />
+          } @else {
+            <div class="lens-prod-icon">
+              <i class="fa-solid fa-bag-shopping"></i>
+            </div>
+            <div style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; background: rgba(255,255,255,0.08); padding: 3px 10px; border-radius: 999px;">
+              {{ product().brand || product().category || 'AUTHENTIC PRODUCT' }}
+            </div>
+          }
+        </div>
+
+        <!-- Product Details Body -->
+        <div class="lens-body">
+          
+          <div class="lens-category-tag">
+            {{ product().category || 'GENERAL' }} <span *ngIf="product().brand">• {{ product().brand }}</span>
+          </div>
+
+          <h1 class="lens-prod-title">
+            {{ product().name }}
+          </h1>
+
+          <!-- Price & Savings Card -->
+          <div class="lens-price-box">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 2px;">
+                ऑफर मूल्य (Best Price)
+              </div>
+              <div style="display: flex; align-items: baseline;">
+                <span class="price-main">₹{{ product().sellingPrice | number:'1.0-2' }}</span>
+                @if (product().mrp && product().mrp > product().sellingPrice) {
+                  <span class="price-mrp">₹{{ product().mrp | number:'1.0-2' }}</span>
+                }
+              </div>
+              <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">
+                {{ product().gstInclusive ? 'सभी टैक्स सहित (Incl. GST)' : '+ ' + product().gstPercent + '% GST' }}
+              </div>
+            </div>
+
+            @if (getSavings(product().mrp, product().sellingPrice) > 0) {
+              <div class="discount-pill">
+                <div style="font-size: 13px;">{{ getDiscountPercent(product().mrp, product().sellingPrice) }}% OFF</div>
+                <div style="font-size: 10px; font-weight: 700; color: #a7f3d0; margin-top: 2px;">
+                  ₹{{ getSavings(product().mrp, product().sellingPrice) }} की बचत
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- View Tabs (Specs vs Pay Direct) -->
+          <div class="lens-tabs">
+            <button class="lens-tab-btn" [class.active]="activeTab() === 'SPECS'" (click)="activeTab.set('SPECS')">
+              <i class="fa-solid fa-list-check"></i> विवरण (Details)
+            </button>
+            <button class="lens-tab-btn" [class.active]="activeTab() === 'PAY_UPI'" (click)="activeTab.set('PAY_UPI')">
+              <i class="fa-solid fa-qrcode"></i> UPI पेमेंट (Pay Online)
+            </button>
+          </div>
+
+          <!-- Specs View -->
+          @if (activeTab() === 'SPECS') {
+            <div class="lens-specs-grid">
+              <div class="spec-item">
+                <span class="spec-label">बारकोड (Barcode)</span>
+                <span class="spec-val" style="font-family: monospace;">{{ product().barcode || 'N/A' }}</span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">SKU कोड</span>
+                <span class="spec-val" style="font-family: monospace;">{{ product().sku || 'N/A' }}</span>
+              </div>
+
+              @if (product().size) {
+                <div class="spec-item">
+                  <span class="spec-label">साइज़ (Size)</span>
+                  <span class="spec-val">{{ product().size }}</span>
+                </div>
+              }
+
+              @if (product().color) {
+                <div class="spec-item">
+                  <span class="spec-label">रंग (Color)</span>
+                  <span class="spec-val">{{ product().color }}</span>
+                </div>
+              }
+
+              @if (product().unit) {
+                <div class="spec-item">
+                  <span class="spec-label">इकाई (Unit)</span>
+                  <span class="spec-val">{{ product().unit }}</span>
+                </div>
+              }
+
+              @if (product().hsnCode) {
+                <div class="spec-item">
+                  <span class="spec-label">HSN कोड</span>
+                  <span class="spec-val">{{ product().hsnCode }}</span>
+                </div>
+              }
+
+              @if (product().expiryDate) {
+                <div class="spec-item">
+                  <span class="spec-label">एक्सपायरी डेट</span>
+                  <span class="spec-val text-amber-400">{{ product().expiryDate | date:'MMM yyyy' }}</span>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- UPI QR Code View -->
+          @if (activeTab() === 'PAY_UPI') {
+            <div style="background: rgba(255,255,255,0.06); border: 1.5px solid rgba(95,37,159,0.4); border-radius: 18px; padding: 16px; text-align: center; margin-bottom: 16px;">
+              <div style="font-size: 13px; font-weight: 800; color: #c084fc; margin-bottom: 8px;">
+                <i class="fa-solid fa-qrcode"></i> दुकान पर सीधे ₹{{ product().sellingPrice }} का UPI पेमेंट करें
+              </div>
+              
+              @if (upiPayQrUrl()) {
+                <div style="background: white; display: inline-block; padding: 8px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                  <img [src]="upiPayQrUrl()" alt="UPI Pay QR" style="width: 170px; height: 170px; display: block;" />
+                </div>
+              }
+              
+              <div style="font-size: 14px; font-weight: 900; color: #ffffff; margin-top: 8px;">
+                {{ product().shopId?.upiName || product().shopId?.ownerName || product().shopId?.name }}
+              </div>
+              <div style="font-size: 11px; font-family: monospace; color: #94a3b8;">
+                {{ product().shopId?.upiId }}
+              </div>
+              <div style="font-size: 10.5px; color: #86efac; margin-top: 4px; font-weight: 700;">
+                PhonePe • Google Pay • Paytm • BHIM
+              </div>
+            </div>
+          }
+
+          <!-- Shop Profile Card -->
+          <div class="lens-shop-card">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); display: flex; align-items: center; justify-content: center; color: #60a5fa; font-size: 17px; flex-shrink: 0;">
+                <i class="fa-solid fa-store"></i>
+              </div>
+              <div style="flex: 1;">
+                <div class="shop-name-title">{{ product().shopId?.name || 'दुकानदार' }}</div>
+                <div class="shop-addr">
+                  {{ product().shopId?.address || product().shopId?.city || 'भारत' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Buttons (WhatsApp & Call) -->
+          <div class="lens-btn-group">
+            <button type="button" class="btn-action btn-whatsapp" (click)="openWhatsAppInquiry()">
+              <i class="fa-brands fa-whatsapp" style="font-size: 18px;"></i>
+              <span>WhatsApp पर पूछें</span>
+            </button>
+            <button type="button" class="btn-action btn-call" (click)="callShop()">
+              <i class="fa-solid fa-phone" style="font-size: 16px;"></i>
+              <span>कॉल करें</span>
+            </button>
+          </div>
+
+        </div>
+
+      </main>
+
+      <!-- Footer Note -->
+      <footer style="text-align: center; font-size: 11px; color: #64748b; margin-top: 10px;">
+        <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> Powered by MKS Smart Billing Software
+      </footer>
+    }
+
+  </div>
+</div>

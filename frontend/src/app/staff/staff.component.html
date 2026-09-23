@@ -1,0 +1,513 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ lang.isHindi() ? '👥 स्टाफ, हाजिरी व सैलरी प्रबंधन' : '👥 Staff, Attendance & Payroll' }}</h1>
+    <p class="page-subtitle">{{ lang.isHindi() ? 'दुकान के कर्मचारियों का विवरण, ऑटोमैटिक फेस मैचिंग हाजिरी (Face Match Attendance), एडवांस व सैलरी रजिस्टर।' : 'Manage shop employees, AI face match attendance, advances, and monthly salary register.' }}</p>
+  </div>
+
+  <div class="flex gap-2 flex-wrap">
+    <!-- 📱 Mobile / AI Face Scan Attendance Button -->
+    <button 
+      type="button" 
+      class="btn" 
+      (click)="openFaceAttendanceModal(false)" 
+      style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #38bdf8; border: 1.5px solid #0284c7; font-weight: 800; font-size: 13.5px; padding: 9px 18px; box-shadow: 0 4px 12px rgba(2,132,199,0.25);"
+    >
+      <i class="fa-solid fa-face-viewfinder" style="font-size: 16px;"></i>
+      {{ lang.isHindi() ? '📱 फेस स्कैन हाजिरी लगाएं (Punch Attendance)' : '📱 Face Match Attendance' }}
+    </button>
+
+    <button type="button" class="btn btn-primary" (click)="openAddStaff()" style="font-weight: 800;">
+      <i class="fa-solid fa-user-plus"></i> {{ lang.isHindi() ? '+ नया कर्मचारी जोड़ें' : '+ Add Staff' }}
+    </button>
+  </div>
+</div>
+
+<!-- Tabs Navigation -->
+<div class="staff-header-tabs">
+  <button 
+    type="button" 
+    class="staff-tab-btn" 
+    [class.active]="activeTab() === 'ATTENDANCE'"
+    (click)="activeTab.set('ATTENDANCE')"
+  >
+    <i class="fa-solid fa-clipboard-user"></i> {{ lang.isHindi() ? 'दैनिक हाजिरी (Daily Attendance)' : 'Daily Attendance' }}
+  </button>
+
+  <button 
+    type="button" 
+    class="staff-tab-btn" 
+    [class.active]="activeTab() === 'STAFF_LIST'"
+    (click)="activeTab.set('STAFF_LIST')"
+  >
+    <i class="fa-solid fa-users"></i> {{ lang.isHindi() ? 'कर्मचारी सूची व फेस रजिस्टर (' + staffList().length + ')' : 'Staff List & Face Register (' + staffList().length + ')' }}
+  </button>
+</div>
+
+<!-- ======================================================== -->
+<!-- TAB 1: DAILY ATTENDANCE                                  -->
+<!-- ======================================================== -->
+@if (activeTab() === 'ATTENDANCE') {
+  <div class="card mb-4" style="border: 2px solid #e2e8f0;">
+    <div class="card-header flex justify-between items-center flex-wrap gap-3" style="padding: 14px 20px; background: #f8fafc;">
+      <div class="flex items-center gap-2">
+        <label style="font-size: 13px; font-weight: 800; color: #1e293b; margin: 0;">
+          {{ lang.isHindi() ? 'तारीख चुनें:' : 'Select Date:' }}
+        </label>
+        <input 
+          type="date" 
+          class="form-control" 
+          [ngModel]="selectedDate()" 
+          (ngModelChange)="onDateChange($event)"
+          style="width: auto; font-weight: 800; font-size: 13.5px;"
+        />
+      </div>
+
+      <div style="font-size: 12px; color: #64748b;">
+        <span class="badge badge-success" style="margin-right: 4px;">P = Present</span>
+        <span class="badge badge-danger" style="margin-right: 4px;">A = Absent</span>
+        <span class="badge badge-warning" style="margin-right: 4px;">HD = Half Day</span>
+        <span class="badge badge-info">L = Leave</span>
+      </div>
+    </div>
+
+    <div class="card-body p-0 table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>कर्मचारी (Staff Name)</th>
+            <th>पद (Role)</th>
+            <th>आने का समय व सेल्फी (Selfie & In-Time)</th>
+            <th class="text-center" style="width: 280px;">हाजिरी दर्ज करें (Manual)</th>
+            <th>स्थिति (Status)</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+            <tr><td colspan="6" class="text-center p-4">Loading Staff...</td></tr>
+          } @else if (staffList().length === 0) {
+            <tr>
+              <td colspan="6" class="text-center p-5 text-muted">
+                <i class="fa-solid fa-users-slash" style="font-size: 36px; margin-bottom: 8px; color: #cbd5e1;"></i>
+                <div>अभी कोई कर्मचारी नहीं जोड़ा गया है। "+ नया कर्मचारी जोड़ें" पर क्लिक करें।</div>
+              </td>
+            </tr>
+          } @else {
+            @for (staff of staffList(); track staff._id; let i = $index) {
+              @let att = getStaffAttendance(staff._id);
+              <tr>
+                <td>{{ i + 1 }}</td>
+                <td>
+                  <div style="font-weight: 800; color: #0f172a;">{{ staff.name }}</div>
+                  <div style="font-size: 11px; color: #64748b;">📱 {{ staff.mobile }}</div>
+                </td>
+                <td><span class="badge" style="background: #f1f5f9; color: #334155;">{{ staff.designation }}</span></td>
+                
+                <!-- Selfie & In-Time Column -->
+                <td>
+                  @if (att?.selfiePhoto) {
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <img 
+                        [src]="att.selfiePhoto" 
+                        alt="Staff Selfie" 
+                        style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #10b981; box-shadow: 0 2px 6px rgba(0,0,0,0.15);"
+                      />
+                      <div>
+                        <div style="font-size: 12px; font-weight: 800; color: #0f172a;">{{ att.inTime || 'Present' }}</div>
+                        <div style="font-size: 10px; color: #059669; font-weight: 700;">✅ AI फेस वेरिफाइड</div>
+                      </div>
+                    </div>
+                  } @else if (att?.inTime) {
+                    <div style="font-size: 12.5px; font-weight: 700; color: #0f172a;">
+                      ⏰ {{ att.inTime }}
+                    </div>
+                  } @else {
+                    <span style="font-size: 12px; color: #94a3b8;">--</span>
+                  }
+                </td>
+
+                <td class="text-center">
+                  <div class="attendance-btn-group">
+                    <button 
+                      type="button" 
+                      class="att-btn" 
+                      [class.active-present]="att?.status === 'PRESENT'"
+                      (click)="markStatus(staff._id, 'PRESENT')"
+                    >
+                      ✓ P
+                    </button>
+                    <button 
+                      type="button" 
+                      class="att-btn" 
+                      [class.active-absent]="att?.status === 'ABSENT'"
+                      (click)="markStatus(staff._id, 'ABSENT')"
+                    >
+                      ✗ A
+                    </button>
+                    <button 
+                      type="button" 
+                      class="att-btn" 
+                      [class.active-half]="att?.status === 'HALF_DAY'"
+                      (click)="markStatus(staff._id, 'HALF_DAY')"
+                    >
+                      ½ HD
+                    </button>
+                    <button 
+                      type="button" 
+                      class="att-btn" 
+                      [class.active-leave]="att?.status === 'LEAVE'"
+                      (click)="markStatus(staff._id, 'LEAVE')"
+                    >
+                      Leave
+                    </button>
+                  </div>
+                </td>
+                <td>
+                  @if (att?.status === 'PRESENT') {
+                    <span class="badge badge-success">✅ Present</span>
+                  } @else if (att?.status === 'ABSENT') {
+                    <span class="badge badge-danger">❌ Absent</span>
+                  } @else if (att?.status === 'HALF_DAY') {
+                    <span class="badge badge-warning">⏳ Half Day</span>
+                  } @else if (att?.status === 'LEAVE') {
+                    <span class="badge badge-info">🏖️ Leave</span>
+                  } @else {
+                    <span class="badge" style="background: #f1f5f9; color: #94a3b8;">Pending</span>
+                  }
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- TAB 2: STAFF LIST & ADVANCES & FACE REGISTRATION         -->
+<!-- ======================================================== -->
+@if (activeTab() === 'STAFF_LIST') {
+  <div class="card" style="border: 2px solid #e2e8f0;">
+    <div class="card-body p-0 table-responsive">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>कर्मचारी (Name)</th>
+            <th>पद (Designation)</th>
+            <th>फेस बायोमेट्रिक्स (Face ID)</th>
+            <th>तय सैलरी (Base Salary)</th>
+            <th>कुल एडवांस (Advances)</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (staff of staffList(); track staff._id; let i = $index) {
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td>
+                <div style="font-weight: 800; color: #0f172a;">{{ staff.name }}</div>
+                <div style="font-size: 11px; color: #64748b;">📱 {{ staff.mobile }}</div>
+              </td>
+              <td><span class="badge" style="background: #f1f5f9; color: #334155;">{{ staff.designation }}</span></td>
+              
+              <!-- Face Registration Status Column -->
+              <td>
+                @if (staff.isFaceRegistered && staff.facePhoto) {
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <img 
+                      [src]="staff.facePhoto" 
+                      alt="Registered Face" 
+                      style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid #0284c7;"
+                    />
+                    <div>
+                      <span class="badge badge-success" style="font-size: 10px;">✅ रजिस्टर है</span>
+                      <button 
+                        type="button" 
+                        (click)="openFaceAttendanceModal(true, staff._id)"
+                        style="background: none; border: none; font-size: 10px; color: #2563eb; cursor: pointer; display: block; padding: 0; margin-top: 2px;"
+                      >
+                        बदलें
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <button 
+                    type="button" 
+                    class="btn btn-outline btn-xs" 
+                    (click)="openFaceAttendanceModal(true, staff._id)"
+                    style="border-color: #0284c7; color: #0369a1; font-weight: 700;"
+                  >
+                    📸 चेहरा रजिस्टर करें
+                  </button>
+                }
+              </td>
+
+              <td style="font-weight: 800; color: #059669;">₹{{ staff.salaryAmount }} ({{ staff.salaryType }})</td>
+              <td style="font-weight: 800; color: #dc2626;">
+                ₹{{ getTotalAdvances(staff) }}
+              </td>
+              <td class="text-right">
+                <button 
+                  type="button" 
+                  class="btn btn-warning btn-xs" 
+                  (click)="openAdvanceModal(staff)"
+                  style="margin-right: 6px; font-weight: 700;"
+                >
+                  + एडवांस दें
+                </button>
+                <button 
+                  type="button" 
+                  class="btn btn-danger btn-xs" 
+                  (click)="deleteStaff(staff._id)"
+                >
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- 📱 MODAL: MOBILE AI FACE SCAN & MATCH ATTENDANCE KIOSK   -->
+<!-- ======================================================== -->
+@if (showFaceModal()) {
+  <div class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(15,23,42,0.88); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px;">
+    <div class="modal-box" style="background: #0f172a; color: white; border-radius: 24px; width: 100%; max-width: 440px; overflow: hidden; border: 1.5px solid rgba(56,189,248,0.3); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+      
+      <!-- Kiosk Header -->
+      <div style="padding: 16px 20px; background: linear-gradient(135deg, #1e293b, #0f172a); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 16px;">
+            <i class="fa-solid fa-face-viewfinder"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;">
+              {{ isFaceEnrollMode() ? 'कर्मचारी चेहरा रजिस्ट्रेशन (Face Enroll)' : 'फेस मैचिंग हाजिरी (AI Face Punch)' }}
+            </h3>
+            <span style="font-size: 11px; color: #94a3b8;">
+              {{ isFaceEnrollMode() ? 'असली चेहरे का बायोमेट्रिक्स सेव करें' : 'केवल चेहरा मैच होने पर ही हाजिरी लगेगी' }}
+            </span>
+          </div>
+        </div>
+        <button type="button" (click)="closeFaceAttendanceModal()" style="background: rgba(255,255,255,0.1); border: none; color: #cbd5e1; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">&times;</button>
+      </div>
+
+      <!-- Kiosk Body -->
+      <div style="padding: 20px; text-align: center;">
+        
+        <!-- Success Confirmation View -->
+        @if (punchSuccess()) {
+          <div style="background: rgba(16, 185, 129, 0.15); border: 2px solid #10b981; border-radius: 18px; padding: 24px 20px; animation: cardFadeIn 0.3s ease;">
+            <div style="position: relative; width: 90px; height: 90px; margin: 0 auto 14px; border-radius: 50%; overflow: hidden; border: 3px solid #10b981; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);">
+              <img [src]="punchSuccess().selfiePhoto" alt="Success Selfie" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>
+            <div style="font-size: 24px; margin-bottom: 4px;">🎉</div>
+            <h4 style="font-size: 18px; font-weight: 800; color: #34d399; margin: 0 0 4px 0;">चेहरा मैच हुआ & हाजिरी दर्ज!</h4>
+            <div style="font-size: 16px; font-weight: 800; color: #ffffff;">{{ punchSuccess().staffName }}</div>
+            <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;">
+              ⏰ समय: <strong>{{ punchSuccess().inTime }}</strong> (✅ Present)
+            </div>
+
+            <button 
+              type="button" 
+              class="btn btn-success w-full" 
+              (click)="punchSuccess.set(null); startCamera()"
+              style="margin-top: 20px; font-weight: 800; padding: 11px; border-radius: 12px;"
+            >
+              + अगले कर्मचारी की हाजिरी लगाएं
+            </button>
+          </div>
+        } @else {
+
+          <!-- ❌ Face Mismatch Error Alert (Anti-Spoof Reject Banner) -->
+          @if (faceMismatchError()) {
+            <div style="background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; text-align: left; animation: shake 0.3s ease;">
+              <div style="display: flex; align-items: center; gap: 8px; color: #fca5a5; font-size: 13px; font-weight: 800; line-height: 1.4;">
+                <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 20px; flex-shrink: 0;"></i>
+                <div>{{ faceMismatchError() }}</div>
+              </div>
+            </div>
+          }
+
+          <!-- Camera Viewfinder with Face Oval Outline -->
+          <div style="position: relative; width: 100%; height: 260px; border-radius: 18px; overflow: hidden; background: #000000; margin-bottom: 16px; border: 2px solid rgba(56, 189, 248, 0.4);">
+            <video #videoElement playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+            
+            <!-- Animated Oval Scanner Frame -->
+            <div style="position: absolute; inset: 18px 36px; border: 2.5px dashed #38bdf8; border-radius: 50%; pointer-events: none; box-shadow: 0 0 20px rgba(56,189,248,0.25); display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 11px; background: rgba(15,23,42,0.85); color: #38bdf8; padding: 4px 10px; border-radius: 12px; font-weight: 800; border: 1px solid rgba(56,189,248,0.4);">
+                चेहरा बीच में रखें
+              </span>
+            </div>
+
+            <!-- Error Notice if Camera blocked -->
+            @if (cameraError()) {
+              <div style="position: absolute; inset: 0; background: rgba(15,23,42,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+                <i class="fa-solid fa-camera-slash" style="font-size: 32px; color: #ef4444; margin-bottom: 8px;"></i>
+                <div style="font-size: 13px; color: #fca5a5; line-height: 1.4;">{{ cameraError() }}</div>
+                <button type="button" class="btn btn-outline btn-xs" (click)="startCamera()" style="margin-top: 10px; color: white; border-color: white;">
+                  🔄 पुनः प्रयास करें
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Hidden canvas for capture -->
+          <canvas #canvasElement style="display: none;"></canvas>
+
+          <!-- Staff Selector Dropdown & Reference Thumbnail -->
+          <div style="margin-bottom: 16px; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 12px; font-weight: 700; color: #94a3b8; margin: 0;">
+                कर्मचारी का नाम चुनें:
+              </label>
+              @if (getSelectedStaff()?.isFaceRegistered) {
+                <span class="badge badge-success" style="font-size: 10px;">🔒 फेस मैचिंग ऑन है</span>
+              } @else {
+                <span class="badge badge-warning" style="font-size: 10px;">⚠️ पहला रजिस्ट्रेशन होगा</span>
+              }
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+              @if (getSelectedStaff()?.facePhoto) {
+                <img 
+                  [src]="getSelectedStaff()?.facePhoto" 
+                  alt="Staff Ref" 
+                  title="Registered Face Photo"
+                  style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; border: 2px solid #0284c7; flex-shrink: 0;"
+                />
+              }
+              <select 
+                class="form-control" 
+                [(ngModel)]="selectedStaffForFace"
+                style="background: #1e293b; color: #ffffff; border: 1.5px solid #334155; font-weight: 800; font-size: 14px; padding: 10px 14px; border-radius: 12px; flex: 1;"
+              >
+                @for (st of staffList(); track st._id) {
+                  <option [value]="st._id">{{ st.name }} ({{ st.designation }})</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Big Action Button -->
+          <button 
+            type="button" 
+            class="btn w-full" 
+            (click)="captureAndPunch()" 
+            [disabled]="isCapturing() || !selectedStaffForFace() || !!cameraError()"
+            style="background: linear-gradient(135deg, #0284c7, #2563eb); color: white; font-weight: 800; font-size: 15px; padding: 13px; border-radius: 14px; border: none; box-shadow: 0 6px 20px rgba(37,99,235,0.4);"
+          >
+            @if (isCapturing()) {
+              <span>सत्यापित हो रहा है...</span>
+            } @else if (isFaceEnrollMode()) {
+              <i class="fa-solid fa-camera" style="margin-right: 6px;"></i>
+              <span>📸 चेहरा रजिस्टर करें (Save Face)</span>
+            } @else {
+              <i class="fa-solid fa-face-viewfinder" style="margin-right: 6px;"></i>
+              <span>📸 फेस मैच करें व हाजिरी लगाएं (Punch In)</span>
+            }
+          </button>
+        }
+
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- MODAL: ADD NEW STAFF                                     -->
+<!-- ======================================================== -->
+@if (showAddStaffModal()) {
+  <div class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 16px; width: 100%; max-width: 480px; overflow: hidden;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800;">नया कर्मचारी जोड़ें (Add Staff Member)</h3>
+        <button type="button" (click)="showAddStaffModal.set(false)" style="background: none; border: none; font-size: 16px; cursor: pointer;">&times;</button>
+      </div>
+
+      <form [formGroup]="staffForm" (ngSubmit)="saveStaff()" style="padding: 20px;">
+        <div class="form-group mb-3">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700;">कर्मचारी का पूरा नाम <span class="required">*</span></label>
+          <input type="text" formControlName="name" class="form-control" placeholder="उदा. राहुल शर्मा" required />
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700;">मोबाइल नंबर <span class="required">*</span></label>
+          <input type="text" formControlName="mobile" class="form-control" maxlength="10" placeholder="9876543210" required />
+        </div>
+
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 700;">पद (Designation)</label>
+            <input type="text" formControlName="designation" class="form-control" placeholder="Salesman / Helper" />
+          </div>
+
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 700;">सैलरी प्रकार</label>
+            <select formControlName="salaryType" class="form-control">
+              <option value="MONTHLY">मासिक (Monthly)</option>
+              <option value="DAILY">दैनिक (Daily Wage)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700;">सैलरी राशि (₹) <span class="required">*</span></label>
+          <input type="number" formControlName="salaryAmount" class="form-control" placeholder="10000" required />
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700;">पता / शहर</label>
+          <input type="text" formControlName="address" class="form-control" placeholder="दुकान के पास / गांव का नाम" />
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-outline" (click)="showAddStaffModal.set(false)" style="flex: 1;">रद्द करें</button>
+          <button type="submit" class="btn btn-primary" [disabled]="staffForm.invalid" style="flex: 1.5; font-weight: 800;">सुरक्षित करें</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- MODAL: RECORD ADVANCE                                    -->
+<!-- ======================================================== -->
+@if (showAdvanceModal()) {
+  <div class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 16px;">
+    <div class="modal-box" style="background: white; border-radius: 16px; width: 100%; max-width: 400px; overflow: hidden;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 15.5px; font-weight: 800;">एडवांस भुगतान दर्ज करें</h3>
+        <button type="button" (click)="showAdvanceModal.set(false)" style="background: none; border: none; font-size: 16px; cursor: pointer;">&times;</button>
+      </div>
+
+      <div style="padding: 20px;">
+        <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px;">
+          <div style="font-size: 11px; color: #64748b;">कर्मचारी:</div>
+          <div style="font-size: 14px; font-weight: 800; color: #0f172a;">{{ selectedStaffForAdvance()?.name }}</div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700;">एडवांस रकम (₹) <span class="required">*</span></label>
+          <input type="number" [(ngModel)]="advanceAmount" class="form-control" placeholder="500" style="font-size: 16px; font-weight: 800;" />
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700;">विवरण / कारण (Notes)</label>
+          <input type="text" [(ngModel)]="advanceNotes" class="form-control" placeholder="नकद एडवांस" />
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-outline" (click)="showAdvanceModal.set(false)" style="flex: 1;">रद्द करें</button>
+          <button type="button" class="btn btn-success" (click)="saveAdvance()" [disabled]="advanceAmount <= 0" style="flex: 1.5; font-weight: 800;">दर्ज करें</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

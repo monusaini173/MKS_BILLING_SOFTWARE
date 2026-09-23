@@ -1,0 +1,720 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Purchases Invoices</h1>
+    <p class="page-subtitle">Track wholesale procurements, supplier billing logs, and stock replenishment.</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" (click)="showAddModal = true">
+      <i class="fa-solid fa-plus"></i> New Purchase Bill
+    </button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Purchase Logs</div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 200px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (purchases().length === 0) {
+      <div class="empty-state">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <h3>No Purchase Invoices</h3>
+        <p>Log wholesale procurements to increase inventory counts.</p>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Purchase No</th>
+              <th>Date</th>
+              <th>Supplier</th>
+              <th>Bill Invoice No</th>
+              <th>Grand Total</th>
+              <th>Paid</th>
+              <th>Status</th>
+              <th style="text-align: center;" class="no-print">Actions (कार्रवाई)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (pur of purchases(); track pur._id) {
+              <tr>
+                <td class="font-semibold" style="color: var(--primary);">{{ pur.purchaseNumber }}</td>
+                <td>{{ pur.purchaseDate | date:'dd-MM-yyyy' }}</td>
+                <td style="font-weight: 600;">{{ pur.supplierName }}</td>
+                <td>{{ pur.supplierInvoice || 'N/A' }}</td>
+                <td class="font-bold">₹{{ pur.grandTotal | number:'1.2-2' }}</td>
+                <td class="text-success font-semibold">₹{{ pur.amountPaid | number:'1.2-2' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="{
+                    'badge-success': pur.status === 'PAID',
+                    'badge-warning': pur.status === 'PARTIAL',
+                    'badge-danger': pur.status === 'PENDING'
+                  }">{{ pur.status }}</span>
+                </td>
+                <td style="text-align: center;" class="no-print">
+                  <div class="flex gap-1.5 items-center justify-center">
+                    <button 
+                      type="button"
+                      class="btn btn-sm" 
+                      (click)="openViewPurchase(pur)" 
+                      style="background: #0f172a; color: white; font-weight: 700; font-size: 11.5px; padding: 4px 10px; border-radius: 6px; border: none;"
+                      title="खरीद इनवॉइस देखें व प्रिंट करें"
+                    >
+                      <i class="fa-solid fa-print"></i> प्रिंट / देखें
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Modal Log Purchase Invoice -->
+@if (showAddModal) {
+  <div class="modal-overlay">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <h3 class="modal-title">Log Purchase Invoice</h3>
+        <button class="modal-close" (click)="showAddModal = false">&times;</button>
+      </div>
+      <div class="modal-body purchases-modal-grid" style="max-height: 75vh; overflow-y: auto;">
+        <!-- Left Side: Items input -->
+        <div style="display: flex; flex-direction: column;">
+          <div class="form-row mb-3">
+            <div class="form-group">
+              <label class="form-label">Select Supplier <span class="required">*</span></label>
+              <select class="form-control" [(ngModel)]="selectedSupplierId">
+                <option value="" disabled selected>Select Supplier</option>
+                @for (supp of suppliers(); track supp._id) {
+                  <option [value]="supp._id">{{ supp.companyName }} ({{ supp.name }})</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Supplier Invoice Reference</label>
+              <input type="text" class="form-control" [(ngModel)]="supplierInvoice" placeholder="e.g. BILL-9922">
+            </div>
+          </div>
+
+          <!-- Product search bar -->
+          <div class="navbar-search mb-3" style="max-width: none;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input 
+              type="text" 
+              placeholder="Search products to add to purchase invoice..." 
+              [(ngModel)]="prodSearch"
+              (ngModelChange)="searchProducts($event)"
+            >
+            <div *ngIf="showDropdown" class="card" style="position: absolute; left: 0; right: 0; top: 46px; z-index: 10; max-height: 200px; overflow-y: auto;">
+              <div class="card-body" style="padding: 4px;">
+                @for (p of prodResults(); track p._id) {
+                  <div (click)="addItem(p)" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--gray-100);" class="flex justify-between">
+                    <span>{{ p.name }} (Current Stock: {{ p.quantity }})</span>
+                    <span class="font-bold">Purchase: ₹{{ p.purchasePrice }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Purchase Items Table -->
+          <div class="table-wrapper" style="flex: 1; overflow-y: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th style="width: 100px;">Qty</th>
+                  <th style="width: 120px;">Purchase Rate (₹)</th>
+                  <th style="width: 80px;">GST %</th>
+                  <th style="width: 120px;">Total (₹)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of purchaseItems(); track item.productId) {
+                  <tr>
+                    <td>{{ item.productName }}</td>
+                    <td>
+                      <input type="number" class="form-control" style="padding: 4px; font-size: 13px;" [ngModel]="item.quantity" (ngModelChange)="updateQty(item, $event)" min="1">
+                    </td>
+                    <td>
+                      <input type="number" class="form-control" style="padding: 4px; font-size: 13px;" [ngModel]="item.purchasePrice" (ngModelChange)="updatePrice(item, $event)">
+                    </td>
+                    <td>{{ item.gstPercent }}%</td>
+                    <td class="font-bold">₹{{ item.total | number:'1.2-2' }}</td>
+                    <td>
+                      <button class="btn btn-outline btn-sm btn-icon text-danger" (click)="removeItem(item)">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right Side: Billing summary -->
+        <div style="background: var(--gray-50); border-radius: var(--border-radius-lg); border: var(--border); padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+          <h4 style="font-weight: 700;">Billing Summary</h4>
+          <div class="divider" style="margin: 0;"></div>
+          <div class="flex justify-between">
+            <span>Subtotal</span>
+            <span>₹{{ subtotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Total GST</span>
+            <span>₹{{ totalGst | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between font-bold" style="font-size: 16px; color: var(--primary);">
+            <span>Grand Total</span>
+            <span>₹{{ grandTotal | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Payment Method</label>
+            <select class="form-control" [(ngModel)]="paymentMethod">
+              <option value="CASH">Cash</option>
+              <option value="UPI">UPI</option>
+              <option value="CARD">Card</option>
+              <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="CREDIT">Wholesale Credit</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Amount Paid (₹)</label>
+            <input type="number" class="form-control" [(ngModel)]="amountPaid">
+          </div>
+
+          <button class="btn btn-success w-full btn-lg mt-auto" (click)="submitPurchase()" [disabled]="submitting">
+            Log Purchase Invoice
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================================= -->
+<!-- 📄 PURCHASE INWARD TAX INVOICE / VOUCHER VIEW & PRINT MODAL -->
+<!-- ========================================================= -->
+@if (showViewModal() && selectedPurchase()) {
+  <div class="modal-overlay no-print" style="z-index: 1050; padding: 10px;">
+    <div class="modal modal-xl" style="max-width: 950px; display: flex; flex-direction: column; max-height: 95vh; background: #f1f5f9;">
+      
+      <!-- Modal Header (Hidden on Print) -->
+      <div class="modal-header no-print" style="background: #0f172a; color: white; border-bottom: 1px solid #334155; padding: 12px 20px;">
+        <div class="flex items-center gap-3">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: white;">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; font-size: 16px; margin: 0;">
+              खरीद इनवॉइस वाउचर (Purchase Inward Voucher)
+            </h3>
+            <p style="margin: 0; font-size: 11.5px; color: #94a3b8;">
+              वाउचर नं: <strong style="color: #60a5fa;">{{ selectedPurchase().purchaseNumber }}</strong> | 
+              दिनांक: {{ (selectedPurchase().purchaseDate || selectedPurchase().createdAt) | date:'dd-MM-yyyy, hh:mm a' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- 🖨️ Format Selector -->
+          <div style="display: inline-flex; background: #1e293b; padding: 3px; border-radius: 12px; border: 1px solid #334155;">
+            <button 
+              type="button"
+              (click)="printFormat.set('A4')"
+              [style.background]="printFormat() === 'A4' ? '#2563eb' : 'transparent'"
+              [style.color]="printFormat() === 'A4' ? 'white' : '#94a3b8'"
+              style="border: none; border-radius: 9px; padding: 4px 12px; font-weight: 700; font-size: 11.5px; cursor: pointer;"
+            >
+              📄 A4 लेजर / PDF
+            </button>
+
+            <button 
+              type="button"
+              (click)="printFormat.set('THERMAL_80')"
+              [style.background]="printFormat() === 'THERMAL_80' ? '#2563eb' : 'transparent'"
+              [style.color]="printFormat() === 'THERMAL_80' ? 'white' : '#94a3b8'"
+              style="border: none; border-radius: 9px; padding: 4px 12px; font-weight: 700; font-size: 11.5px; cursor: pointer;"
+              title="80mm थर्मल रसीद प्रिंटर"
+            >
+              🧾 80mm थर्मल
+            </button>
+
+            <button 
+              type="button"
+              (click)="printFormat.set('THERMAL_58')"
+              [style.background]="printFormat() === 'THERMAL_58' ? '#2563eb' : 'transparent'"
+              [style.color]="printFormat() === 'THERMAL_58' ? 'white' : '#94a3b8'"
+              style="border: none; border-radius: 9px; padding: 4px 12px; font-weight: 700; font-size: 11.5px; cursor: pointer;"
+              title="58mm छोटा प्रिंटर"
+            >
+              🧾 58mm
+            </button>
+          </div>
+
+          <!-- Copy Type Selector -->
+          @if (printFormat() === 'A4') {
+            <select [ngModel]="copyType()" (ngModelChange)="copyType.set($event)" style="background: #1e293b; color: white; border: 1px solid #334155; border-radius: 8px; font-size: 11.5px; padding: 4px 8px;">
+              <option value="ORIGINAL">Original (Store Copy)</option>
+              <option value="DUPLICATE">Duplicate (Supplier)</option>
+              <option value="OFFICE">Triplicate (Auditor/CA)</option>
+            </select>
+          }
+
+          <button 
+            type="button" 
+            class="btn btn-sm" 
+            (click)="printPurchaseInvoice()"
+            style="background: #10b981; color: white; font-weight: 800; font-size: 12px; padding: 5px 14px; border-radius: 8px; border: none; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16,185,129,0.3);"
+          >
+            <i class="fa-solid fa-print"></i> 🖨️ प्रिंट करें (Print)
+          </button>
+
+          <button class="modal-close" (click)="showViewModal.set(false)" style="color: #94a3b8; font-size: 24px; margin-left: 6px;">&times;</button>
+        </div>
+      </div>
+
+      <!-- Modal Body / Printable Container -->
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;">
+        
+        <!-- ========================================== -->
+        <!-- 📄 OPTION 1: A4 TAX INVOICE FORMAT         -->
+        <!-- ========================================== -->
+        @if (printFormat() === 'A4') {
+          <div class="purchase-invoice-paper" style="max-width: 850px; margin: 0 auto; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); font-family: 'Inter', Arial, sans-serif; color: #0f172a; box-sizing: border-box;">
+            
+            <div style="border: 2px solid #0f172a; background: #ffffff;">
+              
+              <!-- 1. TOP TITLE BAR -->
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: #f8fafc; border-bottom: 1.5px solid #0f172a;">
+                <div style="font-size: 10.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
+                  @if (copyType() === 'ORIGINAL') { [ ORIGINAL FOR RECIPIENT / STORE ] }
+                  @else if (copyType() === 'DUPLICATE') { [ DUPLICATE FOR SUPPLIER ] }
+                  @else { [ TRIPLICATE FOR AUDITOR / OFFICE ] }
+                </div>
+                <div style="font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: 1px;">
+                  PURCHASE INWARD VOUCHER
+                </div>
+                <div style="font-size: 10.5px; font-weight: 700; color: #2563eb; text-transform: uppercase;">
+                  TAX INVOICE / खरीद इनवॉइस
+                </div>
+              </div>
+
+              <!-- 2. STORE (BUYER) & INVOICE METADATA TABLE -->
+              <table style="width: 100%; border-collapse: collapse; margin: 0;">
+                <tbody>
+                  <tr>
+                    <!-- Store / Buyer (Left) -->
+                    <td style="width: 55%; padding: 12px 16px; vertical-align: top; border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">
+                      <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">
+                        🏢 खरीददार / स्टोर विवरण (Buyer / Consignee):
+                      </div>
+                      <div style="font-size: 17px; font-weight: 900; color: #0f172a; line-height: 1.2;">
+                        {{ auth.currentShop()?.name || 'MKS BILLING STORE' }}
+                      </div>
+                      <div style="font-size: 11.5px; color: #334155; margin-top: 2px;">
+                        {{ auth.currentShop()?.address || 'Main Market' }}
+                        @if (auth.currentShop()?.city) { , {{ auth.currentShop()?.city }} }
+                        @if (auth.currentShop()?.state) { , {{ auth.currentShop()?.state }} }
+                        @if (auth.currentShop()?.pincode) { - {{ auth.currentShop()?.pincode }} }
+                      </div>
+                      <div style="font-size: 11.5px; color: #334155; margin-top: 2px;">
+                        <strong>फोन (Phone):</strong> {{ auth.currentShop()?.mobile || 'N/A' }}
+                        @if (auth.currentShop()?.email) { | <strong>Email:</strong> {{ auth.currentShop()?.email }} }
+                      </div>
+                      <div style="font-size: 11.5px; color: #0f172a; margin-top: 4px;">
+                        <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 700; border: 1px solid #e2e8f0;">
+                          GSTIN: {{ auth.currentShop()?.gstin || 'URP (Unregistered)' }}
+                        </span>
+                      </div>
+                    </td>
+
+                    <!-- Voucher Meta (Right) -->
+                    <td style="width: 45%; padding: 12px 16px; vertical-align: top; border-bottom: 1px solid #cbd5e1; background: #fafafa;">
+                      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">वाउचर नं (Voucher No):</td>
+                          <td style="padding: 2px 0; text-align: right; font-weight: 800; color: #2563eb; font-family: monospace; font-size: 13px;">
+                            {{ selectedPurchase().purchaseNumber }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">दिनांक (Date & Time):</td>
+                          <td style="padding: 2px 0; text-align: right; font-weight: 700; color: #0f172a;">
+                            {{ (selectedPurchase().purchaseDate || selectedPurchase().createdAt) | date:'dd-MM-yyyy, hh:mm a' }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">सप्लायर बिल नं (Bill Ref):</td>
+                          <td style="padding: 2px 0; text-align: right; font-weight: 800; color: #0f172a;">
+                            {{ selectedPurchase().supplierInvoice || 'N/A' }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">भुगतान माध्यम (Mode):</td>
+                          <td style="padding: 2px 0; text-align: right; font-weight: 700; color: #0f172a;">
+                            {{ getPaymentMethodDisplay(selectedPurchase().paymentMethod) }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">स्थिति (Status):</td>
+                          <td style="padding: 2px 0; text-align: right;">
+                            <span style="font-weight: 800; font-size: 11px; padding: 1px 6px; border-radius: 4px;"
+                              [style.background]="selectedPurchase().status === 'PAID' ? '#dcfce7' : selectedPurchase().status === 'PARTIAL' ? '#fef3c7' : '#fee2e2'"
+                              [style.color]="selectedPurchase().status === 'PAID' ? '#166534' : selectedPurchase().status === 'PARTIAL' ? '#92400e' : '#991b1b'"
+                            >
+                              {{ selectedPurchase().status }}
+                            </span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- 3. SUPPLIER DETAILS ROW -->
+                  <tr>
+                    <td colspan="2" style="padding: 10px 16px; background: #f8fafc; border-bottom: 1.5px solid #0f172a;">
+                      <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">
+                        🚚 सप्लायर / विक्रेता विवरण (Supplier / Consignor Details):
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <div>
+                          <span style="font-size: 14px; font-weight: 800; color: #0f172a;">
+                            {{ selectedPurchase().supplierName || 'Unknown Supplier' }}
+                          </span>
+                          @if (getSupplierDetails(selectedPurchase().supplierId)?.companyName && getSupplierDetails(selectedPurchase().supplierId)?.companyName !== selectedPurchase().supplierName) {
+                            <span style="font-size: 12px; color: #475569;"> ({{ getSupplierDetails(selectedPurchase().supplierId)?.companyName }})</span>
+                          }
+                          @if (getSupplierDetails(selectedPurchase().supplierId)?.mobile) {
+                            <span style="font-size: 12px; color: #334155; margin-left: 10px;">📱 {{ getSupplierDetails(selectedPurchase().supplierId)?.mobile }}</span>
+                          }
+                        </div>
+                        @if (getSupplierDetails(selectedPurchase().supplierId)?.gstin) {
+                          <div style="font-size: 11.5px; font-weight: 700; color: #0f172a;">
+                            GSTIN: <span style="font-family: monospace;">{{ getSupplierDetails(selectedPurchase().supplierId)?.gstin }}</span>
+                          </div>
+                        }
+                      </div>
+                      @if (getSupplierDetails(selectedPurchase().supplierId)?.address) {
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                          📍 {{ getSupplierDetails(selectedPurchase().supplierId)?.address }}
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- 4. ITEMISED PRODUCTS TABLE -->
+              <table style="width: 100%; border-collapse: collapse; margin: 0; font-size: 12px;">
+                <thead>
+                  <tr style="background: #f1f5f9; border-bottom: 1.5px solid #0f172a; text-align: left;">
+                    <th style="padding: 8px 10px; width: 35px; border-right: 1px solid #cbd5e1; text-align: center;">#</th>
+                    <th style="padding: 8px 10px; border-right: 1px solid #cbd5e1;">आइटम विवरण (Item / Description)</th>
+                    <th style="padding: 8px 10px; width: 70px; border-right: 1px solid #cbd5e1; text-align: center;">HSN</th>
+                    <th style="padding: 8px 10px; width: 75px; border-right: 1px solid #cbd5e1; text-align: center;">मात्रा (Qty)</th>
+                    <th style="padding: 8px 10px; width: 90px; border-right: 1px solid #cbd5e1; text-align: right;">दर (Rate ₹)</th>
+                    <th style="padding: 8px 10px; width: 95px; border-right: 1px solid #cbd5e1; text-align: right;">कर योग्य (Taxable)</th>
+                    <th style="padding: 8px 10px; width: 85px; border-right: 1px solid #cbd5e1; text-align: center;">GST %</th>
+                    <th style="padding: 8px 10px; width: 105px; text-align: right;">कुल राशि (Total ₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of selectedPurchase().items; track $index; let idx = $index) {
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                      <td style="padding: 7px 10px; text-align: center; border-right: 1px solid #cbd5e1; color: #64748b;">
+                        {{ idx + 1 }}
+                      </td>
+                      <td style="padding: 7px 10px; border-right: 1px solid #cbd5e1;">
+                        <div style="font-weight: 700; color: #0f172a;">{{ item.productName }}</div>
+                        @if (item.sku || item.barcode) {
+                          <div style="font-size: 10px; color: #64748b;">SKU/Code: {{ item.sku || item.barcode }}</div>
+                        }
+                      </td>
+                      <td style="padding: 7px 10px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace; font-size: 11px;">
+                        {{ item.hsnCode || '-' }}
+                      </td>
+                      <td style="padding: 7px 10px; text-align: center; border-right: 1px solid #cbd5e1; font-weight: 700;">
+                        {{ item.quantity }} {{ item.unit || 'PCS' }}
+                      </td>
+                      <td style="padding: 7px 10px; text-align: right; border-right: 1px solid #cbd5e1; font-weight: 600;">
+                        ₹{{ item.purchasePrice | number:'1.2-2' }}
+                      </td>
+                      <td style="padding: 7px 10px; text-align: right; border-right: 1px solid #cbd5e1;">
+                        ₹{{ (item.subtotal || (item.purchasePrice * item.quantity)) | number:'1.2-2' }}
+                      </td>
+                      <td style="padding: 7px 10px; text-align: center; border-right: 1px solid #cbd5e1; font-size: 11.5px;">
+                        {{ item.gstPercent || 0 }}%
+                        @if (item.totalGst) {
+                          <div style="font-size: 9.5px; color: #64748b;">(₹{{ item.totalGst | number:'1.2-2' }})</div>
+                        }
+                      </td>
+                      <td style="padding: 7px 10px; text-align: right; font-weight: 800; color: #0f172a;">
+                        ₹{{ item.total | number:'1.2-2' }}
+                      </td>
+                    </tr>
+                  }
+
+                  <!-- Extra padding rows if small invoice to keep invoice tall and crisp -->
+                  @if ((selectedPurchase().items?.length || 0) < 3) {
+                    <tr style="height: 35px; border-bottom: 1px solid #f1f5f9;">
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+
+              <!-- 5. FINANCIAL TOTALS & SUMMARY SECTION -->
+              <table style="width: 100%; border-collapse: collapse; margin: 0; border-top: 1.5px solid #0f172a; font-size: 12.5px;">
+                <tbody>
+                  <tr>
+                    <!-- Notes / Terms & GST Summary (Left) -->
+                    <td style="width: 55%; padding: 12px 16px; vertical-align: top; border-right: 1.5px solid #0f172a; background: #fafafa;">
+                      <div style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 4px;">
+                        📌 नोट्स व रिमार्क्स (Notes / Remarks):
+                      </div>
+                      <div style="font-size: 12px; color: #334155; min-height: 40px;">
+                        {{ selectedPurchase().notes || 'Wholesale Inward stock entry logged and verified into inventory.' }}
+                      </div>
+
+                      <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 11px; color: #64748b;">
+                        कुल आइटम: <strong>{{ selectedPurchase().items?.length || 0 }}</strong>
+                      </div>
+                    </td>
+
+                    <!-- Totals Column (Right) -->
+                    <td style="width: 45%; padding: 0; vertical-align: top;">
+                      <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                          <td style="padding: 6px 14px; color: #475569; font-weight: 600;">कर योग्य राशि (Taxable Subtotal):</td>
+                          <td style="padding: 6px 14px; text-align: right; font-weight: 700;">
+                            ₹{{ selectedPurchase().subtotal | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                          <td style="padding: 6px 14px; color: #475569; font-weight: 600;">कुल GST (Total GST):</td>
+                          <td style="padding: 6px 14px; text-align: right; font-weight: 700;">
+                            ₹{{ (selectedPurchase().totalGst || 0) | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                        <tr style="background: #0f172a; color: white;">
+                          <td style="padding: 8px 14px; font-size: 14px; font-weight: 800;">कुल राशि (Grand Total):</td>
+                          <td style="padding: 8px 14px; text-align: right; font-size: 16px; font-weight: 900; color: #38bdf8;">
+                            ₹{{ selectedPurchase().grandTotal | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0; background: #f0fdf4;">
+                          <td style="padding: 6px 14px; color: #166534; font-weight: 700;">भुगतान किया (Paid Amount):</td>
+                          <td style="padding: 6px 14px; text-align: right; font-weight: 800; color: #166534;">
+                            ₹{{ (selectedPurchase().amountPaid || 0) | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                        <tr [style.background]="(selectedPurchase().balanceDue || 0) > 0 ? '#fef2f2' : '#f8fafc'">
+                          <td style="padding: 6px 14px; font-weight: 700;" [style.color]="(selectedPurchase().balanceDue || 0) > 0 ? '#991b1b' : '#475569'">
+                            बकाया देनदारी (Balance Due):
+                          </td>
+                          <td style="padding: 6px 14px; text-align: right; font-weight: 900;" [style.color]="(selectedPurchase().balanceDue || 0) > 0 ? '#b91c1c' : '#166534'">
+                            ₹{{ (selectedPurchase().balanceDue || 0) | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- 6. AUTHORIZED SIGNATURES FOOTER -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; padding: 24px 20px 12px; border-top: 1.5px solid #0f172a; background: #ffffff;">
+                <div style="text-align: center; width: 200px;">
+                  <div style="border-top: 1px dashed #94a3b8; padding-top: 4px; font-size: 11px; font-weight: 700; color: #475569;">
+                    सप्लायर / वाहक हस्ताक्षर<br>(Supplier / Carrier Sign)
+                  </div>
+                </div>
+
+                <div style="text-align: center; font-size: 10px; color: #94a3b8;">
+                  This is a Computer Generated Purchase Inward Tax Voucher.<br>MKS Billing Software
+                </div>
+
+                <div style="text-align: center; width: 220px;">
+                  <div style="font-size: 11px; font-weight: 700; color: #0f172a; margin-bottom: 24px;">
+                    For {{ auth.currentShop()?.name || 'MKS STORE' }}
+                  </div>
+                  <div style="border-top: 1px dashed #94a3b8; padding-top: 4px; font-size: 11px; font-weight: 700; color: #475569;">
+                    स्टोर इन-चार्ज / अधिकृत हस्ताक्षर<br>(Authorized Signatory)
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        }
+
+        <!-- ========================================== -->
+        <!-- 🧾 OPTION 2 & 3: THERMAL PRINT FORMAT     -->
+        <!-- ========================================== -->
+        @if (printFormat() === 'THERMAL_80' || printFormat() === 'THERMAL_58') {
+          <div class="purchase-thermal-paper" [style.max-width]="printFormat() === 'THERMAL_80' ? '300px' : '230px'" style="margin: 0 auto; background: white; padding: 14px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); font-family: 'Courier New', Courier, monospace; color: black; font-size: 11.5px; line-height: 1.3;">
+            
+            <!-- Store Header -->
+            <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+              <div style="font-size: 14px; font-weight: 900; text-transform: uppercase;">
+                {{ auth.currentShop()?.name || 'MKS STORE' }}
+              </div>
+              <div style="font-size: 10px;">{{ auth.currentShop()?.address }}</div>
+              <div style="font-size: 10px;">फोन: {{ auth.currentShop()?.mobile }}</div>
+              @if (auth.currentShop()?.gstin) {
+                <div style="font-size: 10px;">GSTIN: {{ auth.currentShop()?.gstin }}</div>
+              }
+              <div style="font-size: 12px; font-weight: 900; margin-top: 4px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 2px 0;">
+                ** PURCHASE VOUCHER **
+              </div>
+            </div>
+
+            <!-- Metadata -->
+            <div style="font-size: 10.5px; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+              <div>वाउचर नं: <strong>{{ selectedPurchase().purchaseNumber }}</strong></div>
+              <div>दिनांक: {{ (selectedPurchase().purchaseDate || selectedPurchase().createdAt) | date:'dd-MM-yyyy, hh:mm a' }}</div>
+              <div>सप्लायर: <strong>{{ selectedPurchase().supplierName }}</strong></div>
+              @if (selectedPurchase().supplierInvoice) {
+                <div>सप्लायर बिल नं: {{ selectedPurchase().supplierInvoice }}</div>
+              }
+              <div>भुगतान: {{ selectedPurchase().paymentMethod }}</div>
+            </div>
+
+            <!-- Items -->
+            <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+              <div style="display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px;">
+                <span>आइटम (Item)</span>
+                <span>मात्रा x दर = कुल</span>
+              </div>
+              @for (item of selectedPurchase().items; track $index) {
+                <div style="margin-top: 4px;">
+                  <div style="font-weight: bold;">{{ item.productName }}</div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10.5px;">
+                    <span>{{ item.quantity }} {{ item.unit || 'PCS' }} &#64; ₹{{ item.purchasePrice }}</span>
+                    <strong>₹{{ item.total | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Totals -->
+            <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; font-size: 11px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Subtotal:</span>
+                <span>₹{{ selectedPurchase().subtotal | number:'1.2-2' }}</span>
+              </div>
+              @if (selectedPurchase().totalGst) {
+                <div style="display: flex; justify-content: space-between;">
+                  <span>Total GST:</span>
+                  <span>₹{{ selectedPurchase().totalGst | number:'1.2-2' }}</span>
+                </div>
+              }
+              <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 0; margin-top: 3px;">
+                <span>GRAND TOTAL:</span>
+                <span>₹{{ selectedPurchase().grandTotal | number:'1.2-2' }}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                <span>Paid:</span>
+                <span>₹{{ (selectedPurchase().amountPaid || 0) | number:'1.2-2' }}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>Balance Due:</span>
+                <span>₹{{ (selectedPurchase().balanceDue || 0) | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="text-align: center; font-size: 9.5px; margin-top: 6px;">
+              <div>*** STOCK INWARD VERIFIED ***</div>
+              <div>Authorized Store Signatory</div>
+            </div>
+
+          </div>
+        }
+
+      </div>
+
+      <!-- Modal Footer (Hidden on Print) -->
+      <div class="modal-footer no-print" style="background: white; padding: 12px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" (click)="showViewModal.set(false)">बंद करें (Close)</button>
+        
+        <button 
+          type="button" 
+          class="btn" 
+          (click)="printPurchaseInvoice()"
+          style="background: #0f172a; color: white; font-weight: 800; font-size: 13.5px; padding: 8px 24px; border-radius: 8px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(15,23,42,0.25);"
+        >
+          <i class="fa-solid fa-print"></i> 🖨️ इनवॉइस प्रिंट करें (Print Voucher)
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- Print Styles -->
+<style>
+@media print {
+  /* Hide all background website elements */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only the purchase invoice */
+  .purchase-invoice-paper, .purchase-invoice-paper *,
+  .purchase-thermal-paper, .purchase-thermal-paper * {
+    visibility: visible !important;
+  }
+
+  .purchase-invoice-paper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+  }
+
+  .purchase-thermal-paper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+</style>
+

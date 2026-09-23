@@ -1,0 +1,314 @@
+<div class="admin-page-container">
+  <!-- Page Header -->
+  <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-users-gear text-primary"></i>
+        <span>{{ lang.isHindi() ? 'यूज़र्स व स्टाफ निर्देशिका (Users & Staff)' : 'Platform Users & Staff Directory' }}</span>
+      </h1>
+      <p style="font-size: 13px; color: #64748b; margin: 3px 0 0 0;">
+        {{ lang.isHindi() ? 'सभी दुकानों के मालिक, कैशियर व कर्मचारियों की सूची, पासवर्ड रीसेट व नया स्टाफ जोड़ें।' : 'Global directory of shop owners, employees, cashiers, role permissions, and access status.' }}
+      </p>
+    </div>
+
+    <!-- Add User / Staff Button -->
+    <button class="btn btn-primary" (click)="openAddModal()" style="font-weight: 700;">
+      <i class="fa-solid fa-user-plus"></i> {{ lang.isHindi() ? '+ नया यूज़र / स्टाफ जोड़ें' : '+ Add User / Staff' }}
+    </button>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="card mb-4" style="padding: 16px; border-radius: 12px;">
+    <div style="display: grid; grid-template-columns: 2fr 1.2fr 1.2fr auto; gap: 12px; align-items: center;">
+      <div class="form-group" style="margin: 0;">
+        <div class="input-group">
+          <span class="input-group-text" style="background: #f8fafc;"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+          <input 
+            type="text" 
+            [(ngModel)]="searchText" 
+            (keyup.enter)="onFilter()" 
+            class="form-control" 
+            [placeholder]="lang.isHindi() ? 'नाम, ईमेल या फोन नंबर खोजें...' : 'Search by name, email or phone...'"
+          >
+        </div>
+      </div>
+
+      <div class="form-group" style="margin: 0;">
+        <select [(ngModel)]="selectedRole" (change)="onFilter()" class="form-control">
+          <option value="ALL">{{ lang.isHindi() ? 'सभी रोल्स (All Roles)' : 'All Roles' }}</option>
+          <option value="SHOP_OWNER">SHOP_OWNER (दुकान मालिक)</option>
+          <option value="EMPLOYEE">EMPLOYEE (स्टाफ / कैशियर)</option>
+          <option value="SUPER_ADMIN">SUPER_ADMIN (मास्टर एडमिन)</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin: 0;">
+        <select [(ngModel)]="selectedStatus" (change)="onFilter()" class="form-control">
+          <option value="ALL">{{ lang.isHindi() ? 'सभी स्थिति (All Status)' : 'All Status' }}</option>
+          <option value="ACTIVE">{{ lang.isHindi() ? 'सक्रिय (Active)' : 'Active' }}</option>
+          <option value="BLOCKED">{{ lang.isHindi() ? 'ब्लॉक्ड (Blocked)' : 'Blocked' }}</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary btn-sm" (click)="onFilter()" style="padding: 8px 16px; font-weight: 700;">
+        <i class="fa-solid fa-filter"></i> {{ lang.isHindi() ? 'लागू करें' : 'Apply' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Users Table Card -->
+  <div class="card" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-header flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+      <div class="card-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+        {{ lang.isHindi() ? 'रजिस्टर्ड यूज़र्स' : 'All Platform Users' }} ({{ totalRecords }})
+      </div>
+      <div style="font-size: 12px; color: #64748b;">
+        Page {{ page }} of {{ totalPages }}
+      </div>
+    </div>
+
+    <div class="card-body" style="padding: 0;">
+      @if (loading()) {
+        <div class="flex justify-between items-center" style="min-height: 250px; width: 100%;">
+          <div class="spinner" style="margin: 0 auto;"></div>
+        </div>
+      } @else if (users().length === 0) {
+        <div class="empty-state" style="padding: 40px; text-align: center;">
+          <i class="fa-solid fa-users" style="font-size: 48px; color: #cbd5e1; margin-bottom: 12px;"></i>
+          <h3>{{ lang.isHindi() ? 'कोई यूज़र नहीं मिला' : 'No Users Found' }}</h3>
+        </div>
+      } @else {
+        <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ lang.isHindi() ? 'यूज़र का नाम व ईमेल' : 'User & Email' }}</th>
+                <th>{{ lang.isHindi() ? 'जुड़ी दुकान (Assigned Shop)' : 'Assigned Shop' }}</th>
+                <th>{{ lang.isHindi() ? 'रोल (Role)' : 'Role' }}</th>
+                <th>{{ lang.isHindi() ? 'स्थिति' : 'Status' }}</th>
+                <th style="text-align: right;">{{ lang.isHindi() ? 'कार्रवाई' : 'Actions' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of users(); track u._id) {
+                <tr [style.background]="!u.isActive ? '#fff1f2' : 'transparent'">
+                  <td>
+                    <div style="font-weight: 800; font-size: 14px; color: #0f172a;">{{ u.name }}</div>
+                    <div style="font-size: 12px; color: #64748b;">{{ u.email }} • {{ u.mobile || 'No Mobile' }}</div>
+                  </td>
+                  <td>
+                    <div *ngIf="u.shopId" style="font-weight: 700; font-size: 13px; color: #1e293b;">
+                      {{ u.shopId?.name }} ({{ u.shopId?.shopType }})
+                    </div>
+                    <div *ngIf="!u.shopId" style="font-size: 12px; color: #94a3b8;">
+                      Platform Global Admin
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge" [style.background]="u.role === 'SUPER_ADMIN' ? '#dbeafe' : u.role === 'SHOP_OWNER' ? '#e0e7ff' : '#f1f5f9'" [style.color]="u.role === 'SUPER_ADMIN' ? '#1d4ed8' : u.role === 'SHOP_OWNER' ? '#4338ca' : '#475569'" style="font-weight: 800; font-size: 11px;">
+                      {{ u.role }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" [style.background]="u.isActive ? '#ecfdf5' : '#fee2e2'" [style.color]="u.isActive ? '#047857' : '#b91c1c'" style="font-weight: 800; font-size: 11px;">
+                      {{ u.isActive ? (lang.isHindi() ? 'सक्रिय (Active)' : 'Active') : (lang.isHindi() ? 'ब्लॉक्ड (Blocked)' : 'Blocked') }}
+                    </span>
+                  </td>
+                  <td style="text-align: right;">
+                    <div class="flex gap-2 justify-end" style="justify-content: flex-end;">
+                      <button class="btn btn-outline btn-sm" (click)="openPasswordModal(u)" style="font-size: 11px; padding: 4px 8px;" title="पासवर्ड रीसेट">
+                        <i class="fa-solid fa-key"></i> {{ lang.isHindi() ? 'पासवर्ड' : 'Password' }}
+                      </button>
+                      <button *ngIf="u.role !== 'SUPER_ADMIN'" class="btn btn-sm" (click)="toggleUser(u)" [style.background]="u.isActive ? '#fee2e2' : '#ecfdf5'" [style.color]="u.isActive ? '#b91c1c' : '#047857'" style="font-size: 11px; font-weight: 700; border: none; padding: 4px 8px; border-radius: 6px;">
+                        <i [class]="u.isActive ? 'fa-solid fa-ban' : 'fa-solid fa-check'"></i>
+                        {{ u.isActive ? (lang.isHindi() ? 'ब्लॉक' : 'Block') : (lang.isHindi() ? 'अनब्लॉक' : 'Unblock') }}
+                      </button>
+                      <button *ngIf="u.role !== 'SUPER_ADMIN'" class="btn btn-outline btn-sm btn-icon text-danger" (click)="deleteUser(u)" title="Delete User" style="border-radius: 6px; padding: 4px 8px;">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0;">
+      <div style="font-size: 12.5px; color: #64748b;">
+        Showing {{ users().length }} of {{ totalRecords }} users
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-outline btn-sm" [disabled]="page <= 1" (click)="page = page - 1; loadUsers()">
+          <i class="fa-solid fa-chevron-left"></i> Prev
+        </button>
+        <button class="btn btn-outline btn-sm" [disabled]="page >= totalPages" (click)="page = page + 1; loadUsers()">
+          Next <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add New User / Staff -->
+@if (showAddModal) {
+  <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+    <div class="card" style="width: 100%; max-width: 520px; margin: 20px; border-radius: 14px; box-shadow: var(--shadow-xl); overflow: hidden;">
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800;">
+          <i class="fa-solid fa-user-plus text-primary" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'नया यूज़र / स्टाफ जोड़ें' : 'Add New User / Staff' }}
+        </h3>
+        <button class="btn btn-outline btn-sm" (click)="showAddModal = false" style="border: none; font-size: 16px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="userForm" (ngSubmit)="submitCreateUser()">
+        <div class="card-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 75vh; overflow-y: auto;">
+          
+          <!-- Name & Role -->
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'पूरा नाम' : 'Full Name' }} <span class="text-danger">*</span></label>
+              <input 
+                type="text" 
+                formControlName="name" 
+                class="form-control" 
+                [class.is-invalid]="userForm.get('name')?.touched && userForm.get('name')?.invalid"
+                placeholder="e.g. Ramesh Kumar"
+              >
+              @if (userForm.get('name')?.touched && userForm.get('name')?.invalid) {
+                <div class="form-error" style="color: #ef4444; font-size: 11px; margin-top: 3px;">नाम आवश्यक है</div>
+              }
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'रोल (Role)' : 'Role' }} <span class="text-danger">*</span></label>
+              <select formControlName="role" class="form-control" style="font-weight: 600;">
+                <option value="EMPLOYEE">EMPLOYEE (स्टाफ / कैशियर)</option>
+                <option value="SHOP_OWNER">SHOP_OWNER (दुकानदार)</option>
+                <option value="SUPER_ADMIN">SUPER_ADMIN (मास्टर एडमिन)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Email & Mobile -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'ईमेल (Login ID)' : 'Email (Login ID)' }} <span class="text-danger">*</span></label>
+              <input 
+                type="text" 
+                formControlName="email" 
+                class="form-control" 
+                [class.is-invalid]="userForm.get('email')?.touched && userForm.get('email')?.invalid"
+                placeholder="staff@shop.com"
+              >
+              @if (userForm.get('email')?.touched && userForm.get('email')?.invalid) {
+                <div class="form-error" style="color: #ef4444; font-size: 11px; margin-top: 3px;">ईमेल आवश्यक है</div>
+              }
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'मोबाइल नंबर' : 'Mobile Number' }} <span class="text-danger">*</span></label>
+              <input 
+                type="text" 
+                formControlName="mobile" 
+                class="form-control" 
+                [class.is-invalid]="userForm.get('mobile')?.touched && userForm.get('mobile')?.invalid"
+                placeholder="10-digit mobile"
+              >
+              @if (userForm.get('mobile')?.touched && userForm.get('mobile')?.invalid) {
+                <div class="form-error" style="color: #ef4444; font-size: 11px; margin-top: 3px;">मोबाइल नंबर आवश्यक है</div>
+              }
+            </div>
+          </div>
+
+          <!-- Shop Selection (if not SUPER_ADMIN) -->
+          @if (userForm.get('role')?.value !== 'SUPER_ADMIN') {
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'जुड़ी दुकान चुनें (Assigned Shop)' : 'Select Shop' }}</label>
+              <select formControlName="shopId" class="form-control" style="font-weight: 600;">
+                <option value="">-- दुकान चुनें (Select Shop) --</option>
+                @for (s of shops(); track s._id) {
+                  <option [value]="s._id">{{ s.name }} ({{ s.shopType }}) - {{ s.city }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <!-- Password -->
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'लॉगिन पासवर्ड' : 'Login Password' }} <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input 
+                [type]="showPasswordInModal ? 'text' : 'password'" 
+                formControlName="password" 
+                class="form-control" 
+                [class.is-invalid]="userForm.get('password')?.touched && userForm.get('password')?.invalid"
+                placeholder="Minimum 6 characters"
+              >
+              <button 
+                type="button" 
+                class="btn btn-outline" 
+                (click)="showPasswordInModal = !showPasswordInModal"
+                style="border-radius: 0 var(--border-radius) var(--border-radius) 0; border-left: none;"
+              >
+                <i class="fa-solid" [ngClass]="showPasswordInModal ? 'fa-eye-slash' : 'fa-eye'"></i>
+              </button>
+            </div>
+            @if (userForm.get('password')?.touched && userForm.get('password')?.invalid) {
+              <div class="form-error" style="color: #ef4444; font-size: 11px; margin-top: 3px;">कम से कम 6 अक्षरों का पासवर्ड आवश्यक है</div>
+            }
+          </div>
+        </div>
+
+        <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showAddModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 700;">
+            <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'यूज़र बनाएं' : 'Create User' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal: Reset Password -->
+@if (showPasswordModal) {
+  <div class="modal-overlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+    <div class="card" style="width: 100%; max-width: 440px; margin: 20px; border-radius: 12px; box-shadow: var(--shadow-xl); overflow: hidden;">
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+          <i class="fa-solid fa-key text-primary" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'पासवर्ड रीसेट करें: ' : 'Reset Password: ' }} {{ selectedUser?.name }}
+        </h3>
+        <button class="btn btn-outline btn-sm" (click)="showPasswordModal = false" style="border: none; font-size: 16px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form [formGroup]="resetPasswordForm" (ngSubmit)="submitPasswordReset()">
+        <div class="card-body" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size: 13px; color: #475569;">
+            {{ lang.isHindi() ? 'यूज़र ईमेल:' : 'User Email:' }} <strong>{{ selectedUser?.email }}</strong>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">{{ lang.isHindi() ? 'नया पासवर्ड दर्ज करें' : 'Enter New Password' }} <span class="text-danger">*</span></label>
+            <input type="text" formControlName="newPassword" class="form-control" placeholder="Minimum 4 characters">
+          </div>
+        </div>
+
+        <div class="card-footer flex justify-between items-center" style="background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showPasswordModal = false">{{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="font-weight: 700;">
+            <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'पासवर्ड बदलें' : 'Set Password' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

@@ -1,0 +1,357 @@
+<div class="page-header no-print">
+  <div>
+    <h1 class="page-title">Customer Ledger Details</h1>
+    <p class="page-subtitle">Detailed financial balance report for {{ customer()?.name }}.</p>
+  </div>
+  <div class="page-actions flex gap-2">
+    <button 
+      class="btn btn-sm" 
+      *ngIf="customer()?.pendingAmount > 0"
+      (click)="openReminderModal()"
+      style="background: #25D366; color: white; border: none; font-weight: 700; padding: 6px 14px; border-radius: 6px;"
+    >
+      <i class="fa-brands fa-whatsapp" style="font-size: 16px; margin-right: 4px;"></i> 📲 WhatsApp तकादा भेजें (Send Reminder)
+    </button>
+    <a routerLink="/customers" class="btn btn-outline">
+      <i class="fa-solid fa-arrow-left"></i> Back to List
+    </a>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="flex justify-between items-center" style="min-height: 200px; width: 100%;">
+    <div class="spinner" style="margin: 0 auto;"></div>
+  </div>
+} @else if (!customer()) {
+  <div class="card">
+    <div class="card-body text-center">
+      <h3 class="text-danger">Customer Not Found</h3>
+    </div>
+  </div>
+} @else {
+  <div class="grid grid-3 mb-4">
+    <!-- Profile summary -->
+    <div class="card" style="grid-column: span 2;">
+      <div class="card-header"><div class="card-title">Customer Profile</div></div>
+      <div class="card-body">
+        <div class="form-row">
+          <div>
+            <strong style="display: block; font-size: 11px; text-transform: uppercase; color: var(--gray-400);">Name</strong>
+            <span style="font-size: 15px; font-weight: 600;">{{ customer().name }}</span>
+          </div>
+          <div>
+            <strong style="display: block; font-size: 11px; text-transform: uppercase; color: var(--gray-400);">Mobile</strong>
+            <span>{{ customer().mobile }}</span>
+          </div>
+          <div>
+            <strong style="display: block; font-size: 11px; text-transform: uppercase; color: var(--gray-400);">Email</strong>
+            <span>{{ customer().email || 'N/A' }}</span>
+          </div>
+        </div>
+        <div class="divider" style="margin: 12px 0;"></div>
+        <div class="form-row">
+          <div>
+            <strong style="display: block; font-size: 11px; text-transform: uppercase; color: var(--gray-400);">Address</strong>
+            <span>{{ customer().address || 'N/A' }}</span>
+          </div>
+          <div>
+            <strong style="display: block; font-size: 11px; text-transform: uppercase; color: var(--gray-400);">GSTIN</strong>
+            <span>{{ customer().gstin || 'N/A' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance summary -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Ledger Balances</div></div>
+      <div class="card-body">
+        <div class="flex justify-between mb-3">
+          <span>Total Billed Sales:</span>
+          <span class="font-semibold">₹{{ customer().totalPurchases | number:'1.2-2' }}</span>
+        </div>
+        <div class="flex justify-between mb-3">
+          <span>Total Paid Settle:</span>
+          <span class="font-semibold text-success">₹{{ customer().totalPaid | number:'1.2-2' }}</span>
+        </div>
+        <div class="flex justify-between mb-3">
+          <span>Outstanding Udhaar:</span>
+          <span class="font-bold text-danger">₹{{ customer().pendingAmount | number:'1.2-2' }}</span>
+        </div>
+        @if (customer().pendingAmount > 0) {
+          <button 
+            class="btn btn-sm w-full mt-2" 
+            (click)="openReminderModal()"
+            style="background: #25D366; color: white; border: none; font-weight: 700;"
+          >
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp तकादा भेजें
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+
+  <div class="grid grid-2">
+    <!-- Invoice History -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Invoices History</div></div>
+      <div class="card-body" style="padding: 0;">
+        @if (sales().length === 0) {
+          <div class="empty-state" style="padding: 30px 10px;">
+            <i class="fa-solid fa-receipt"></i>
+            <h3>No Bills Created</h3>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Inv No</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (bill of sales(); track bill._id) {
+                  <tr>
+                    <td class="font-semibold"><a [routerLink]="['/billing', bill._id, 'invoice']" style="color: var(--primary);">{{ bill.invoiceNumber }}</a></td>
+                    <td>{{ bill.invoiceDate | date:'dd-MM-yyyy' }}</td>
+                    <td class="font-bold">₹{{ bill.grandTotal | number:'1.2-2' }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'badge-success': bill.status === 'PAID',
+                        'badge-warning': bill.status === 'PARTIAL',
+                        'badge-danger': bill.status === 'PENDING'
+                      }">{{ bill.status }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Settle Receipts History -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Payment Logs</div></div>
+      <div class="card-body" style="padding: 0;">
+        @if (payments().length === 0) {
+          <div class="empty-state" style="padding: 30px 10px;">
+            <i class="fa-solid fa-receipt text-muted" style="font-size: 32px; margin-bottom: 8px;"></i>
+            <h3>No Payments Logged</h3>
+            <p class="text-muted">No payments have been recorded for this customer yet.</p>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Amount</th>
+                  <th>📦 Products (सामान)</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pay of payments(); track pay._id) {
+                  <tr>
+                    <td>
+                      <div class="font-semibold">{{ pay.date | date:'dd-MM-yyyy' }}</div>
+                      <div class="text-muted" style="font-size: 11px;">{{ pay.date | date:'hh:mm a' }}</div>
+                    </td>
+                    <td class="font-bold text-success" style="font-size: 14px;">
+                      + ₹{{ pay.amount | number:'1.2-2' }}
+                    </td>
+                    <td>
+                      @if (pay.items && pay.items.length > 0) {
+                        <div class="flex gap-1" style="flex-wrap: wrap;">
+                          @for (it of pay.items.slice(0, 2); track it.productName) {
+                            <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 11px;">
+                              {{ it.productName }} <strong style="color: #4f46e5;">x{{ it.quantity }}</strong>
+                            </span>
+                          }
+                          @if (pay.items.length > 2) {
+                            <span class="badge badge-secondary" style="font-size: 10px;">+{{ pay.items.length - 2 }}</span>
+                          }
+                        </div>
+                      } @else {
+                        <span class="text-muted" style="font-size: 11px;">Khata Settle / Direct Pay</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'badge-info': pay.method === 'UPI',
+                        'badge-success': pay.method === 'CASH',
+                        'badge-warning': pay.method === 'CARD',
+                        'badge-secondary': pay.method === 'BANK_TRANSFER' || pay.method === 'CREDIT'
+                      }" style="font-size: 11px; font-weight: 700;">
+                        {{ pay.method }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge badge-success" style="font-size: 10px;">
+                        <i class="fa-solid fa-check"></i> SUCCESS
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: WhatsApp Udhaar Payment Reminder -->
+@if (showReminderModal()) {
+  <div class="modal-overlay" (click)="showReminderModal.set(false)">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()" style="max-width: 600px;">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #128C7E, #25D366); color: white;">
+        <div class="flex items-center gap-2">
+          <div style="background: rgba(255,255,255,0.2); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-brands fa-whatsapp"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; font-size: 16px; margin-bottom: 2px;">
+              WhatsApp उधार तकादा (Payment Reminder)
+            </h3>
+            <p style="margin: 0; font-size: 11.5px; color: rgba(255,255,255,0.85);">
+              ग्राहक: <strong>{{ customer()?.name }}</strong> (📱 +91 {{ customer()?.mobile }})
+            </p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="showReminderModal.set(false)" style="color: white;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px 24px;">
+        <div class="flex justify-between items-center mb-3" style="background: #fff5f5; border: 1.5px solid #FEE2E2; padding: 12px 16px; border-radius: 8px;">
+          <div>
+            <span style="font-size: 12px; color: #991B1B; font-weight: 600; display: block;">कुल बकाया उधार राशि:</span>
+            <span style="font-size: 22px; font-weight: 800; color: #DC2626;">₹{{ customer()?.pendingAmount | number:'1.2-2' }}</span>
+          </div>
+          <div style="text-align: right; font-size: 11.5px; color: var(--text-secondary);">
+            <span>दुकान: <strong>{{ auth.currentShop()?.name }}</strong></span>
+          </div>
+        </div>
+
+        <!-- Editable Mobile Number Field -->
+        <div class="form-group mb-3" style="background: #e8f5e9; border: 1.5px solid #a7f3d0; padding: 12px 16px; border-radius: 8px;">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #065f46; margin-bottom: 6px;">
+            📲 WhatsApp मोबाइल नंबर (जिस नंबर पर मैसेज भेजना है): <span class="required">*</span>
+          </label>
+          <div class="input-group">
+            <span style="background: white; font-weight: 700; color: #065f46; border: 1px solid var(--gray-300); border-right: none; padding: 8px 12px; font-size: 14px; border-radius: var(--border-radius) 0 0 var(--border-radius); display: flex; align-items: center;">
+              +91
+            </span>
+            <input 
+              type="text" 
+              class="form-control" 
+              [ngModel]="reminderMobile()" 
+              (ngModelChange)="reminderMobile.set($event)"
+              placeholder="10 अंकों का मोबाइल नंबर दर्ज करें या बदलें..."
+              maxlength="13"
+              style="font-size: 15px; font-weight: 700; color: #111827; border-radius: 0 var(--border-radius) var(--border-radius) 0;"
+            >
+          </div>
+          <small style="font-size: 11px; color: #047857; margin-top: 4px; display: block;">
+            <i class="fa-solid fa-pen"></i> आप यहाँ कोई भी दूसरा मोबाइल नंबर डालकर सीधे उसी नंबर पर WhatsApp भेज सकते हैं।
+          </small>
+        </div>
+
+        <!-- Editable Purchased Products / Items Detail Field -->
+        <div class="form-group mb-3" style="background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 12px 16px; border-radius: 8px;">
+          <div class="flex justify-between items-center mb-1">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #1e40af; margin-bottom: 0;">
+              🛍️ बाकी सामान/प्रोडक्ट का विवरण (Purchased Items):
+            </label>
+            <span style="font-size: 11px; color: #2563eb; font-weight: 600;" *ngIf="reminderInvoiceNo()">
+              🧾 बिल: #{{ reminderInvoiceNo() }} ({{ reminderInvoiceDate() }})
+            </span>
+          </div>
+          <textarea 
+            class="form-control" 
+            rows="2" 
+            [ngModel]="reminderProducts()" 
+            (ngModelChange)="onReminderProductsChange($event)"
+            placeholder="जैसे: • 2x शर्ट (₹800), • 1x जीन्स (₹1200)..."
+            style="font-size: 13px; font-weight: 600; color: #1e3a8a; border: 1px solid #93c5fd; background: white;"
+          ></textarea>
+          <small style="font-size: 11px; color: #2563eb; margin-top: 4px; display: block;">
+            <i class="fa-solid fa-circle-check"></i> ग्राहक को WhatsApp मैसेज में यह दिखेगा कि उन्होंने क्या सामान खरीदा था।
+          </small>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700;">तकादा टेम्पलेट चुनें:</label>
+          <div class="grid grid-3 gap-2">
+            <div 
+              (click)="onTemplateSelect('POLITE')"
+              [style.background]="selectedTemplate() === 'POLITE' ? '#e8f5e9' : 'var(--gray-50)'"
+              [style.borderColor]="selectedTemplate() === 'POLITE' ? '#25D366' : 'var(--gray-200)'"
+              style="padding: 10px; border-radius: 8px; border: 1.5px solid; cursor: pointer; text-align: center;"
+            >
+              <i class="fa-solid fa-hand-holding-heart text-success" style="font-size: 18px; margin-bottom: 4px; display: block;"></i>
+              <div style="font-weight: 700; font-size: 12px;">विनम्र तकादा</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Friendly</div>
+            </div>
+
+            <div 
+              (click)="onTemplateSelect('DETAILED')"
+              [style.background]="selectedTemplate() === 'DETAILED' ? '#e0f2fe' : 'var(--gray-50)'"
+              [style.borderColor]="selectedTemplate() === 'DETAILED' ? '#0284c7' : 'var(--gray-200)'"
+              style="padding: 10px; border-radius: 8px; border: 1.5px solid; cursor: pointer; text-align: center;"
+            >
+              <i class="fa-solid fa-file-invoice text-info" style="font-size: 18px; margin-bottom: 4px; display: block;"></i>
+              <div style="font-weight: 700; font-size: 12px;">खाता विवरण</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Detailed</div>
+            </div>
+
+            <div 
+              (click)="onTemplateSelect('URGENT')"
+              [style.background]="selectedTemplate() === 'URGENT' ? '#fff1f2' : 'var(--gray-50)'"
+              [style.borderColor]="selectedTemplate() === 'URGENT' ? '#e11d48' : 'var(--gray-200)'"
+              style="padding: 10px; border-radius: 8px; border: 1.5px solid; cursor: pointer; text-align: center;"
+            >
+              <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 18px; margin-bottom: 4px; display: block;"></i>
+              <div style="font-weight: 700; font-size: 12px;">जरूरी सूचना</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Urgent</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group mb-0">
+          <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 4px;">WhatsApp संदेश पूर्वावलोकन / एडिट:</label>
+          <textarea 
+            class="form-control" 
+            rows="6" 
+            [ngModel]="customMessageText()" 
+            (ngModelChange)="customMessageText.set($event)"
+            style="font-family: inherit; font-size: 13px; line-height: 1.5;"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background: var(--gray-50); display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" (click)="showReminderModal.set(false)">रद्द करें</button>
+        <button 
+          type="button" 
+          class="btn" 
+          (click)="sendWhatsAppReminder()"
+          style="background: #25D366; color: white; font-weight: 700; font-size: 13.5px; padding: 8px 18px; border-radius: 6px;"
+        >
+          <i class="fa-brands fa-whatsapp" style="font-size: 16px; margin-right: 4px;"></i> 📲 WhatsApp पर भेजें
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

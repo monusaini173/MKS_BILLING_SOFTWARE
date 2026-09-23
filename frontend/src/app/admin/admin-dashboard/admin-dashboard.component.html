@@ -1,0 +1,258 @@
+<div class="admin-page-container">
+  <!-- Page Header -->
+  <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <span>👑</span> {{ lang.isHindi() ? 'सुपर एडमिन डैशबोर्ड (Owner Console)' : 'Platform Super Admin Dashboard' }}
+      </h1>
+      <p style="font-size: 13px; color: #64748b; margin: 3px 0 0 0;">
+        {{ lang.isHindi() ? 'सभी रजिस्टर्ड दुकानों, कुल बिक्री, सक्रिय सब्सक्रिप्शन व राजस्व की लाइव स्थिति।' : 'Live overview of all registered tenant shops, platform gross revenue, and active subscriptions.' }}
+      </p>
+    </div>
+    
+    <div class="flex gap-2">
+      <button class="btn btn-outline btn-sm" (click)="loadStats()" [disabled]="loading()">
+        <i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i> {{ lang.isHindi() ? 'रिफ्रेश' : 'Refresh' }}
+      </button>
+      <a routerLink="/admin/shops" class="btn btn-primary btn-sm" style="font-weight: 700;">
+        <i class="fa-solid fa-store"></i> {{ lang.isHindi() ? 'सभी दुकानें देखें' : 'Manage Shops' }}
+      </a>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-between items-center" style="min-height: 280px; width: 100%;">
+      <div class="spinner" style="margin: 0 auto;"></div>
+    </div>
+  } @else {
+    <!-- 1. Key Platform KPI Cards Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      
+      <!-- Total Shops -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #4f46e5; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'कुल दुकानें (Total Shops)' : 'Total Shops' }}</div>
+            <div style="font-size: 26px; font-weight: 800; color: #1e1b4b; margin-top: 4px;">{{ stats()?.totalShops || 0 }}</div>
+            <div style="font-size: 11.5px; color: #10b981; font-weight: 600; margin-top: 2px;">
+              <i class="fa-solid fa-circle-check"></i> {{ stats()?.activeShops || 0 }} {{ lang.isHindi() ? 'सक्रिय' : 'Active' }} ({{ stats()?.blockedShops || 0 }} {{ lang.isHindi() ? 'ब्लॉक्ड' : 'Blocked' }})
+            </div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-store"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Platform Sales Volume -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #10b981; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'आज की कुल बिक्री (Today)' : "Today's Gross Sales" }}</div>
+            <div style="font-size: 24px; font-weight: 800; color: #064e3b; margin-top: 4px;">₹{{ stats()?.todaySalesVolume | number:'1.2-2' }}</div>
+            <div style="font-size: 11.5px; color: #64748b; font-weight: 600; margin-top: 2px;">
+              {{ stats()?.todayInvoiceCount || 0 }} {{ lang.isHindi() ? 'बिल बने' : 'Invoices Billed' }}
+            </div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-cash-register"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Platform Sales Volume -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #06b6d4; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'इस महीने की बिक्री (Monthly)' : 'Monthly Gross Sales' }}</div>
+            <div style="font-size: 24px; font-weight: 800; color: #155e75; margin-top: 4px;">₹{{ stats()?.monthlySalesVolume | number:'1.2-2' }}</div>
+            <div style="font-size: 11.5px; color: #64748b; font-weight: 600; margin-top: 2px;">
+              {{ stats()?.monthlyInvoiceCount || 0 }} {{ lang.isHindi() ? 'बिल इस महीने' : 'Invoices this month' }}
+            </div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #ecfeff; color: #06b6d4; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-chart-simple"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Platform Users & Staff -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #8b5cf6; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'कुल यूज़र्स व स्टाफ' : 'Platform Users' }}</div>
+            <div style="font-size: 26px; font-weight: 800; color: #4c1d95; margin-top: 4px;">{{ stats()?.totalUsers || 0 }}</div>
+            <div style="font-size: 11.5px; color: #64748b; font-weight: 600; margin-top: 2px;">
+              {{ stats()?.newShopsThisMonth || 0 }} {{ lang.isHindi() ? 'नई दुकानें इस महीने' : 'New shops this month' }}
+            </div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #f5f3ff; color: #8b5cf6; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subscription Revenue Collected -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #ec4899; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'सब्सक्रिप्शन रेवेन्यू (Fees)' : 'Subscription Revenue' }}</div>
+            <div style="font-size: 24px; font-weight: 800; color: #831843; margin-top: 4px;">₹{{ stats()?.subscriptionRevenue || 0 | number:'1.2-2' }}</div>
+            <div style="font-size: 11.5px; color: #db2777; font-weight: 600; margin-top: 2px;">
+              {{ lang.isHindi() ? 'प्लेटफ़ॉर्म फीस कलेक्शन' : 'Platform recurring income' }}
+            </div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #fdf2f8; color: #ec4899; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expired / Expiring Subscriptions Alert -->
+      <div class="card" style="padding: 18px; border-left: 4px solid #f59e0b; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">{{ lang.isHindi() ? 'समाप्त / समाप्त होने वाले' : 'Expiring / Expired' }}</div>
+            <div style="font-size: 26px; font-weight: 800; color: #78350f; margin-top: 4px;">{{ (stats()?.expiringSubscriptions?.length || 0) + (stats()?.expiredShopsCount || 0) }}</div>
+            <div style="font-size: 11.5px; color: #d97706; font-weight: 700; margin-top: 2px;">
+              {{ stats()?.expiringSubscriptions?.length || 0 }} {{ lang.isHindi() ? 'दुकानें 7 दिन में समाप्त होंगी' : 'Expiring in 7 days' }}
+            </div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #fffbeb; color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- 2. Expiring Subscriptions Rapid Action Bar (If Any) -->
+    @if (stats()?.expiringSubscriptions?.length > 0) {
+      <div class="card mb-4" style="border: 1px solid #fde68a; background: #fffdf5; border-radius: 12px; padding: 18px;">
+        <div class="flex justify-between items-center mb-3">
+          <h3 style="font-size: 15px; font-weight: 800; color: #92400e; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+            {{ lang.isHindi() ? '⚠️ अगले 7 दिनों में समाप्त होने वाले सब्सक्रिप्शन (त्वरित रिन्यू करें)' : 'Expiring Subscriptions in Next 7 Days (Quick Renew)' }}
+          </h3>
+          <a routerLink="/admin/subscriptions" class="btn btn-outline btn-sm" style="font-size: 11.5px;">
+            {{ lang.isHindi() ? 'सब्सक्रिप्शन मैनेजर' : 'View Subscriptions' }}
+          </a>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px;">
+          @for (s of stats().expiringSubscriptions; track s._id) {
+            <div style="background: white; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">{{ s.name }} ({{ s.shopType }})</div>
+                <div style="font-size: 12px; color: #64748b;">
+                  {{ s.ownerName }} • {{ s.mobile }}
+                </div>
+                <div style="font-size: 11.5px; color: #b45309; font-weight: 600; margin-top: 2px;">
+                  📅 समाप्त: {{ s.subscriptionExpiry | date:'dd MMM yyyy' }} ({{ s.subscriptionPlan }})
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" (click)="extendSubscription(s._id, s.name)" style="padding: 4px 10px; font-size: 11.5px; font-weight: 700; white-space: nowrap;">
+                <i class="fa-solid fa-plus"></i> +30 Days
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- 3. Shop Types Distribution Grid -->
+    <div class="card mb-4" style="border-radius: 12px;">
+      <div class="card-header flex justify-between items-center" style="padding: 16px 20px;">
+        <h3 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+          <i class="fa-solid fa-tags text-primary" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'दुकान प्रकार के अनुसार वर्गीकरण (Shop Types Breakdown)' : 'Shop Types Distribution' }}
+        </h3>
+        <a routerLink="/admin/shop-types" class="btn btn-outline btn-sm" style="font-size: 11.5px;">
+          {{ lang.isHindi() ? 'नया प्रकार जोड़ें' : 'Manage Types' }}
+        </a>
+      </div>
+      <div class="card-body" style="padding: 16px 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+          @for (t of stats()?.shopTypeDistribution; track t._id) {
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center;">
+              <div style="font-size: 20px; font-weight: 800; color: #4f46e5;">{{ t.count }}</div>
+              <div style="font-size: 12px; font-weight: 700; color: #334155; margin-top: 2px;">{{ t._id }}</div>
+              <div style="font-size: 10.5px; color: #64748b;">{{ ((t.count / (stats()?.totalShops || 1)) * 100) | number:'1.0-0' }}% of total</div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Recent Registered Shops Table with 🔥 1-Click Impersonate -->
+    <div class="card" style="border-radius: 12px;">
+      <div class="card-header flex justify-between items-center" style="padding: 16px 20px;">
+        <h3 class="card-title" style="margin: 0; font-size: 15px; font-weight: 800;">
+          <i class="fa-solid fa-clock-rotate-left text-primary" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'हाल ही में रजिस्टर्ड दुकानें (Recent Shops)' : 'Recently Registered Shops' }}
+        </h3>
+        <a routerLink="/admin/shops" class="btn btn-primary btn-sm" style="font-size: 12px; font-weight: 700;">
+          {{ lang.isHindi() ? 'सभी दुकानें देखें' : 'View All Shops' }}
+        </a>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ lang.isHindi() ? 'दुकान का नाम' : 'Shop Name' }}</th>
+                <th>{{ lang.isHindi() ? 'प्रकार (Type)' : 'Type' }}</th>
+                <th>{{ lang.isHindi() ? 'मालिक का नाम व फोन' : 'Owner & Mobile' }}</th>
+                <th>{{ lang.isHindi() ? 'सब्सक्रिप्शन प्लान' : 'Plan' }}</th>
+                <th>{{ lang.isHindi() ? 'स्थिति' : 'Status' }}</th>
+                <th>{{ lang.isHindi() ? 'कार्रवाई (Action)' : 'Action' }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (shop of stats()?.recentShops; track shop._id) {
+                <tr>
+                  <td>
+                    <div style="font-weight: 700; font-size: 13.5px; color: #0f172a;">{{ shop.name }}</div>
+                    <div style="font-size: 11.5px; color: #64748b;">Reg: {{ shop.createdAt | date:'dd MMM yyyy' }}</div>
+                  </td>
+                  <td>
+                    <span class="badge" style="background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 11px;">
+                      {{ shop.shopType }}
+                    </span>
+                  </td>
+                  <td>
+                    <div style="font-weight: 600; font-size: 13px;">{{ shop.ownerName }}</div>
+                    <div style="font-size: 11.5px; color: #64748b;">{{ shop.mobile || 'N/A' }}</div>
+                  </td>
+                  <td>
+                    <span class="badge" [style.background]="shop.subscriptionPlan === 'ENTERPRISE_YEARLY' ? '#dcfce7' : shop.subscriptionPlan === 'PRO_MONTHLY' ? '#e0e7ff' : '#fef3c7'" [style.color]="shop.subscriptionPlan === 'ENTERPRISE_YEARLY' ? '#166534' : shop.subscriptionPlan === 'PRO_MONTHLY' ? '#3730a3' : '#92400e'" style="font-weight: 700; font-size: 11px;">
+                      {{ shop.subscriptionPlan }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" [style.background]="shop.isActive ? '#ecfdf5' : '#fef2f2'" [style.color]="shop.isActive ? '#065f46' : '#991b1b'" style="font-weight: 700; font-size: 11px;">
+                      {{ shop.isActive ? (lang.isHindi() ? 'सक्रिय (Active)' : 'Active') : (lang.isHindi() ? 'ब्लॉक्ड (Blocked)' : 'Blocked') }}
+                    </span>
+                  </td>
+                  <td>
+                    <!-- 🔥 1-Click Shop Impersonate / Login -->
+                    <button 
+                      class="btn btn-sm" 
+                      (click)="impersonate(shop._id)" 
+                      style="background: #0f172a; color: white; font-weight: 700; font-size: 11.5px; padding: 4px 10px; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                      title="दुकान के डैशबोर्ड में लॉगइन करें"
+                    >
+                      <i class="fa-solid fa-arrow-right-to-bracket" style="color: #38bdf8;"></i>
+                      <span>{{ lang.isHindi() ? 'लॉगइन करें' : 'Login as Shop' }}</span>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+</div>

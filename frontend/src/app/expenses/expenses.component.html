@@ -1,0 +1,566 @@
+<!-- Header Section -->
+<div class="page-header no-print">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="page-title" style="margin-bottom: 2px;">🏪 दुकान का दैनिक खर्च (Daily Shop Expenses)</h1>
+      <span class="badge badge-primary" style="font-size: 11px;">Kharcha Book</span>
+    </div>
+    <p class="page-subtitle">चाय-नाश्ता, मजदूरी, टेम्पो/भाड़ा, दुकान किराया, बिजली बिल और सभी दैनिक खर्चों का तुरंत हिसाब रखें।</p>
+  </div>
+  <div class="page-actions flex gap-2">
+    <button class="btn btn-outline" (click)="printDailySheet()">
+      <i class="fa-solid fa-print"></i> दैनिक शीट प्रिंट करें (Print Sheet)
+    </button>
+    <button class="btn btn-primary" (click)="openAddModal()">
+      <i class="fa-solid fa-plus"></i> + नया खर्च जोड़ें (Add Expense)
+    </button>
+  </div>
+</div>
+
+<!-- 4 Key Expense Summary Stat Cards -->
+<div class="grid grid-4 mb-4 no-print">
+  <!-- Today's Expenses -->
+  <div class="stat-card" style="border-top: 3px solid #EF4444; background: linear-gradient(to bottom right, #ffffff, #fff5f5);">
+    <div class="stat-icon danger">
+      <i class="fa-solid fa-calendar-day"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value text-danger">₹{{ summary().todayTotal | number:'1.2-2' }}</div>
+      <div class="stat-label font-semibold" style="color: #991B1B;">आज का कुल खर्च (Today)</div>
+      <div class="stat-change" style="font-size: 11px; color: var(--text-secondary);">
+        <span>{{ summary().todayCount }} खर्चे दर्ज (Entries)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Yesterday's Expenses -->
+  <div class="stat-card" style="border-top: 3px solid #F59E0B;">
+    <div class="stat-icon warning">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="color: #B45309;">₹{{ summary().yesterdayTotal | number:'1.2-2' }}</div>
+      <div class="stat-label">कल का खर्च (Yesterday)</div>
+      <div class="stat-change" style="font-size: 11px; color: var(--text-secondary);">
+        <span>{{ summary().yesterdayCount }} खर्चे</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- This Month's Expenses -->
+  <div class="stat-card" style="border-top: 3px solid #4F46E5;">
+    <div class="stat-icon primary">
+      <i class="fa-solid fa-calendar-days"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value text-primary">₹{{ summary().monthTotal | number:'1.2-2' }}</div>
+      <div class="stat-label">इस महीने का खर्च (This Month)</div>
+      <div class="stat-change" style="font-size: 11px; color: var(--text-secondary);">
+        <span>{{ summary().monthCount }} कुल खर्चे</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtered Range Total -->
+  <div class="stat-card" style="border-top: 3px solid #06B6D4;">
+    <div class="stat-icon info">
+      <i class="fa-solid fa-filter-circle-dollar"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">₹{{ summary().filteredTotal | number:'1.2-2' }}</div>
+      <div class="stat-label">चुने गए समय का कुल (Selected)</div>
+      <div class="stat-change" style="font-size: 11px; color: var(--text-secondary);">
+        <span>{{ summary().filteredCount }} रिकॉर्ड्स</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick 1-Click Add Chips (तुरंत 1-क्लिक से सामान्य दैनिक खर्च जोड़ें) -->
+<div class="card mb-4 no-print" style="border-left: 4px solid var(--primary); background: #fafbff;">
+  <div class="card-body" style="padding: 12px 18px;">
+    <div class="flex items-center gap-3" style="flex-wrap: wrap;">
+      <span style="font-size: 12px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 4px;">
+        <i class="fa-solid fa-bolt text-warning"></i> तुरंत 1-क्लिक खर्च शॉर्टकट:
+      </span>
+      <div class="flex gap-2" style="flex-wrap: wrap;">
+        @for (qp of quickPresets; track qp.label) {
+          <button 
+            (click)="openAddModal(qp)" 
+            class="btn btn-outline btn-sm"
+            style="background: white; border: 1px dashed var(--gray-300); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; transition: all 0.2s;"
+            onmouseover="this.style.borderColor='var(--primary)'; this.style.color='var(--primary)'"
+            onmouseout="this.style.borderColor='var(--gray-300)'; this.style.color='inherit'"
+          >
+            {{ qp.label }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter & Search Controls Bar -->
+<div class="card mb-4 no-print">
+  <div class="card-body" style="padding: 14px 20px;">
+    <div class="flex items-center justify-between gap-3" style="flex-wrap: wrap;">
+      
+      <!-- Date Range Tabs -->
+      <div class="flex gap-1" style="background: var(--gray-100); padding: 4px; border-radius: var(--border-radius); flex-wrap: wrap;">
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeFilter() === 'today' ? 'white' : 'transparent'" 
+          [style.color]="activeFilter() === 'today' ? 'var(--primary)' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeFilter() === 'today' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeFilter() === 'today' ? '700' : '500'"
+          (click)="setFilter('today')"
+        >
+          <i class="fa-solid fa-calendar-day"></i> आज (Today)
+        </button>
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeFilter() === 'yesterday' ? 'white' : 'transparent'" 
+          [style.color]="activeFilter() === 'yesterday' ? 'var(--primary)' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeFilter() === 'yesterday' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeFilter() === 'yesterday' ? '700' : '500'"
+          (click)="setFilter('yesterday')"
+        >
+          कल (Yesterday)
+        </button>
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeFilter() === 'week' ? 'white' : 'transparent'" 
+          [style.color]="activeFilter() === 'week' ? 'var(--primary)' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeFilter() === 'week' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeFilter() === 'week' ? '700' : '500'"
+          (click)="setFilter('week')"
+        >
+          इस हफ्ते (Week)
+        </button>
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeFilter() === 'month' ? 'white' : 'transparent'" 
+          [style.color]="activeFilter() === 'month' ? 'var(--primary)' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeFilter() === 'month' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeFilter() === 'month' ? '700' : '500'"
+          (click)="setFilter('month')"
+        >
+          इस महीने (Month)
+        </button>
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeFilter() === 'custom' ? 'white' : 'transparent'" 
+          [style.color]="activeFilter() === 'custom' ? 'var(--primary)' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeFilter() === 'custom' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeFilter() === 'custom' ? '700' : '500'"
+          (click)="setFilter('custom')"
+        >
+          कस्टम तारीख (Custom)
+        </button>
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeFilter() === 'all' ? 'white' : 'transparent'" 
+          [style.color]="activeFilter() === 'all' ? 'var(--primary)' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeFilter() === 'all' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeFilter() === 'all' ? '700' : '500'"
+          (click)="setFilter('all')"
+        >
+          सभी (All)
+        </button>
+      </div>
+
+      <!-- Right Side Filters: Category & Search -->
+      <div class="flex gap-2 items-center" style="flex-wrap: wrap; flex: 1; justify-content: flex-end;">
+        
+        <!-- Category Filter -->
+        <select 
+          class="form-control" 
+          style="width: auto; min-width: 170px; font-size: 12.5px; padding: 6px 12px;"
+          [ngModel]="selectedCategory()"
+          (ngModelChange)="onCategoryChange($event)"
+        >
+          <option value="ALL">📁 सभी श्रेणियां (All Categories)</option>
+          @for (cat of categories; track cat.value) {
+            <option [value]="cat.value">{{ cat.label }}</option>
+          }
+        </select>
+
+        <!-- Search input -->
+        <div class="search-box" style="min-width: 200px; max-width: 260px;">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input 
+            type="text" 
+            class="form-control" 
+            placeholder="Search विवरण या नाम..." 
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchChange($event)"
+            style="font-size: 12.5px; padding: 6px 12px 6px 36px;"
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Date inputs if custom filter selected -->
+    @if (activeFilter() === 'custom') {
+      <div class="flex gap-3 items-center mt-3 pt-3" style="border-top: 1px dashed var(--gray-200);">
+        <span style="font-size: 12px; font-weight: 600;">तारीख चुनें:</span>
+        <input type="date" class="form-control" style="width: auto; font-size: 12px;" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)">
+        <span style="font-size: 12px;">से</span>
+        <input type="date" class="form-control" style="width: auto; font-size: 12px;" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)">
+        <button class="btn btn-primary btn-sm" (click)="loadExpenses()">
+          <i class="fa-solid fa-filter"></i> लागू करें (Filter)
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Main Expenses List Table Card -->
+<div class="card">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="card-title flex items-center gap-2">
+      <i class="fa-solid fa-receipt text-primary"></i>
+      <span>दैनिक खर्च वाउचर सूची (Expense Entries)</span>
+      <span class="badge badge-secondary">{{ expenses().length }} रिकॉर्ड्स</span>
+    </div>
+    <div class="font-bold text-danger" style="font-size: 14px;">
+      कुल खर्च: ₹{{ summary().filteredTotal | number:'1.2-2' }}
+    </div>
+  </div>
+
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 200px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (expenses().length === 0) {
+      <div class="empty-state" style="padding: 60px 20px;">
+        <i class="fa-solid fa-wallet" style="font-size: 48px; color: var(--gray-300); margin-bottom: 12px;"></i>
+        <h3 style="font-size: 16px; font-weight: 700;">कोई खर्च नहीं मिला (No Expenses Recorded)</h3>
+        <p style="color: var(--text-secondary); font-size: 13px; max-width: 420px; margin: 0 auto 16px;">
+          इस तारीख / फिल्टर में कोई खर्च दर्ज नहीं है। दुकान का सही मुनाफा जानने के लिए चाय, नाश्ता, मजदूरी व अन्य खर्च तुरंत जोड़ें।
+        </p>
+        <button class="btn btn-primary" (click)="openAddModal()">
+          <i class="fa-solid fa-plus"></i> पहला खर्च जोड़ें (Record First Expense)
+        </button>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 140px;">तारीख व समय (Date)</th>
+              <th style="width: 220px;">श्रेणी (Category)</th>
+              <th>खर्च विवरण (Description / Remarks)</th>
+              <th style="width: 150px;">किसे दिया (Paid To)</th>
+              <th style="width: 120px;">माध्यम (Mode)</th>
+              <th style="width: 130px; text-align: right;">रकम (Amount)</th>
+              <th class="no-print" style="width: 90px; text-align: center;">एक्शन</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (exp of expenses(); track exp._id) {
+              <tr>
+                <!-- Date & Time -->
+                <td>
+                  <div style="font-weight: 600; font-size: 12.5px;">
+                    {{ exp.date | date:'dd-MMM-yyyy' }}
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted);">
+                    {{ exp.date | date:'hh:mm a' }}
+                  </div>
+                </td>
+
+                <!-- Category Badge -->
+                <td>
+                  @let cInfo = getCategoryInfo(exp.category);
+                  <span 
+                    class="badge" 
+                    [style.background]="cInfo.bg" 
+                    [style.color]="cInfo.color"
+                    [style.border]="'1px solid ' + cInfo.color + '40'"
+                    style="font-size: 11.5px; padding: 4px 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;"
+                  >
+                    <i [class]="'fa-solid ' + cInfo.icon"></i>
+                    <span>{{ cInfo.label }}</span>
+                  </span>
+                </td>
+
+                <!-- Description -->
+                <td>
+                  <div style="font-weight: 500; font-size: 13px; color: var(--text-primary);">
+                    {{ exp.description }}
+                  </div>
+                  @if (exp.reference) {
+                    <div style="font-size: 11px; color: var(--text-muted);">
+                      <i class="fa-solid fa-hashtag"></i> Ref: {{ exp.reference }}
+                    </div>
+                  }
+                </td>
+
+                <!-- Paid To -->
+                <td>
+                  @if (exp.paidTo) {
+                    <span style="font-size: 12.5px; font-weight: 600; color: var(--text-primary);">
+                      <i class="fa-solid fa-user-tag text-muted" style="font-size: 10px; margin-right: 4px;"></i>{{ exp.paidTo }}
+                    </span>
+                  } @else {
+                    <span class="text-muted" style="font-size: 11.5px;">-</span>
+                  }
+                </td>
+
+                <!-- Payment Method -->
+                <td>
+                  <span class="badge" [ngClass]="{
+                    'badge-success': exp.paymentMethod === 'CASH',
+                    'badge-info': exp.paymentMethod === 'UPI',
+                    'badge-primary': exp.paymentMethod === 'CARD',
+                    'badge-secondary': exp.paymentMethod === 'BANK_TRANSFER'
+                  }" style="font-size: 10.5px;">
+                    <i class="fa-solid" [ngClass]="{
+                      'fa-money-bill-1': exp.paymentMethod === 'CASH',
+                      'fa-mobile-screen': exp.paymentMethod === 'UPI',
+                      'fa-credit-card': exp.paymentMethod === 'CARD',
+                      'fa-building-columns': exp.paymentMethod === 'BANK_TRANSFER'
+                    }"></i>
+                    {{ exp.paymentMethod }}
+                  </span>
+                </td>
+
+                <!-- Amount (₹) -->
+                <td style="text-align: right;">
+                  <span class="font-bold text-danger" style="font-size: 14px;">
+                    ₹{{ exp.amount | number:'1.2-2' }}
+                  </span>
+                </td>
+
+                <!-- Actions (Edit / Delete) -->
+                <td class="no-print" style="text-align: center;">
+                  <div class="flex gap-1 justify-center">
+                    <button 
+                      class="btn btn-outline btn-sm btn-icon" 
+                      (click)="openEditModal(exp)"
+                      title="एडिट करें (Edit)"
+                      style="color: var(--primary);"
+                    >
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button 
+                      class="btn btn-outline btn-sm btn-icon text-danger" 
+                      (click)="deleteExpense(exp._id)"
+                      title="डिलीट करें (Delete)"
+                    >
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr style="background: var(--gray-50); font-weight: 700;">
+              <td colspan="5" style="text-align: right; font-size: 13px;">कुल खर्च योग (Total Expenses):</td>
+              <td style="text-align: right; font-size: 15px;" class="text-danger">
+                ₹{{ summary().filteredTotal | number:'1.2-2' }}
+              </td>
+              <td class="no-print"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Printable Daily Voucher / Statement (Only visible in Print) -->
+<div class="print-only" style="display: none; padding: 20px; font-family: sans-serif;">
+  <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 16px;">
+    <h2 style="margin: 0; font-size: 20px;">दुकान दैनिक खर्च वाउचर विवरण</h2>
+    <p style="margin: 4px 0 0 0; font-size: 13px;">तारीख: {{ activeFilter() === 'today' ? ('आज - ' + (expenses()[0]?.date | date:'dd-MM-yyyy')) : 'दैनिक खर्च रिपोर्ट' }}</p>
+  </div>
+  <div style="margin-top: 30px; display: flex; justify-content: space-between;">
+    <div><strong>दुकानदार / अकाउंटेंट हस्ताक्षर:</strong> _________________</div>
+    <div><strong>कुल खर्च योग:</strong> ₹{{ summary().filteredTotal | number:'1.2-2' }}</div>
+  </div>
+</div>
+
+<!-- Modal: Record / Edit Shop Expense (नया खर्च दर्ज / एडिट करें) -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="showModal = false">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()">
+      
+      <!-- Modal Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #1E1B4B, #312E81); color: white;">
+        <div>
+          <h3 class="modal-title" style="color: white; font-size: 16px;">
+            <i class="fa-solid fa-wallet text-warning" style="margin-right: 6px;"></i>
+            {{ isEditing ? 'दुकान खर्च एडिट करें (Edit Expense)' : 'नया दुकान खर्च जोड़ें (Record Shop Expense)' }}
+          </h3>
+          <p style="margin: 2px 0 0 0; font-size: 11.5px; color: rgba(255,255,255,0.7);">
+            चाय, नाश्ता, मजदूरी, भाड़ा या अन्य खर्च की रकम और विवरण दर्ज करें
+          </p>
+        </div>
+        <button class="modal-close" (click)="showModal = false" style="color: white;">&times;</button>
+      </div>
+
+      <form [formGroup]="expenseForm" (ngSubmit)="onSubmit()">
+        <div class="modal-body" style="padding: 20px 24px;">
+          
+          <!-- Category Grid Selection -->
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 700;">
+              खर्च की श्रेणी (Expense Category) <span class="required">*</span>
+            </label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+              @for (cat of categories; track cat.value) {
+                <div 
+                  (click)="expenseForm.patchValue({ category: cat.value })"
+                  [style.background]="expenseForm.get('category')?.value === cat.value ? cat.bg : 'var(--gray-50)'"
+                  [style.borderColor]="expenseForm.get('category')?.value === cat.value ? cat.color : 'var(--gray-200)'"
+                  [style.boxShadow]="expenseForm.get('category')?.value === cat.value ? '0 0 0 2px ' + cat.color : 'none'"
+                  style="padding: 8px 12px; border-radius: 8px; border: 1.5px solid; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s;"
+                >
+                  <div [style.color]="cat.color" style="font-size: 16px; width: 22px; text-align: center;">
+                    <i [class]="'fa-solid ' + cat.icon"></i>
+                  </div>
+                  <div style="min-width: 0; flex: 1;">
+                    <div style="font-weight: 700; font-size: 12px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      {{ cat.label }}
+                    </div>
+                    <div style="font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      {{ cat.sub }}
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Amount Field with Quick Helper Chips -->
+          <div class="form-group mb-3" style="background: #fff8f8; padding: 14px; border-radius: 10px; border: 1.5px solid #FEE2E2;">
+            <div class="flex justify-between items-center mb-1">
+              <label class="form-label" style="font-size: 13px; font-weight: 700; color: #991B1B; margin-bottom: 0;">
+                खर्च रकम (Amount in ₹) <span class="required">*</span>
+              </label>
+              <span style="font-size: 11px; color: var(--text-muted);">Quick amount tags:</span>
+            </div>
+            
+            <div class="input-group mb-2">
+              <div style="background: #DC2626; color: white; padding: 8px 16px; font-weight: 800; font-size: 18px; border-radius: var(--border-radius) 0 0 var(--border-radius); display: flex; align-items: center;">
+                ₹
+              </div>
+              <input 
+                type="number" 
+                formControlName="amount" 
+                class="form-control" 
+                placeholder="0.00" 
+                style="font-size: 20px; font-weight: 700; color: #DC2626; border-radius: 0 var(--border-radius) var(--border-radius) 0;"
+                autofocus
+              >
+            </div>
+
+            <!-- Quick Add Chips -->
+            <div class="flex gap-1" style="flex-wrap: wrap;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary); align-self: center; margin-right: 4px;">जोड़ें:</span>
+              @for (amt of quickAmounts; track amt) {
+                <button 
+                  type="button" 
+                  (click)="addAmount(amt)" 
+                  class="btn btn-outline btn-sm" 
+                  style="padding: 2px 8px; font-size: 11px; background: white; border-radius: 14px; font-weight: 600;"
+                >
+                  +₹{{ amt }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Description & Paid To Row -->
+          <div class="form-row-2 mb-3">
+            <!-- Description -->
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">
+                विवरण / किस काम में खर्च हुआ (Description) <span class="required">*</span>
+              </label>
+              <input 
+                type="text" 
+                formControlName="description" 
+                class="form-control" 
+                placeholder="उदा. 4 कप चाय और बिस्कुट, टेम्पो भाड़ा"
+              >
+            </div>
+
+            <!-- Paid To -->
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">
+                किसे दिया / नाम (Paid To / Person Name)
+              </label>
+              <input 
+                type="text" 
+                formControlName="paidTo" 
+                class="form-control" 
+                placeholder="उदा. रमेश चाय वाला, राजू ड्राइवर, मजदूर"
+              >
+            </div>
+          </div>
+
+          <!-- Date & Payment Method Row -->
+          <div class="form-row-2">
+            <!-- Date & Time -->
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">
+                खर्च की तारीख व समय (Date & Time) <span class="required">*</span>
+              </label>
+              <input 
+                type="datetime-local" 
+                formControlName="date" 
+                class="form-control"
+              >
+            </div>
+
+            <!-- Payment Method -->
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">
+                भुगतान माध्यम (Payment Method) <span class="required">*</span>
+              </label>
+              <select formControlName="paymentMethod" class="form-control">
+                <option value="CASH">💵 नकद (Cash)</option>
+                <option value="UPI">📱 UPI (Google Pay / PhonePe / Paytm)</option>
+                <option value="CARD">💳 कार्ड (Debit / Credit Card)</option>
+                <option value="BANK_TRANSFER">🏦 बैंक ट्रांसफर (Bank Transfer / NEFT)</option>
+                <option value="CREDIT">📝 उधार / बाकी (Credit / Udhaar)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Reference ID (Optional) -->
+          <div class="form-group mt-3" style="margin-bottom: 0;">
+            <label class="form-label">
+              रसीद / बिल नंबर / UPI Ref (Optional)
+            </label>
+            <input 
+              type="text" 
+              formControlName="reference" 
+              class="form-control" 
+              placeholder="बिल नंबर, UPI ट्रांजैक्शन ID या रसीद नंबर"
+            >
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer" style="background: var(--gray-50);">
+          <button type="button" class="btn btn-secondary" (click)="showModal = false">रद्द करें (Cancel)</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting" style="min-width: 140px;">
+            @if (submitting) {
+              <div class="spinner spinner-sm"></div> सेव हो रहा है...
+            } @else {
+              <i class="fa-solid fa-check"></i> {{ isEditing ? 'अपडेट करें (Update)' : 'खर्च सेव करें (Save Expense)' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+

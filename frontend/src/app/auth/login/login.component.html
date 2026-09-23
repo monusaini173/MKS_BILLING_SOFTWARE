@@ -1,0 +1,407 @@
+<div class="simple-login-wrapper">
+  <div class="simple-login-card">
+    
+    <!-- BRAND HEADER -->
+    <div class="brand-head">
+      <img src="assets/images/mks_billing_logo.png" alt="MKS Logo" class="brand-head-logo" />
+      <h1 class="brand-head-title">MKS Billing</h1>
+      <div class="brand-head-tag">MKS IT Solution</div>
+    </div>
+
+    <!-- 1, 2, 3 STEPPER (WITH RIGHT SYMBOL ✅ ON COMPLETED STEPS) -->
+    <div class="steps-indicator">
+      <!-- Step 1 Indicator -->
+      <div class="step-badge" [class.active]="currentStep() === 'CREDENTIALS'" [class.completed]="currentStep() === 'PIN' || currentStep() === 'OTP'">
+        <span class="step-num-icon">
+          @if (currentStep() === 'PIN' || currentStep() === 'OTP') {
+            <i class="fa-solid fa-check"></i>
+          } @else {
+            1
+          }
+        </span>
+        <span>Password</span>
+      </div>
+
+      <!-- Step 2 Indicator -->
+      <div class="step-badge" [class.active]="currentStep() === 'PIN'" [class.completed]="currentStep() === 'OTP'">
+        <span class="step-num-icon">
+          @if (currentStep() === 'OTP') {
+            <i class="fa-solid fa-check"></i>
+          } @else {
+            2
+          }
+        </span>
+        <span>PIN Code</span>
+      </div>
+
+      <!-- Step 3 Indicator -->
+      <div class="step-badge" [class.active]="currentStep() === 'OTP'">
+        <span class="step-num-icon">3</span>
+        <span>SMS OTP</span>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- STEP 1: PASSWORD (EMAIL / MOBILE & PASSWORD)             -->
+    <!-- ======================================================== -->
+    @if (currentStep() === 'CREDENTIALS') {
+      <div>
+        <h2 class="form-title-text">Sign In</h2>
+        <p class="form-subtitle-text">कृपया अपना ईमेल या मोबाइल नंबर और पासवर्ड दर्ज करें</p>
+
+        <!-- Lockout Notice -->
+        @if (isLockedOut()) {
+          <div style="background: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; padding: 10px; margin-bottom: 16px; text-align: center; font-size: 13px; color: #b91c1c; font-weight: 700;">
+            ⚠️ सुरक्षा लॉक: कृपया {{ lockoutRemainingSecs() }} सेकंड प्रतीक्षा करें
+          </div>
+        }
+
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmitStep1()">
+          <!-- Email / Mobile -->
+          <div class="form-group-clean">
+            <label class="form-label-clean" for="email">
+              Email or Mobile Number <span class="req">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="email" 
+              formControlName="email"
+              class="clean-input" 
+              [class.is-invalid]="loginForm.get('email')?.touched && loginForm.get('email')?.invalid"
+              placeholder="e.g. 9876500001 or admin@shop.com"
+              autocomplete="username"
+              [disabled]="isLockedOut()"
+            />
+            @if (loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
+              <div class="error-text">Email या Mobile Number आवश्यक है।</div>
+            }
+          </div>
+
+          <!-- Password -->
+          <div class="form-group-clean">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label-clean" for="password" style="margin-bottom: 0;">
+                Password <span class="req">*</span>
+              </label>
+              <button 
+                type="button" 
+                (click)="openMasterResetModal()" 
+                class="forgot-btn"
+              >
+                Reset Password?
+              </button>
+            </div>
+
+            <div class="input-wrap">
+              <input 
+                [type]="showPassword ? 'text' : 'password'" 
+                id="password" 
+                formControlName="password"
+                class="clean-input" 
+                [class.is-invalid]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
+                placeholder="••••••••"
+                autocomplete="current-password"
+                [disabled]="isLockedOut()"
+              />
+              <button 
+                type="button" 
+                class="eye-btn" 
+                (click)="togglePasswordVisibility()"
+                [disabled]="isLockedOut()"
+                tabindex="-1"
+              >
+                <i class="fa-solid" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+              </button>
+            </div>
+            @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
+              <div class="error-text">पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।</div>
+            }
+          </div>
+
+          <!-- Submit Step 1 Button -->
+          <button 
+            type="submit" 
+            class="btn-clean-primary" 
+            [disabled]="loading || isLockedOut()"
+            style="margin-top: 20px;"
+          >
+            @if (loading) {
+              <span class="btn-spinner"></span>
+              <span>सत्यापित किया जा रहा है...</span>
+            } @else {
+              <span>अगला चरण (Step 2 ➔)</span>
+            }
+          </button>
+        </form>
+      </div>
+    }
+
+    <!-- ======================================================== -->
+    <!-- STEP 2: SECURITY PIN CODE                                -->
+    <!-- ======================================================== -->
+    @if (currentStep() === 'PIN') {
+      <div>
+        <h2 class="form-title-text">Security PIN</h2>
+        <p class="form-subtitle-text">
+          यूज़र: <strong style="color: #0f172a;">{{ userName() }}</strong>
+        </p>
+
+        <form (ngSubmit)="onSubmitStep2Pin()">
+          <div class="form-group-clean">
+            <label class="form-label-clean" style="text-align: center; margin-bottom: 8px;">
+              अपना 4-6 अंकों का सुरक्षा पिन दर्ज करें:
+            </label>
+            <div class="input-wrap">
+              <input 
+                [type]="showPin() ? 'text' : 'password'" 
+                maxlength="6" 
+                [(ngModel)]="pinCode" 
+                name="pinCode"
+                class="clean-input code-input" 
+                placeholder="• • • •"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autofocus
+              />
+              <button 
+                type="button" 
+                class="eye-btn" 
+                (click)="togglePinVisibility()"
+                tabindex="-1"
+              >
+                <i class="fa-solid" [ngClass]="showPin() ? 'fa-eye-slash' : 'fa-eye'"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit Step 2 -->
+          <button 
+            type="submit" 
+            class="btn-clean-primary" 
+            [disabled]="pinLoading || pinCode().length < 4"
+            style="margin-top: 14px;"
+          >
+            @if (pinLoading) {
+              <span class="btn-spinner"></span>
+              <span>PIN सत्यापित हो रहा है...</span>
+            } @else {
+              <span>Verify PIN & Next (Step 3 ➔)</span>
+            }
+          </button>
+
+          <!-- Back Button -->
+          <button 
+            type="button" 
+            (click)="backToStep('CREDENTIALS')" 
+            class="btn-clean-secondary"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>पीछे जाएं (Back to Step 1)</span>
+          </button>
+        </form>
+      </div>
+    }
+
+    <!-- ======================================================== -->
+    <!-- STEP 3: MOBILE SMS OTP                                    -->
+    <!-- ======================================================== -->
+    @if (currentStep() === 'OTP') {
+      <div>
+        <h2 class="form-title-text">SMS OTP</h2>
+        <p class="form-subtitle-text">पंजीकृत मोबाइल नंबर पर 6-अंकों का OTP भेजा गया है</p>
+
+        <!-- Mobile Info Card -->
+        <div class="sms-banner">
+          <div>
+            <div style="font-size: 11px; color: #64748b; font-weight: 700;">Mobile:</div>
+            <div class="sms-banner-phone">+91 {{ maskedMobile() }}</div>
+          </div>
+          <button 
+            type="button" 
+            (click)="onSendOtp()" 
+            [disabled]="resendLoading || resendCountdown() > 0"
+            style="background: #ffffff; border: 1px solid #cbd5e1; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; color: #334155;"
+          >
+            @if (resendLoading) { Sending... } @else { 🔄 Resend OTP }
+          </button>
+        </div>
+
+        <form (ngSubmit)="onVerifyStep3Otp()">
+          <div class="form-group-clean">
+            <label class="form-label-clean" style="text-align: center; margin-bottom: 8px;">
+              6-अंकों का OTP कोड दर्ज करें:
+            </label>
+            <input 
+              type="text" 
+              maxlength="6" 
+              [(ngModel)]="otpCode" 
+              name="otpCode"
+              class="clean-input code-input otp-input" 
+              placeholder="• • • • • •"
+              autocomplete="one-time-code"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              autofocus
+            />
+          </div>
+
+          <!-- Submit Step 3 -->
+          <button 
+            type="submit" 
+            class="btn-clean-primary btn-clean-green" 
+            [disabled]="otpLoading || otpCode().length < 6"
+            style="margin-top: 14px;"
+          >
+            @if (otpLoading) {
+              <span class="btn-spinner"></span>
+              <span>OTP सत्यापित हो रहा है...</span>
+            } @else {
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Verify OTP & Open Dashboard</span>
+            }
+          </button>
+
+          <!-- Back to PIN -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 12px;">
+            <button 
+              type="button" 
+              (click)="backToStep('PIN')" 
+              style="background: none; border: none; color: #64748b; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+            >
+              <i class="fa-solid fa-arrow-left"></i> Back to PIN
+            </button>
+
+            @if (resendCountdown() > 0) {
+              <span style="color: #64748b; font-weight: 600;">
+                Resend in {{ resendCountdown() }}s
+              </span>
+            }
+          </div>
+        </form>
+      </div>
+    }
+
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 🔑 MASTER CODE PASSWORD RESET MODAL                          -->
+<!-- ============================================================ -->
+@if (showMasterResetModal()) {
+  <div class="modal-backdrop">
+    <div class="modal-box">
+      
+      <!-- Modal Header -->
+      <div class="modal-header-clean">
+        <h3>Reset Password</h3>
+        <button 
+          type="button" 
+          (click)="closeMasterResetModal()" 
+          class="modal-close-btn"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <form (ngSubmit)="onSubmitMasterReset()" style="padding: 20px;">
+        
+        <!-- Target Email / Mobile -->
+        <div class="form-group-clean">
+          <label class="form-label-clean">
+            Email or Mobile Number <span class="req">*</span>
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="resetIdentifier" 
+            name="resetIdentifier"
+            class="clean-input" 
+            placeholder="e.g. 9876500001 or admin@shop.com"
+            required
+          />
+        </div>
+
+        <!-- Master Code -->
+        <div class="form-group-clean">
+          <label class="form-label-clean">
+            Master Code <span class="req">*</span>
+          </label>
+          <input 
+            type="text" 
+            [(ngModel)]="resetMasterCode" 
+            name="resetMasterCode"
+            class="clean-input" 
+            placeholder="Enter Master Code"
+            required
+          />
+        </div>
+
+        <!-- New Password -->
+        <div class="form-group-clean">
+          <label class="form-label-clean">
+            New Password <span class="req">*</span>
+          </label>
+          <div class="input-wrap">
+            <input 
+              [type]="showResetPassword() ? 'text' : 'password'" 
+              [(ngModel)]="resetNewPassword" 
+              name="resetNewPassword"
+              class="clean-input" 
+              placeholder="Minimum 6 characters"
+              required
+              minlength="6"
+            />
+            <button 
+              type="button" 
+              class="eye-btn" 
+              (click)="toggleResetPasswordVisibility()"
+              tabindex="-1"
+            >
+              <i class="fa-solid" [ngClass]="showResetPassword() ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group-clean" style="margin-bottom: 20px;">
+          <label class="form-label-clean">
+            Confirm New Password <span class="req">*</span>
+          </label>
+          <input 
+            [type]="showResetPassword() ? 'text' : 'password'" 
+            [(ngModel)]="resetConfirmPassword" 
+            name="resetConfirmPassword"
+            class="clean-input" 
+            placeholder="Re-enter new password"
+            required
+          />
+        </div>
+
+        <!-- Buttons -->
+        <div style="display: flex; gap: 10px;">
+          <button 
+            type="button" 
+            (click)="closeMasterResetModal()" 
+            class="btn-clean-secondary" 
+            style="margin-top: 0; flex: 1;"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="btn-clean-primary" 
+            [disabled]="resetLoading() || !resetIdentifier() || !resetMasterCode() || !resetNewPassword()"
+            style="flex: 1.4;"
+          >
+            @if (resetLoading()) {
+              <span class="btn-spinner"></span>
+              <span>रीसेट हो रहा है...</span>
+            } @else {
+              <span>Reset Password</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

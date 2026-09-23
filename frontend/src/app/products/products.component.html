@@ -1,0 +1,1558 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📦 Product Catalog & Stock</h1>
+    <p class="page-subtitle">Manage items, pricing, attributes, and stock for your {{ shop()?.shopType }} shop.</p>
+  </div>
+  <div class="page-actions flex gap-2">
+    <button class="btn btn-sm" (click)="openBroadcastModal()" style="background: #25D366; color: white; border: none; font-weight: 700; font-size: 13px; padding: 7px 16px; border-radius: 6px; box-shadow: 0 2px 8px rgba(37,211,102,0.35);" title="ग्राहकों को नए माल का फोटो व WhatsApp ऑफर भेजें">
+      <i class="fa-brands fa-whatsapp" style="font-size: 16px; margin-right: 4px;"></i> 📢 नया स्टॉक WhatsApp प्रचार (Broadcast)
+    </button>
+    <button class="btn btn-primary" (click)="openAddModal()">
+      <i class="fa-solid fa-plus"></i> Add Product
+    </button>
+  </div>
+</div>
+
+<!-- Products Table Card -->
+<div class="card" style="border-radius: 12px; overflow: hidden;">
+  <div class="card-header flex justify-between items-center flex-wrap gap-2" style="background: #f8fafc; padding: 12px 18px; border-bottom: 1px solid #e2e8f0;">
+    <!-- Stock Filter Tabs -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <button 
+        type="button" 
+        class="btn btn-sm" 
+        (click)="stockFilter.set('ALL')"
+        [style.background]="stockFilter() === 'ALL' ? '#0f172a' : '#f1f5f9'"
+        [style.color]="stockFilter() === 'ALL' ? 'white' : '#475569'"
+        style="border-radius: 20px; font-weight: 700; font-size: 12px; border: 1px solid #cbd5e1;"
+      >
+        📦 सभी सामान ({{ products().length }})
+      </button>
+
+      <button 
+        type="button" 
+        class="btn btn-sm" 
+        (click)="stockFilter.set('LOW_STOCK')"
+        [style.background]="stockFilter() === 'LOW_STOCK' ? '#f59e0b' : '#fffbeb'"
+        [style.color]="stockFilter() === 'LOW_STOCK' ? 'white' : '#b45309'"
+        style="border-radius: 20px; font-weight: 700; font-size: 12px; border: 1px solid #fde68a;"
+      >
+        ⚠️ कम स्टॉक वाले ({{ lowStockCount() }})
+      </button>
+
+      <button 
+        type="button" 
+        class="btn btn-sm" 
+        (click)="stockFilter.set('OUT_OF_STOCK')"
+        [style.background]="stockFilter() === 'OUT_OF_STOCK' ? '#dc2626' : '#fff1f2'"
+        [style.color]="stockFilter() === 'OUT_OF_STOCK' ? 'white' : '#b91c1c'"
+        style="border-radius: 20px; font-weight: 700; font-size: 12px; border: 1px solid #fecaca;"
+      >
+        🚫 स्टॉक खत्म ({{ outOfStockCount() }})
+      </button>
+    </div>
+
+    <!-- Search Input & Quick Links -->
+    <div class="flex gap-2 items-center flex-wrap">
+      <!-- Search Box -->
+      <div style="position: relative; min-width: 240px;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 12px;"></i>
+        <input 
+          type="text" 
+          class="form-control"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="🔍 नाम, बारकोड, साल्ट, SKU से खोजें..."
+          style="padding: 6px 12px 6px 30px; font-size: 12px; font-weight: 600; border-radius: 20px; border: 1px solid #cbd5e1; background: white;"
+        />
+      </div>
+
+      <a routerLink="/inventory" class="btn btn-outline btn-sm" style="font-weight: 700; font-size: 12px; border-radius: 6px;">
+        <i class="fa-solid fa-boxes-stacked text-primary"></i> ⚡ इन्वेंटरी व स्टॉक कंट्रोल
+      </a>
+      <button class="btn btn-sm" (click)="openBroadcastModal()" style="background: #e8f5e9; color: #065f46; border: 1px solid #a7f3d0; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 6px;">
+        <i class="fa-brands fa-whatsapp text-success"></i> WhatsApp पोस्टर
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 200px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (filteredProducts().length === 0) {
+      <div class="empty-state" style="padding: 40px; text-align: center;">
+        <i class="fa-solid fa-box-open" style="font-size: 44px; color: #cbd5e1; margin-bottom: 10px;"></i>
+        <h3>{{ stockFilter() === 'ALL' ? 'कोई प्रोडक्ट नहीं मिला' : 'इस फिल्टर में कोई प्रोडक्ट नहीं है' }}</h3>
+        <p class="text-muted">{{ stockFilter() === 'LOW_STOCK' ? 'सभी प्रोडक्ट्स का स्टॉक पहले से सुरक्षित और फुल है।' : 'कैटलॉग में नया सामान जोड़ने के लिए ऊपर बटन दबाएं।' }}</p>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Product Details</th>
+              <th>Category</th>
+              <th>Identifiers</th>
+              <!-- Type Specific headers -->
+              @if (shop()?.shopType === 'GARMENTS') {
+                <th>Size / Color</th>
+                <th>Fabric</th>
+              } @else if (shop()?.shopType === 'SHOES') {
+                <th>Size / Color</th>
+                <th>Model</th>
+              } @else if (shop()?.shopType === 'KIRANA') {
+                <th>MRP</th>
+                <th>Expiry</th>
+              } @else if (shop()?.shopType === 'MOBILE') {
+                <th>RAM / Storage</th>
+                <th>IMEI</th>
+              } @else if (shop()?.shopType === 'MEDICAL') {
+                <th>Generic Name</th>
+                <th>Expiry / Rx</th>
+              } @else if (shop()?.shopType === 'COSMETICS') {
+                <th>Shade</th>
+                <th>Expiry</th>
+              } @else if (shop()?.shopType === 'HARDWARE') {
+                <th>Material</th>
+                <th>Size</th>
+              }
+
+              <th>Stock</th>
+              <th>Purchase Price</th>
+              <th>Selling Price</th>
+              <th>GST %</th>
+              <th class="no-print" style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (prod of filteredProducts(); track prod._id) {
+              <tr [style.background]="prod.quantity <= 0 ? '#fff1f2' : prod.quantity <= prod.minStockLevel ? '#fffbeb' : 'transparent'">
+                <td>
+                  <span class="font-semibold" style="display: block;">{{ prod.name }}</span>
+                  <span class="text-muted" style="font-size: 11px;">{{ prod.brand || 'No Brand' }}</span>
+                </td>
+                <td>{{ prod.category || 'Uncategorized' }}</td>
+                <td>
+                  <span style="display: block; font-size: 12px;">SKU: {{ prod.sku || 'N/A' }}</span>
+                  <span style="display: block; font-size: 12px; font-family: monospace;">BC: {{ prod.barcode || 'N/A' }}</span>
+                </td>
+
+                <!-- Type Specific data columns -->
+                @if (shop()?.shopType === 'GARMENTS') {
+                  <td>{{ prod.size || 'N/A' }} / {{ prod.color || 'N/A' }}</td>
+                  <td>{{ prod.fabric || 'N/A' }}</td>
+                } @else if (shop()?.shopType === 'SHOES') {
+                  <td>{{ prod.size || 'N/A' }} / {{ prod.color || 'N/A' }}</td>
+                  <td>{{ prod.model || 'N/A' }}</td>
+                } @else if (shop()?.shopType === 'KIRANA') {
+                  <td>₹{{ prod.mrp | number:'1.2-2' }}</td>
+                  <td>{{ prod.expiryDate | date:'dd-MM-yyyy' }}</td>
+                } @else if (shop()?.shopType === 'MOBILE') {
+                  <td>{{ prod.ram || 'N/A' }} / {{ prod.storage || 'N/A' }}</td>
+                  <td>{{ prod.imeiNumber || 'N/A' }}</td>
+                } @else if (shop()?.shopType === 'MEDICAL') {
+                  <td>{{ prod.genericName || 'N/A' }}</td>
+                  <td>
+                    <span style="display: block;">{{ prod.expiryDate | date:'dd-MM-yyyy' }}</span>
+                    @if (prod.prescriptionRequired) {
+                      <span class="badge badge-danger font-medium" style="font-size: 9px; padding: 1px 4px;">Rx Req</span>
+                    }
+                  </td>
+                } @else if (shop()?.shopType === 'COSMETICS') {
+                  <td>{{ prod.shade || 'N/A' }}</td>
+                  <td>{{ prod.expiryDate | date:'dd-MM-yyyy' }}</td>
+                } @else if (shop()?.shopType === 'HARDWARE') {
+                  <td>{{ prod.material || 'N/A' }}</td>
+                  <td>{{ prod.size || 'N/A' }}</td>
+                }
+
+                <td>
+                  <span 
+                    style="font-weight: 800; font-size: 13px; padding: 2px 8px; border-radius: 4px; display: inline-block;"
+                    [style.background]="prod.quantity <= 0 ? '#fee2e2' : prod.quantity <= prod.minStockLevel ? '#fef3c7' : 'transparent'"
+                    [style.color]="prod.quantity <= 0 ? '#b91c1c' : prod.quantity <= prod.minStockLevel ? '#b45309' : '#0f172a'"
+                  >
+                    {{ prod.quantity }} {{ prod.unit || 'PCS' }}
+                  </span>
+                  @if (prod.quantity <= 0) {
+                    <span style="display: block; font-size: 10px; color: #dc2626; font-weight: 700;">🚫 Out of Stock</span>
+                  } @else if (prod.quantity <= prod.minStockLevel) {
+                    <span style="display: block; font-size: 10px; color: #d97706; font-weight: 700;">⚠️ Low Stock (Min: {{ prod.minStockLevel }})</span>
+                  }
+                </td>
+                <td>₹{{ prod.purchasePrice | number:'1.2-2' }}</td>
+                <td class="font-bold text-primary">₹{{ prod.sellingPrice | number:'1.2-2' }}</td>
+                <td>{{ prod.gstPercent }}%</td>
+                <td class="table-actions no-print" style="text-align: right;">
+                  <div class="flex gap-1 items-center justify-end" style="justify-content: flex-end;">
+                    <!-- Quick +50 Restock Button -->
+                    <button 
+                      type="button" 
+                      class="btn btn-sm" 
+                      (click)="quickAddStock(prod, 50)"
+                      style="background: #10b981; color: white; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 4px; border: none;"
+                      title="तुरंत +50 स्टॉक जोड़ें"
+                    >
+                      <i class="fa-solid fa-plus"></i> 50
+                    </button>
+
+                    <!-- Barcode & Google Lens QR Button -->
+                    <button 
+                      type="button" 
+                      class="btn btn-sm" 
+                      (click)="openBarcodeModal(prod)" 
+                      style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;" 
+                      title="बारकोड व Google Lens QR स्टिकर प्रिंट करें"
+                    >
+                      <i class="fa-solid fa-barcode"></i> QR
+                    </button>
+
+                    <button class="btn btn-sm" (click)="openBroadcastModal(prod)" style="background: #e8f5e9; color: #065f46; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px;" title="इस प्रोडक्ट का WhatsApp प्रचार भेजें">
+                      <i class="fa-brands fa-whatsapp text-success"></i>
+                    </button>
+                    <button class="btn btn-outline btn-sm btn-icon" (click)="openEditModal(prod)" title="एडिट करें">
+                      <i class="fa-solid fa-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline btn-sm btn-icon text-danger" (click)="deleteProduct(prod._id)" title="डिलीट करें">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Modal Form -->
+@if (showModal()) {
+  <div class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ editMode() ? 'Edit Product' : 'Add Product' }}</h3>
+        <button class="modal-close" (click)="showModal.set(false)">&times;</button>
+      </div>
+
+      <form [formGroup]="productForm" (ngSubmit)="onSubmit()" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
+        <div class="modal-body" style="padding: 20px 24px; overflow-y: auto; max-height: calc(85vh - 140px); flex: 1;">
+          <!-- Common Fields Row 1 -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Product/Item Name <span class="required">*</span></label>
+              <input type="text" formControlName="name" class="form-control" placeholder="Enter product name">
+              @if (productForm.get('name')?.touched && productForm.get('name')?.invalid) {
+                <div class="form-error">Name is required (min 2 chars).</div>
+              }
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Brand</label>
+              <input type="text" formControlName="brand" class="form-control" placeholder="Brand name">
+            </div>
+          </div>
+
+          <!-- Common Fields Row 2 -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <input type="text" formControlName="category" class="form-control" placeholder="Category name">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Unit of Measure</label>
+              <input type="text" formControlName="unit" class="form-control" placeholder="e.g. PCS, KG, BOX">
+            </div>
+          </div>
+
+          <!-- Common Fields Row 3 -->
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">SKU</label>
+              <input type="text" formControlName="sku" class="form-control" placeholder="SKU Code">
+            </div>
+
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="form-label" style="margin: 0;">Barcode / EAN</label>
+                <button 
+                  type="button" 
+                  (click)="autoGenerateBarcode()" 
+                  style="background: none; border: none; color: var(--primary); font-size: 11px; font-weight: 700; cursor: pointer; padding: 0;"
+                  title="यूनिक 12-अंकों का बारकोड जनरेट करें"
+                >
+                  ⚡ ऑटो कोड बनाएं
+                </button>
+              </div>
+              <input type="text" formControlName="barcode" class="form-control" placeholder="Barcode for quick scan / Google Lens">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">HSN Code</label>
+              <input type="text" formControlName="hsnCode" class="form-control" placeholder="HSN Code">
+            </div>
+          </div>
+
+          <!-- Core pricing and inventory metrics -->
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">Purchase Price (₹) <span class="required">*</span></label>
+              <input type="number" formControlName="purchasePrice" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Selling Price (₹) <span class="required">*</span></label>
+              <input type="number" formControlName="sellingPrice" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">GST Percent (%) <span class="required">*</span></label>
+              <select formControlName="gstPercent" class="form-control">
+                <option [value]="0">0% (GST Free)</option>
+                <option [value]="5">5%</option>
+                <option [value]="12">12%</option>
+                <option [value]="18">18%</option>
+                <option [value]="28">28%</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Stock level row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Opening Stock Quantity <span class="required">*</span></label>
+              <input type="number" formControlName="quantity" class="form-control" [readonly]="editMode()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Min Stock Level (Alerts) <span class="required">*</span></label>
+              <input type="number" formControlName="minStockLevel" class="form-control">
+            </div>
+          </div>
+
+          <div class="divider"></div>
+          <h4 class="mb-3" style="font-size: 13.5px; color: var(--primary);">Shop Type Specifications ({{ shop()?.shopType }})</h4>
+
+          <!-- DYNAMIC SPECIFIC ATTRIBUTES BASED ON SHOP TYPE -->
+
+          <!-- Garments attributes -->
+          @if (shop()?.shopType === 'GARMENTS') {
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">Size</label>
+                <input type="text" formControlName="size" class="form-control" placeholder="e.g. M, L, XL, 38, 40">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Color</label>
+                <input type="text" formControlName="color" class="form-control" placeholder="Color name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fabric Material</label>
+                <input type="text" formControlName="fabric" class="form-control" placeholder="e.g. Cotton, Silk">
+              </div>
+            </div>
+          }
+
+          <!-- Shoes attributes -->
+          @if (shop()?.shopType === 'SHOES') {
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">Size</label>
+                <input type="text" formControlName="size" class="form-control" placeholder="e.g. UK-7, UK-8">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Color</label>
+                <input type="text" formControlName="color" class="form-control" placeholder="Color">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Model Name</label>
+                <input type="text" formControlName="model" class="form-control" placeholder="Model designation">
+              </div>
+            </div>
+          }
+
+          <!-- Kirana / Grocery attributes -->
+          @if (shop()?.shopType === 'KIRANA') {
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">MRP (₹)</label>
+                <input type="number" formControlName="mrp" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Expiry Date</label>
+                <input type="date" formControlName="expiryDate" class="form-control">
+              </div>
+            </div>
+          }
+
+          <!-- Mobile Shop attributes -->
+          @if (shop()?.shopType === 'MOBILE') {
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">RAM</label>
+                <input type="text" formControlName="ram" class="form-control" placeholder="e.g. 8GB">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Storage Capacity</label>
+                <input type="text" formControlName="storage" class="form-control" placeholder="e.g. 128GB">
+              </div>
+              <div class="form-group">
+                <label class="form-label">IMEI / Serial Number</label>
+                <input type="text" formControlName="imeiNumber" class="form-control" placeholder="Device identifier">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Warranty Term</label>
+                <input type="text" formControlName="warranty" class="form-control" placeholder="e.g. 1 Year Brand Warranty">
+              </div>
+            </div>
+          }
+
+          <!-- Medical / Pharmacy attributes -->
+          @if (shop()?.shopType === 'MEDICAL') {
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">🧪 साल्ट / जेनेरिक नाम (Generic Formula)</label>
+                <input type="text" formControlName="genericName" class="form-control" placeholder="e.g. Paracetamol 500mg">
+              </div>
+              <div class="form-group">
+                <label class="form-label">🏭 निर्माता / कंपनी (Company / Lab)</label>
+                <input type="text" formControlName="company" class="form-control" placeholder="e.g. Cipla, Sun Pharma, Mankind">
+              </div>
+              <div class="form-group">
+                <label class="form-label">💊 दवा का प्रकार (Medicine Type)</label>
+                <select formControlName="medicineType" class="form-control">
+                  <option value="Tablet">Tablet (टैबलेट)</option>
+                  <option value="Capsule">Capsule (कैप्सूल)</option>
+                  <option value="Syrup">Syrup / Suspension (सिरप)</option>
+                  <option value="Injection">Injection (इंजेक्शन)</option>
+                  <option value="Cream">Cream (क्रीम)</option>
+                  <option value="Ointment">Ointment (मरहम)</option>
+                  <option value="Drops">Drops (आई/इयर ड्रॉप्स)</option>
+                  <option value="Powder">Powder / ORS (पाउडर)</option>
+                  <option value="Inhaler">Inhaler / Rotacap (इन्हेलर)</option>
+                  <option value="Spray">Spray (स्प्रे)</option>
+                  <option value="Other">Other (अन्य)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">📦 पैकेजिंग यूनिट (Packaging)</label>
+                <select formControlName="packaging" class="form-control">
+                  <option value="Strip">Strip (पत्ता / स्ट्रिप)</option>
+                  <option value="Box">Box (डिब्बा)</option>
+                  <option value="Bottle">Bottle (शीशी / बोतल)</option>
+                  <option value="Tube">Tube (ट्यूब)</option>
+                  <option value="Piece">Piece (पीस)</option>
+                  <option value="Pack">Pack (पैक)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">💊 गोलियां प्रति स्ट्रिप (Tablets / Strip)</label>
+                <input type="number" formControlName="tabletsPerStrip" class="form-control" placeholder="10">
+              </div>
+              <div class="form-group">
+                <label class="form-label">⚖️ ड्रग शेड्यूल (Schedule / Prescription)</label>
+                <select formControlName="scheduleType" class="form-control">
+                  <option value="NONE">General OTC (बिना पर्चे की दवा)</option>
+                  <option value="SCHEDULE_H">Schedule H (पर्चे पर मिलने वाली दवा)</option>
+                  <option value="SCHEDULE_H1">Schedule H1 (प्रतिबंधित एंटीबायोटिक)</option>
+                  <option value="SCHEDULE_X">Schedule X (नारकोटिक दवा)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">🏷️ बैच नंबर (Batch No.)</label>
+                <input type="text" formControlName="batchNumber" class="form-control" placeholder="e.g. B24089">
+              </div>
+              <div class="form-group">
+                <label class="form-label">📅 एक्सपायरी डेट (Expiry Date)</label>
+                <input type="date" formControlName="expiryDate" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">MRP (₹)</label>
+                <input type="number" formControlName="mrp" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">🗄️ रैक नंबर (Rack)</label>
+                <input type="text" formControlName="rack" class="form-control" placeholder="e.g. Rack A">
+              </div>
+              <div class="form-group">
+                <label class="form-label">🗄️ शेल्फ नंबर (Shelf)</label>
+                <input type="text" formControlName="shelf" class="form-control" placeholder="e.g. Shelf 2">
+              </div>
+              <div class="form-group">
+                <label class="form-label">📍 रैक लोकेशन (Rack Location)</label>
+                <input type="text" formControlName="rackLocation" class="form-control" placeholder="e.g. Rack A - Shelf 2">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group" style="padding-top: 10px;">
+                <label class="flex items-center gap-2" style="cursor: pointer; font-weight: 700; color: #0d9488;">
+                  <input type="checkbox" formControlName="prescriptionRequired" style="width: 18px; height: 18px; accent-color: #0d9488;">
+                  ℞ केवल डॉक्टर के पर्चे (Prescription Required) पर ही बेचें
+                </label>
+              </div>
+            </div>
+          }
+
+          <!-- Cosmetics attributes -->
+          @if (shop()?.shopType === 'COSMETICS') {
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">Shade/Tone Code</label>
+                <input type="text" formControlName="shade" class="form-control" placeholder="Shade number or name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Size/Volume</label>
+                <input type="text" formControlName="size" class="form-control" placeholder="e.g. 50ml, 100g">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Expiry Date</label>
+                <input type="date" formControlName="expiryDate" class="form-control">
+              </div>
+            </div>
+          }
+
+          <!-- Hardware attributes -->
+          @if (shop()?.shopType === 'HARDWARE') {
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">Material Component</label>
+                <input type="text" formControlName="material" class="form-control" placeholder="e.g. Brass, Steel, Plastic">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Dimension/Size</label>
+                <input type="text" formControlName="size" class="form-control" placeholder="e.g. 1/2 inch, 10mm">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Supplied By</label>
+                <input type="text" formControlName="supplier" class="form-control" placeholder="Primary supplier">
+              </div>
+            </div>
+          }
+
+        </div>
+
+        <div class="modal-footer" style="background: var(--gray-50); padding: 14px 24px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
+          <button type="button" class="btn btn-secondary" (click)="showModal.set(false)">
+            <i class="fa-solid fa-xmark"></i> Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting()" style="min-width: 140px; font-weight: 600;">
+            @if (submitting()) {
+              <div class="spinner spinner-sm"></div>
+              <span>Saving...</span>
+            } @else {
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>{{ editMode() ? 'Update Product' : 'Save Product' }}</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ============================================================
+     Modal: New Stock WhatsApp Broadcast & Customer Marketing
+     ============================================================ -->
+@if (showBroadcastModal()) {
+  <div class="modal-overlay" (click)="closeBroadcastModal()">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()" style="max-width: 860px; max-height: 90vh; display: flex; flex-direction: column;">
+      
+      <!-- Modal Header with Live WhatsApp Bot Status & Auto-Refresh -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #128C7E, #25D366); color: white; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;">
+        <div class="flex items-center gap-2">
+          <div style="background: rgba(255,255,255,0.2); width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+            <i class="fa-brands fa-whatsapp"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="modal-title" style="color: white; font-size: 16.5px; margin-bottom: 0;">
+                📢 नया स्टॉक WhatsApp ब्रॉडकास्ट (New Stock Broadcast)
+              </h3>
+              @if (isWhatsAppBotReady()) {
+                <span class="badge" style="background: #14532d; color: #86efac; border: 1px solid #4ade80; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
+                  🟢 डायरेक्ट बॉट एक्टिव
+                </span>
+              } @else {
+                <span class="badge" style="background: rgba(0,0,0,0.25); color: #fef08a; border: 1px solid rgba(255,255,255,0.4); font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
+                  ⚠️ QR स्कैन आवश्यक
+                </span>
+              }
+            </div>
+            <p style="margin: 0; font-size: 11.5px; color: rgba(255,255,255,0.85);">
+              प्रोडक्ट की फोटो + मैसेज एक साथ (Media Message with Caption) भेजें।
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button 
+            type="button" 
+            (click)="checkWhatsAppBotStatus(true)" 
+            class="btn btn-sm" 
+            style="background: rgba(255,255,255,0.2); color: white; font-weight: 700; font-size: 11px; border-radius: 6px; padding: 4px 9px; border: 1px solid rgba(255,255,255,0.4); display: inline-flex; align-items: center; gap: 4px;"
+            title="WhatsApp कनेक्शन स्थिति रिफ्रेश करें"
+          >
+            <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="isCheckingWhatsApp()"></i> 🔄 रिफ्रेश
+          </button>
+
+          @if (!isWhatsAppBotReady()) {
+            <button 
+              type="button" 
+              (click)="openWhatsAppQrWindow()" 
+              class="btn btn-sm" 
+              style="background: #ffffff; color: #065f46; font-weight: 800; font-size: 11px; border-radius: 6px; padding: 4px 10px; border: none; box-shadow: 0 2px 6px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 4px;"
+              title="1-क्लिक में ऑटोमेटिक फोटो+मैसेज भेजने के लिए WhatsApp QR स्कैन करें"
+            >
+              <i class="fa-solid fa-qrcode"></i> 📲 QR स्कैन करें
+            </button>
+          }
+          <button class="modal-close" (click)="closeBroadcastModal()" style="color: white; font-size: 22px; margin: 0; line-height: 1;">&times;</button>
+        </div>
+      </div>
+
+      <!-- Sub Tab Bar: Instagram Poster Builder vs WhatsApp Text Broadcast -->
+      <div style="display: flex; gap: 6px; padding: 10px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; align-items: center; justify-content: space-between;">
+        <div style="display: flex; gap: 6px;">
+          <button 
+            type="button" 
+            (click)="posterTabActive.set(true); renderFestivalPoster();"
+            [style.background]="posterTabActive() ? '#ea580c' : '#ffffff'"
+            [style.color]="posterTabActive() ? '#ffffff' : '#334155'"
+            [style.borderColor]="posterTabActive() ? '#c2410c' : '#cbd5e1'"
+            style="border: 1.5px solid; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;"
+          >
+            <span>🎨 1-Click Instagram Poster Builder (इंस्टाग्राम पोस्टर)</span>
+          </button>
+
+          <button 
+            type="button" 
+            (click)="posterTabActive.set(false)"
+            [style.background]="!posterTabActive() ? '#059669' : '#ffffff'"
+            [style.color]="!posterTabActive() ? '#ffffff' : '#334155'"
+            [style.borderColor]="!posterTabActive() ? '#047857' : '#cbd5e1'"
+            style="border: 1.5px solid; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;"
+          >
+            <span>💬 WhatsApp मैसेज व ब्रॉडकास्ट लिस्ट</span>
+          </button>
+        </div>
+
+        <span style="font-size: 11px; font-weight: 700; color: #78350f; background: #fef3c7; padding: 3px 10px; border-radius: 12px; border: 1px solid #fde68a;">
+          🪔 30+ हिंदू त्योहार
+        </span>
+      </div>
+
+      <!-- Modal Body Tab 1: 🎨 HD Instagram Festival Poster Generator -->
+      @if (posterTabActive()) {
+        <div class="modal-body" style="padding: 16px 20px; overflow-y: auto;">
+          <div class="responsive-split" style="gap: 16px;">
+            
+            <!-- LEFT COLUMN: Festival & Poster Customization Controls -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              
+              <!-- 🪔 30+ Festival Dropdown Selector -->
+              <div class="form-group mb-3" style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 12px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <label style="font-weight: 800; font-size: 12.5px; color: #92400e; display: flex; align-items: center; gap: 5px; margin: 0;">
+                    <span>🪔</span> <span>त्योहार चुनें (30+ प्रमुख हिंदू पर्व):</span>
+                  </label>
+                  <span style="font-size: 10.5px; font-weight: 800; color: #b45309; background: #fef3c7; padding: 2px 8px; border-radius: 10px;">
+                    {{ festivalsList.length }} त्योहार
+                  </span>
+                </div>
+
+                <select 
+                  class="form-control mb-2" 
+                  [ngModel]="selectedFestivalId()" 
+                  (ngModelChange)="onFestivalSelect($event)"
+                  style="font-size: 13px; font-weight: 800; border-color: #fcd34d; background: white; color: #78350f;"
+                >
+                  @for (fest of festivalsList; track fest.id) {
+                    <option [value]="fest.id">
+                      {{ fest.emoji }} {{ fest.name }}
+                    </option>
+                  }
+                </select>
+
+                <!-- Quick Festival Pills -->
+                <div style="font-size: 11px; font-weight: 700; color: #78350f; margin-bottom: 4px;">त्वरित चयन (Quick Select):</div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap; max-height: 120px; overflow-y: auto; padding: 2px;">
+                  @for (fest of festivalsList; track fest.id) {
+                    <button 
+                      type="button"
+                      (click)="onFestivalSelect(fest.id)"
+                      style="border: 1px solid; border-radius: 12px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: all 0.15s;"
+                      [style.background]="selectedFestivalId() === fest.id ? '#ea580c' : 'white'"
+                      [style.color]="selectedFestivalId() === fest.id ? 'white' : '#78350f'"
+                      [style.borderColor]="selectedFestivalId() === fest.id ? '#c2410c' : '#fde68a'"
+                    >
+                      <span>{{ fest.emoji }}</span>
+                      <span>{{ fest.name }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- 👑 Poster Design Theme Switcher -->
+              <div class="form-group mb-3">
+                <label style="font-weight: 800; font-size: 12px; color: #1e293b; display: block; margin-bottom: 6px;">
+                  👑 पोस्टर डिज़ाइन व थीम स्टाइल:
+                </label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                  <button 
+                    type="button" 
+                    (click)="setPosterStyle('FESTIVE_PURPLE_MANDALA')"
+                    [style.background]="posterStyle() === 'FESTIVE_PURPLE_MANDALA' ? 'linear-gradient(135deg, #5c0b62, #831843)' : '#f8fafc'"
+                    [style.color]="posterStyle() === 'FESTIVE_PURPLE_MANDALA' ? '#ffffff' : '#334155'"
+                    [style.borderColor]="posterStyle() === 'FESTIVE_PURPLE_MANDALA' ? '#fde047' : '#cbd5e1'"
+                    style="border: 1.5px solid; padding: 8px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: left; grid-column: span 2;"
+                  >
+                    🪔 पर्पल मंडाला व दीया आर्च (Classic Diwali)
+                  </button>
+
+                  <button 
+                    type="button" 
+                    (click)="setPosterStyle('ROYAL_GOLD')"
+                    [style.background]="posterStyle() === 'ROYAL_GOLD' ? 'linear-gradient(135deg, #701a75, #881337)' : '#f8fafc'"
+                    [style.color]="posterStyle() === 'ROYAL_GOLD' ? '#ffffff' : '#334155'"
+                    [style.borderColor]="posterStyle() === 'ROYAL_GOLD' ? '#f59e0b' : '#cbd5e1'"
+                    style="border: 1.5px solid; padding: 8px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: left;"
+                  >
+                    👑 राजशाही गोल्डन (Royal)
+                  </button>
+
+                  <button 
+                    type="button" 
+                    (click)="setPosterStyle('FESTIVE_VIBRANT')"
+                    [style.background]="posterStyle() === 'FESTIVE_VIBRANT' ? 'linear-gradient(135deg, #ea580c, #dc2626)' : '#f8fafc'"
+                    [style.color]="posterStyle() === 'FESTIVE_VIBRANT' ? '#ffffff' : '#334155'"
+                    [style.borderColor]="posterStyle() === 'FESTIVE_VIBRANT' ? '#ea580c' : '#cbd5e1'"
+                    style="border: 1.5px solid; padding: 8px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: left;"
+                  >
+                    🎨 त्योहारी ब्राइट (Vibrant)
+                  </button>
+
+                  <button 
+                    type="button" 
+                    (click)="setPosterStyle('DARK_LUXURY')"
+                    [style.background]="posterStyle() === 'DARK_LUXURY' ? '#0f172a' : '#f8fafc'"
+                    [style.color]="posterStyle() === 'DARK_LUXURY' ? '#fde68a' : '#334155'"
+                    [style.borderColor]="posterStyle() === 'DARK_LUXURY' ? '#f59e0b' : '#cbd5e1'"
+                    style="border: 1.5px solid; padding: 8px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: left;"
+                  >
+                    ✨ डार्क लक्जरी (Obsidian)
+                  </button>
+
+                  <button 
+                    type="button" 
+                    (click)="setPosterStyle('MODERN_GLASS')"
+                    [style.background]="posterStyle() === 'MODERN_GLASS' ? 'linear-gradient(135deg, #0284c7, #4f46e5)' : '#f8fafc'"
+                    [style.color]="posterStyle() === 'MODERN_GLASS' ? '#ffffff' : '#334155'"
+                    [style.borderColor]="posterStyle() === 'MODERN_GLASS' ? '#38bdf8' : '#cbd5e1'"
+                    style="border: 1.5px solid; padding: 8px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: left;"
+                  >
+                    💎 मॉडर्न ग्लास (Glass)
+                  </button>
+                </div>
+              </div>
+
+              <!-- 🎁 Product Offer Toggle -->
+              <div class="form-group mb-3" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: #166534; cursor: pointer; margin: 0;">
+                  <input 
+                    type="checkbox" 
+                    [ngModel]="includeProductOnPoster()" 
+                    (ngModelChange)="toggleIncludeProductOnPoster($event)"
+                    style="width: 16px; height: 16px; accent-color: #16a34a;"
+                  >
+                  <span>🎁 सेलेक्टेड प्रोडक्ट की फोटो व ऑफर रेट पोस्टर पर दिखाएं</span>
+                </label>
+              </div>
+
+              <!-- ✏️ Custom Wish & Offer Tagline Editors -->
+              <div class="form-group mb-2">
+                <label style="font-size: 11.5px; font-weight: 700; color: #334155; margin-bottom: 3px; display: block;">
+                  ✏️ कस्टम त्योहारी शुभकामना सन्देश (Custom Wish):
+                </label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  [ngModel]="posterCustomWish()" 
+                  (ngModelChange)="setPosterCustomWish($event)"
+                  [placeholder]="getFestivalById(selectedFestivalId()).greeting"
+                  style="font-size: 12px;"
+                >
+              </div>
+
+              <div class="form-group mb-2">
+                <label style="font-size: 11.5px; font-weight: 700; color: #334155; margin-bottom: 3px; display: block;">
+                  💥 पोस्टर पर डिस्काउंट / ऑफर टैगलाइन (Custom Offer):
+                </label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  [ngModel]="posterCustomOffer()" 
+                  (ngModelChange)="setPosterCustomOffer($event)"
+                  [placeholder]="getFestivalById(selectedFestivalId()).blessing"
+                  style="font-size: 12px;"
+                >
+              </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Live 1080x1080 Instagram Poster Canvas Preview -->
+            <div style="display: flex; flex-direction: column; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              
+              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+                <span style="font-weight: 800; font-size: 13px; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-brands fa-instagram" style="color: #e1306c; font-size: 16px;"></i> 
+                  <span>1080x1080 HD पोस्टर पूर्वावलोकन</span>
+                </span>
+                <span style="font-size: 10.5px; font-weight: 700; color: #059669; background: #ecfdf5; padding: 2px 8px; border-radius: 6px; border: 1px solid #a7f3d0;">
+                  ✅ इंस्टाग्राम व WhatsApp रेडी
+                </span>
+              </div>
+
+              <!-- Poster Image Container -->
+              <div style="position: relative; width: 100%; max-width: 350px; aspect-ratio: 1; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border: 2px solid #d97706; background: #000000;">
+                @if (posterCanvasDataUrl()) {
+                  <img [src]="posterCanvasDataUrl()" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+                } @else {
+                  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: white;">
+                    <span class="spinner spinner-lg mb-2"></span>
+                    <span>पोस्टर जनरेट हो रहा है...</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 350px; margin-top: 14px;">
+                
+                <button 
+                  type="button" 
+                  (click)="downloadPosterImage()"
+                  class="btn" 
+                  style="background: linear-gradient(135deg, #e1306c, #c13584); color: white; font-weight: 800; font-size: 13px; padding: 9px 16px; border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(225,48,108,0.3); display: flex; align-items: center; justify-content: center; gap: 8px;"
+                >
+                  <i class="fa-solid fa-download"></i> 📸 Instagram Poster डाउनलोड करें (HD PNG)
+                </button>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <button 
+                    type="button" 
+                    (click)="attachPosterToWhatsAppBroadcast()"
+                    class="btn btn-sm" 
+                    style="background: #25D366; color: white; font-weight: 800; font-size: 11.5px; padding: 7px 10px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; gap: 4px;"
+                  >
+                    <i class="fa-brands fa-whatsapp"></i> 📲 WhatsApp में लगाएं
+                  </button>
+
+                  <button 
+                    type="button" 
+                    (click)="copyPosterToClipboard()"
+                    class="btn btn-sm" 
+                    style="background: #f1f5f9; color: #1e293b; font-weight: 800; font-size: 11.5px; padding: 7px 10px; border-radius: 8px; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; gap: 4px;"
+                  >
+                    <i class="fa-solid fa-clipboard"></i> 📋 कॉपी करें (Clipboard)
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      }
+
+      <!-- Modal Body Tab 2: WhatsApp Text & Media Message Broadcast -->
+      @if (!posterTabActive()) {
+      <div class="modal-body" style="padding: 20px 24px; overflow-y: auto;">
+        <div class="responsive-split">
+          
+          <!-- LEFT COLUMN: Product & Image Controls -->
+          <div>
+            <!-- Select existing product dropdown -->
+            <div class="form-group mb-3">
+              <label class="form-label" style="font-weight: 700; font-size: 12.5px;">
+                📦 स्टॉक लिस्ट से प्रोडक्ट चुनें (Select Product):
+              </label>
+              <select class="form-control" (change)="onBroadcastProductSelect($event)">
+                <option value="">-- नया कस्टम प्रोडक्ट या फोटो जोड़ें --</option>
+                @for (p of products(); track p._id) {
+                  <option [value]="p._id" [selected]="p._id === broadcastProduct()._id">
+                    {{ p.name }} - ₹{{ p.sellingPrice }} (स्टॉक: {{ p.quantity }} {{ p.unit }})
+                  </option>
+                }
+              </select>
+            </div>
+
+            <!-- Product Photo Upload Box -->
+            <div class="form-group mb-3" style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 10px; padding: 14px; text-align: center;">
+              <label class="form-label" style="font-weight: 700; font-size: 13px; color: #1e293b; margin-bottom: 8px; display: block;">
+                📷 प्रोडक्ट की फोटो (Product Image Attachment):
+              </label>
+              
+              @if (broadcastImagePreview()) {
+                <div style="position: relative; display: inline-block; margin-bottom: 10px;">
+                  <img [src]="broadcastImagePreview()" style="max-height: 140px; max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); object-fit: contain; border: 2px solid #25D366;">
+                  <button 
+                    type="button" 
+                    (click)="broadcastImagePreview.set(''); updateBroadcastField('image', '')" 
+                    style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2);"
+                    title="फोटो हटाएं"
+                  >&times;</button>
+                </div>
+
+                <!-- Quick Photo Utility Buttons -->
+                <div class="flex gap-2 justify-center mb-2" style="flex-wrap: wrap;">
+                  <button 
+                    type="button" 
+                    class="btn btn-sm" 
+                    (click)="copyImageToClipboard()" 
+                    style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 700; font-size: 11.5px; border-radius: 6px; padding: 4px 10px;"
+                    title="फोटो क्लिपबोर्ड में कॉपी करें (Ctrl+V से WhatsApp में पेस्ट करें)"
+                  >
+                    <i class="fa-solid fa-copy"></i> 📋 फोटो कॉपी करें (Ctrl+V)
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="btn btn-sm" 
+                    (click)="downloadBroadcastImage()" 
+                    style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 600; font-size: 11.5px; border-radius: 6px; padding: 4px 10px;"
+                    title="फोटो डाउनलोड करें"
+                  >
+                    <i class="fa-solid fa-download"></i> 📥 डाउनलोड
+                  </button>
+                </div>
+              }
+
+              <div>
+                <input type="file" (change)="onImageSelected($event)" accept="image/*" id="stockImgInput" style="display: none;">
+                <label for="stockImgInput" class="btn btn-outline btn-sm" style="cursor: pointer; font-weight: 700; font-size: 12px; padding: 6px 14px;">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> {{ broadcastImagePreview() ? 'दूसरी फोटो बदलें' : 'कंप्यूटर / मोबाइल से फोटो चुनें' }}
+                </label>
+              </div>
+
+              <!-- Helpful Photo Delivery Tip -->
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 6px 10px; margin-top: 8px; font-size: 11px; color: #166534; text-align: left; line-height: 1.35;">
+                <i class="fa-solid fa-circle-check text-success"></i> 
+                <strong>फोटो भेजने का तरीका:</strong> जब आप नीचे <em>'भेजें'</em> दबाएंगे, तो फोटो अपने-आप क्लिपबोर्ड में कॉपी हो जाती है। WhatsApp चैट खुलते ही सीधे <strong>Ctrl + V (Paste)</strong> दबाएं!
+              </div>
+            </div>
+
+            <!-- Product Details Inputs -->
+            <div class="form-group mb-2">
+              <label class="form-label" style="font-size: 12px; font-weight: 600;">प्रोडक्ट का नाम:</label>
+              <input type="text" class="form-control" [ngModel]="broadcastProduct().name" (ngModelChange)="updateBroadcastField('name', $event)" placeholder="जैसे: Cotton Fancy Kurti / Sports Shoes">
+            </div>
+
+            <div class="grid grid-2 gap-2 mb-2">
+              <div>
+                <label class="form-label" style="font-size: 12px; font-weight: 600;">मार्केट रेट (MRP ₹):</label>
+                <input type="number" class="form-control" [ngModel]="broadcastProduct().mrp" (ngModelChange)="updateBroadcastField('mrp', $event)">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 12px; font-weight: 700; color: #065f46;">धमाका ऑफर रेट (₹):</label>
+                <input type="number" class="form-control font-bold text-success" [ngModel]="broadcastProduct().sellingPrice" (ngModelChange)="updateBroadcastField('sellingPrice', $event)">
+              </div>
+            </div>
+
+            <div class="grid grid-2 gap-2 mb-3">
+              <div>
+                <label class="form-label" style="font-size: 12px;">उपलब्ध साइज (Size):</label>
+                <input type="text" class="form-control" [ngModel]="broadcastProduct().size" (ngModelChange)="updateBroadcastField('size', $event)" placeholder="M, L, XL, XXL">
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 12px;">कलर / शेड्स (Color):</label>
+                <input type="text" class="form-control" [ngModel]="broadcastProduct().color" (ngModelChange)="updateBroadcastField('color', $event)" placeholder="Red, Black, Blue">
+              </div>
+            </div>
+
+            <!-- Template Selector -->
+            <div class="form-group mb-3">
+              <label class="form-label" style="font-size: 12px; font-weight: 700;">प्रमोशनल टेम्पलेट चुनें:</label>
+              <div class="grid grid-2 gap-1.5 mb-2">
+                <button 
+                  type="button" 
+                  class="btn btn-sm" 
+                  [style.background]="broadcastTemplate() === 'FESTIVAL' ? 'linear-gradient(135deg, #fef3c7, #fed7aa)' : 'var(--gray-100)'"
+                  [style.color]="broadcastTemplate() === 'FESTIVAL' ? '#9a3412' : 'var(--text-secondary)'"
+                  [style.border]="broadcastTemplate() === 'FESTIVAL' ? '1.5px solid #f97316' : '1px solid #e2e8f0'"
+                  [style.fontWeight]="broadcastTemplate() === 'FESTIVAL' ? '800' : '600'"
+                  (click)="onBroadcastTemplateSelect('FESTIVAL')"
+                  style="grid-column: span 2; font-size: 12.5px; padding: 6px 12px;"
+                >
+                  🪔 प्रमुख हिंदू त्योहार (Festival Greetings & Offers)
+                </button>
+                <button 
+                  type="button" 
+                  class="btn btn-sm" 
+                  [style.background]="broadcastTemplate() === 'NEW_ARRIVAL' ? '#e8f5e9' : 'var(--gray-100)'"
+                  [style.color]="broadcastTemplate() === 'NEW_ARRIVAL' ? '#065f46' : 'var(--text-secondary)'"
+                  [style.fontWeight]="broadcastTemplate() === 'NEW_ARRIVAL' ? '700' : '500'"
+                  (click)="onBroadcastTemplateSelect('NEW_ARRIVAL')"
+                >🎉 नया माल (Arrival)</button>
+                <button 
+                  type="button" 
+                  class="btn btn-sm" 
+                  [style.background]="broadcastTemplate() === 'MEGA_DISCOUNT' ? '#fff1f2' : 'var(--gray-100)'"
+                  [style.color]="broadcastTemplate() === 'MEGA_DISCOUNT' ? '#e11d48' : 'var(--text-secondary)'"
+                  [style.fontWeight]="broadcastTemplate() === 'MEGA_DISCOUNT' ? '700' : '500'"
+                  (click)="onBroadcastTemplateSelect('MEGA_DISCOUNT')"
+                >🔥 भारी डिस्काउंट</button>
+                <button 
+                  type="button" 
+                  class="btn btn-sm" 
+                  [style.background]="broadcastTemplate() === 'LIMITED_STOCK' ? '#fef3c7' : 'var(--gray-100)'"
+                  [style.color]="broadcastTemplate() === 'LIMITED_STOCK' ? '#b45309' : 'var(--text-secondary)'"
+                  [style.fontWeight]="broadcastTemplate() === 'LIMITED_STOCK' ? '700' : '500'"
+                  (click)="onBroadcastTemplateSelect('LIMITED_STOCK')"
+                >⚡ सीमित स्टॉक</button>
+                <button 
+                  type="button" 
+                  class="btn btn-sm" 
+                  [style.background]="broadcastTemplate() === 'CUSTOM' ? '#f3e8ff' : 'var(--gray-100)'"
+                  [style.color]="broadcastTemplate() === 'CUSTOM' ? '#7e22ce' : 'var(--text-secondary)'"
+                  [style.fontWeight]="broadcastTemplate() === 'CUSTOM' ? '700' : '500'"
+                  (click)="onBroadcastTemplateSelect('CUSTOM')"
+                >✏️ कस्टम मैसेज</button>
+              </div>
+            </div>
+
+            <!-- 🪔 Specialized Hindu Festival Selector Box -->
+            @if (broadcastTemplate() === 'FESTIVAL') {
+              <div class="festival-selector-box mb-3" style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 12px;">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="form-label mb-0" style="font-weight: 800; font-size: 12px; color: #92400e; display: inline-flex; align-items: center; gap: 5px;">
+                    <span>🪔</span>
+                    <span>त्योहार चुनें (30+ प्रमुख हिंदू पर्व):</span>
+                  </label>
+                  <span style="font-size: 10.5px; font-weight: 700; color: #b45309; background: #fef3c7; padding: 1px 6px; border-radius: 10px;">
+                    {{ festivalsList.length }} त्योहार उपलब्ध
+                  </span>
+                </div>
+
+                <!-- Festival Dropdown -->
+                <select 
+                  class="form-control mb-2" 
+                  [ngModel]="selectedFestivalId()" 
+                  (ngModelChange)="onFestivalSelect($event)"
+                  style="font-size: 12.5px; font-weight: 700; border-color: #fcd34d; background: white; color: #78350f;"
+                >
+                  @for (fest of festivalsList; track fest.id) {
+                    <option [value]="fest.id">
+                      {{ fest.emoji }} {{ fest.name }}
+                    </option>
+                  }
+                </select>
+
+                <!-- Quick Festival Chips / Pills -->
+                <div style="font-size: 10.5px; font-weight: 700; color: #78350f; margin-bottom: 5px;">त्वरित चयन (Quick Select):</div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap; max-height: 140px; overflow-y: auto; padding: 2px;">
+                  @for (fest of festivalsList; track fest.id) {
+                    <button 
+                      type="button"
+                      (click)="onFestivalSelect(fest.id)"
+                      style="border: 1px solid; border-radius: 14px; padding: 2px 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 3px;"
+                      [style.background]="selectedFestivalId() === fest.id ? '#ea580c' : 'white'"
+                      [style.color]="selectedFestivalId() === fest.id ? 'white' : '#78350f'"
+                      [style.borderColor]="selectedFestivalId() === fest.id ? '#c2410c' : '#fde68a'"
+                    >
+                      <span>{{ fest.emoji }}</span>
+                      <span>{{ fest.name }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
+          </div>
+
+          <!-- RIGHT COLUMN: Message Preview & 1-Click Send Actions -->
+          <div style="display: flex; flex-direction: column;">
+            
+            <!-- WhatsApp Preview Box -->
+            <div class="card mb-3" style="background: #e5ddd5; border-radius: 10px; padding: 12px; border: 1px solid #d1d7db;">
+              <div class="flex items-center justify-between mb-2">
+                <span style="font-size: 11px; font-weight: 700; color: #128C7E; text-transform: uppercase;">
+                  <i class="fa-brands fa-whatsapp"></i> WhatsApp मैसेज पूर्वावलोकन:
+                </span>
+                <div class="flex gap-1">
+                  @if (broadcastImagePreview()) {
+                    <button type="button" class="btn btn-sm" (click)="copyImageToClipboard()" style="background: #e0f2fe; color: #0284c7; font-size: 10px; font-weight: 700; padding: 2px 8px; border: 1px solid #bae6fd;" title="फोटो कॉपी करें">
+                      <i class="fa-solid fa-copy"></i> फोटो कॉपी
+                    </button>
+                  }
+                  <button type="button" class="btn btn-sm" (click)="copyBroadcastText()" style="background: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border: 1px solid #cbd5e1;">
+                    <i class="fa-solid fa-copy"></i> टेक्स्ट कॉपी
+                  </button>
+                </div>
+              </div>
+
+              <!-- Attached Image Banner inside Chat Preview if image uploaded -->
+              @if (broadcastImagePreview()) {
+                <div style="background: #ffffff; border-radius: 8px 8px 0 0; padding: 8px; border: 1px solid #cbd5e1; border-bottom: none; display: flex; align-items: center; justify-content: space-between;">
+                  <div class="flex items-center gap-2">
+                    <img [src]="broadcastImagePreview()" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid #e2e8f0;">
+                    <div>
+                      <div style="font-size: 11px; font-weight: 800; color: #0f172a;">🖼️ फोटो संलग्न है (Attached)</div>
+                      <div style="font-size: 9.5px; color: #16a34a; font-weight: 700;">✅ WhatsApp खुलते ही Ctrl+V से पेस्ट करें</div>
+                    </div>
+                  </div>
+                  <button type="button" (click)="copyImageToClipboard()" class="btn btn-sm" style="background: #f0fdf4; color: #166534; font-size: 10px; font-weight: 800; border: 1px solid #bbf7d0; padding: 3px 8px;">
+                    <i class="fa-solid fa-clipboard"></i> Copy
+                  </button>
+                </div>
+              }
+
+              <!-- Message text editor -->
+              <textarea 
+                class="form-control" 
+                rows="7" 
+                [ngModel]="broadcastMessage()" 
+                (ngModelChange)="broadcastMessage.set($event)"
+                [style.border-radius]="broadcastImagePreview() ? '0 0 8px 8px' : '8px'"
+                style="background: white; font-size: 12.5px; line-height: 1.4; border: 1px solid #cbd5e1;"
+              ></textarea>
+            </div>
+
+            <!-- Custom Single Mobile Send Box -->
+            <div class="form-group mb-3" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px 14px; border-radius: 8px;">
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700; color: #166534; margin-bottom: 4px;">
+                📲 किसी खास मोबाइल नंबर पर तुरंत भेजें:
+              </label>
+              <div class="input-group flex gap-2">
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  [ngModel]="customBroadcastPhone()" 
+                  (ngModelChange)="customBroadcastPhone.set($event)" 
+                  placeholder="10 अंकों का मोबाइल नंबर..."
+                  style="font-size: 13px;"
+                >
+                <button type="button" class="btn btn-sm" (click)="sendToCustomNumber()" style="background: #25D366; color: white; font-weight: 700; padding: 6px 14px;">
+                  भेजें
+                </button>
+              </div>
+            </div>
+
+            <!-- Batch Broadcast Runner Banner (When Batch is active) -->
+            @if (isBatchRunning()) {
+              <div class="mb-3" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 12px 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(59,130,246,0.3);">
+                <div class="flex justify-between items-center mb-1">
+                  <div style="font-size: 13px; font-weight: 700;">
+                    <i class="fa-solid fa-paper-plane"></i> स्वचालित ब्रॉडकास्ट जारी है...
+                  </div>
+                  <span class="badge" style="background: rgba(255,255,255,0.25); color: white; font-weight: 700; font-size: 11px;">
+                    ग्राहक {{ activeBatchIndex() + 1 }} / {{ getSelectedCustomers().length }}
+                  </span>
+                </div>
+
+                <div style="font-size: 12px; margin-bottom: 8px; color: rgba(255,255,255,0.9);">
+                  वर्तमान ग्राहक: <strong>{{ getSelectedCustomers()[activeBatchIndex()]?.name }}</strong> 
+                  (📱 {{ getSelectedCustomers()[activeBatchIndex()]?.mobile }})
+                </div>
+
+                <div class="flex justify-between items-center gap-2">
+                  <button type="button" class="btn btn-sm" (click)="stopBatchSending()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); font-size: 11px;">
+                    ⏹️ रोकें (Stop)
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="btn btn-sm" 
+                    (click)="nextBatchCustomer()" 
+                    style="background: #25D366; color: white; font-weight: 700; font-size: 12px; padding: 5px 14px; border: none; box-shadow: 0 2px 6px rgba(0,0,0,0.2);"
+                  >
+                    ⏭️ अगला ग्राहक भेजें (Send Next) &raquo;
+                  </button>
+                </div>
+              </div>
+            }
+
+            <!-- Registered Customers Queue with SELECT ALL -->
+            <div style="flex: 1; max-height: 220px; overflow-y: auto; border: 1.5px solid var(--gray-300); border-radius: 8px; background: white;">
+              
+              <!-- Master Header with Select All Checkbox -->
+              <div style="padding: 10px 12px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                <label class="flex items-center gap-2" style="font-size: 12.5px; font-weight: 700; color: #1e293b; margin-bottom: 0; cursor: pointer;">
+                  <input 
+                    type="checkbox" 
+                    [checked]="isAllCustomersSelected()" 
+                    (change)="toggleSelectAll($any($event.target).checked)"
+                    style="width: 17px; height: 17px; cursor: pointer; accent-color: #25D366;"
+                  >
+                  <span>☑️ सभी ग्राहक चुनें (Select All)</span>
+                </label>
+
+                <span class="badge" [style.background]="selectedCustomerIds().length > 0 ? '#dcfce7' : 'var(--gray-200)'" [style.color]="selectedCustomerIds().length > 0 ? '#166534' : 'var(--text-secondary)'" style="font-weight: 700; font-size: 11px;">
+                  {{ selectedCustomerIds().length }} / {{ customers().length }} चुने गए
+                </span>
+              </div>
+
+              <!-- Action Bar to Send to All Selected -->
+              <div style="padding: 8px 12px; background: #ecfdf5; border-bottom: 1px solid #a7f3d0; display: flex; justify-content: space-between; align-items: center;" *ngIf="selectedCustomerIds().length > 0 && !isBatchRunning()">
+                <span style="font-size: 11px; color: #065f46; font-weight: 600;">
+                  <i class="fa-solid fa-users"></i> {{ selectedCustomerIds().length }} ग्राहकों को ब्रॉडकास्ट भेजा जाएगा
+                </span>
+                <button 
+                  type="button" 
+                  class="btn btn-sm" 
+                  (click)="startBatchSending()" 
+                  style="background: #25D366; color: white; font-weight: 700; font-size: 11.5px; padding: 4px 12px; border: none; border-radius: 5px; box-shadow: 0 1px 4px rgba(37,211,102,0.3);"
+                >
+                  <i class="fa-solid fa-paper-plane"></i> 🚀 सभी को एक साथ भेजें
+                </button>
+              </div>
+              
+              <!-- Customer rows -->
+              @if (customers().length === 0) {
+                <div style="padding: 24px; text-align: center; font-size: 12px; color: var(--text-muted);">
+                  कोई पंजीकृत ग्राहक नहीं मिला।
+                </div>
+              } @else {
+                <div style="divide-y: 1px solid #f1f5f9;">
+                  @for (c of customers(); track c._id) {
+                    <div class="flex items-center justify-between" style="padding: 7px 12px; border-bottom: 1px solid var(--gray-100);">
+                      
+                      <!-- Customer Checkbox + Name -->
+                      <label class="flex items-center gap-2" style="cursor: pointer; margin-bottom: 0;">
+                        <input 
+                          type="checkbox" 
+                          [checked]="isCustomerSelected(c._id)" 
+                          (change)="toggleCustomer(c._id)"
+                          style="width: 16px; height: 16px; cursor: pointer; accent-color: #25D366;"
+                        >
+                        <div>
+                          <span style="font-weight: 600; font-size: 12.5px; display: block; color: var(--text-primary);">
+                            {{ c.name }}
+                          </span>
+                          <span style="font-size: 11px; color: var(--text-muted);">📱 {{ c.mobile }}</span>
+                        </div>
+                      </label>
+
+                      <!-- Single Send Button -->
+                      <button 
+                        type="button" 
+                        class="btn btn-sm" 
+                        (click)="sendToCustomer(c)"
+                        [style.background]="customerSendStatus()[c._id] ? '#dcfce7' : '#25D366'"
+                        [style.color]="customerSendStatus()[c._id] ? '#166534' : 'white'"
+                        style="font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 4px; border: none;"
+                      >
+                        {{ customerSendStatus()[c._id] ? '✅ भेजा गया' : '📲 भेजें' }}
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+      }
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="background: var(--gray-50); padding: 14px 24px; border-top: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+        <button type="button" class="btn btn-secondary" (click)="showBroadcastModal.set(false)">बंद करें (Close)</button>
+        
+        <div class="flex gap-2">
+          @if (broadcastImagePreview()) {
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              (click)="copyImageToClipboard()" 
+              style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 700; font-size: 12px; padding: 7px 12px;"
+            >
+              <i class="fa-solid fa-copy"></i> 📋 फोटो कॉपी करें (Ctrl+V)
+            </button>
+          }
+
+          <button 
+            type="button" 
+            class="btn btn-outline" 
+            (click)="copyBroadcastText()"
+            style="font-weight: 600; font-size: 12px;"
+          >
+            <i class="fa-solid fa-copy"></i> 📋 टेक्स्ट कॉपी
+          </button>
+
+          <button 
+            type="button" 
+            class="btn" 
+            (click)="openWhatsAppGeneral()"
+            style="background: #25D366; color: white; font-weight: 700; font-size: 13px; padding: 8px 16px; border-radius: 6px; box-shadow: 0 2px 8px rgba(37,211,102,0.4);"
+          >
+            <i class="fa-brands fa-whatsapp" style="font-size: 16px; margin-right: 4px;"></i> 📲 WhatsApp पर शेयर करें
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- BARCODE & GOOGLE LENS QR STICKER MODAL     -->
+<!-- ========================================== -->
+@if (showBarcodeModal() && barcodeProduct()) {
+  <div class="modal-overlay no-print" style="z-index: 1050;">
+    <div class="modal modal-lg" style="max-width: 800px; display: flex; flex-direction: column; max-height: 90vh;">
+      
+      <!-- Modal Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border-bottom: 1px solid #334155;">
+        <div class="flex items-center gap-2">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #3b82f6; display: flex; align-items: center; justify-content: center; color: white;">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; font-size: 16px; margin: 0;">बारकोड & Google Lens QR स्टिकर जनरेटर</h3>
+            <p style="margin: 0; font-size: 11.5px; color: #94a3b8;">गूगल लेंस स्कैन व पीओएस बिलिंग बारकोड लेबल</p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="showBarcodeModal.set(false)" style="color: #94a3b8;">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1; background: #f8fafc;">
+        
+        <!-- Product Summary Banner -->
+        <div style="background: white; border-radius: 12px; padding: 14px 18px; border: 1px solid #e2e8f0; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">चयनित प्रोडक्ट (Product):</span>
+            <h4 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 2px 0 0 0;">{{ barcodeProduct()?.name }}</h4>
+            <div class="flex gap-2 items-center" style="margin-top: 4px;">
+              <span style="font-size: 13px; font-weight: 800; color: #059669;">₹{{ barcodeProduct()?.sellingPrice }}</span>
+              @if (barcodeProduct()?.mrp && barcodeProduct()?.mrp > barcodeProduct()?.sellingPrice) {
+                <span style="font-size: 12px; color: #94a3b8; text-decoration: line-through;">MRP ₹{{ barcodeProduct()?.mrp }}</span>
+              }
+              <span style="font-size: 11px; background: #f1f5f9; padding: 1px 8px; border-radius: 4px; font-weight: 600; color: #475569;">
+                बारकोड: <strong style="color: #0f172a;">{{ barcodeProduct()?.barcode || 'N/A' }}</strong>
+              </span>
+            </div>
+          </div>
+
+          <div class="flex gap-2 items-center">
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              (click)="testGoogleLensLink()" 
+              style="background: #2563eb; color: white; font-weight: 700; font-size: 12px; padding: 6px 12px; border-radius: 6px; border: none; display: flex; items-center; gap: 6px;"
+              title="ब्राउज़र में टेस्ट करें कि Google Lens से क्या खुलेगा"
+            >
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Google Lens लिंक टेस्ट करें
+            </button>
+
+            <button 
+              type="button" 
+              class="btn btn-sm btn-outline" 
+              (click)="copyGoogleLensLink()"
+              style="font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px;"
+            >
+              <i class="fa-solid fa-copy"></i> {{ barcodeCopied() ? '✓ कॉपी हुआ' : 'लिंक कॉपी' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Print Configuration Controls -->
+        <div style="background: white; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 18px;">
+          <h5 style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-sliders text-primary"></i> स्टिकर प्रिंट सेटिंग्स (Print Settings)
+          </h5>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+            <div>
+              <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">शीट लेआउट (Sheet Layout):</label>
+              <select [(ngModel)]="barcodePrintSize" class="form-control" style="font-size: 13px;">
+                <option value="A4_24">A4 शीट - 24 स्टिकर (65mm x 38mm)</option>
+                <option value="A4_40">A4 शीट - 40 स्टिकर (48mm x 25mm)</option>
+                <option value="SINGLE">थर्मल बारकोड प्रिंटर (Single Roll)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">कुल कितने स्टिकर प्रिंट करने हैं:</label>
+              <input type="number" [(ngModel)]="barcodePrintQty" min="1" max="200" class="form-control" style="font-size: 13px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Sticker Preview -->
+        <div>
+          <h5 style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-eye text-primary"></i> स्टिकर लाइव प्रीव्यू (Sticker Live Preview)
+          </h5>
+
+          <div style="display: flex; justify-content: center; background: #e2e8f0; padding: 20px; border-radius: 12px; border: 2px dashed #cbd5e1;">
+            
+            <!-- Standard Dual Barcode + QR Sticker Preview Card -->
+            <div style="width: 280px; background: white; border-radius: 8px; padding: 10px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #94a3b8; text-align: center; font-family: sans-serif; box-sizing: border-box;">
+              
+              <!-- Shop Header -->
+              <div style="font-size: 11px; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 3px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ auth.currentShop()?.name || 'MKS SHOP' }}
+              </div>
+
+              <!-- Product Name -->
+              <div style="font-size: 12.5px; font-weight: 800; color: #0f172a; line-height: 1.2; margin-bottom: 4px; height: 30px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                {{ barcodeProduct()?.name }}
+              </div>
+
+              <!-- Two Column: QR Code + Pricing & 1D Barcode -->
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; background: #fafafa; padding: 6px; border-radius: 6px; border: 1px solid #f1f5f9;">
+                
+                <!-- Google Lens QR -->
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                  @if (barcodeQrDataUrl()) {
+                    <img [src]="barcodeQrDataUrl()" alt="Google Lens QR" style="width: 65px; height: 65px; display: block; border-radius: 4px;" />
+                  }
+                  <span style="font-size: 7.5px; font-weight: 700; color: #2563eb; margin-top: 2px;">Google Lens QR</span>
+                </div>
+
+                <!-- Price and Barcode Numbers -->
+                <div style="flex: 1; text-align: right; display: flex; flex-direction: column; justify-content: center;">
+                  @if (barcodeProduct()?.mrp && barcodeProduct()?.mrp > barcodeProduct()?.sellingPrice) {
+                    <div style="font-size: 9px; color: #64748b; text-decoration: line-through;">MRP: ₹{{ barcodeProduct()?.mrp }}</div>
+                  }
+                  <div style="font-size: 14px; font-weight: 900; color: #059669; line-height: 1.1;">
+                    ₹{{ barcodeProduct()?.sellingPrice }}
+                  </div>
+                  <span style="font-size: 8px; color: #64748b; margin-top: 1px;">(सभी टैक्स सहित)</span>
+
+                  <!-- 1D Barcode Graphic Bars representation -->
+                  <div style="margin-top: 4px; border-top: 1px dashed #e2e8f0; padding-top: 2px;">
+                    <div style="display: inline-block; height: 16px; width: 100%; background: repeating-linear-gradient(90deg, #000 0px, #000 1.5px, #fff 1.5px, #fff 3.5px, #000 3.5px, #000 4.5px, #fff 4.5px, #fff 7px);"></div>
+                    <div style="font-family: monospace; font-size: 8.5px; font-weight: 700; color: #000; letter-spacing: 1px;">
+                      {{ barcodeProduct()?.barcode || '890123456789' }}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Footer Tag -->
+              <div style="font-size: 7.5px; color: #94a3b8; margin-top: 3px; font-weight: 600;">
+                MKS Verified Product Code
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="background: white; padding: 14px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" (click)="showBarcodeModal.set(false)">बंद करें (Close)</button>
+        
+        <button 
+          type="button" 
+          class="btn" 
+          (click)="printBarcodeStickers()"
+          style="background: #1e293b; color: white; font-weight: 800; font-size: 14px; padding: 8px 24px; border-radius: 8px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(15,23,42,0.25);"
+        >
+          <i class="fa-solid fa-print"></i> 🖨️ {{ barcodePrintQty() }} स्टिकर प्रिंट करें
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- HIDDEN PRINT-ONLY STICKER SHEET CONTAINER   -->
+  <!-- ========================================== -->
+  <div class="print-only-sticker-sheet" style="display: none;">
+    <div [ngClass]="{'sheet-a4-24': barcodePrintSize() === 'A4_24', 'sheet-a4-40': barcodePrintSize() === 'A4_40', 'sheet-single': barcodePrintSize() === 'SINGLE'}" style="display: flex; flex-wrap: wrap; gap: 8px; width: 100%;">
+      
+      @for (item of getPrintStickers(); track $index) {
+        <div class="print-sticker-card" style="width: 65mm; height: 36mm; border: 1px solid #ccc; border-radius: 4px; padding: 2.5mm; box-sizing: border-box; text-align: center; page-break-inside: avoid; display: flex; flex-direction: column; justify-content: space-between; font-family: Arial, sans-serif; background: white;">
+          
+          <!-- Shop Header -->
+          <div style="font-size: 8pt; font-weight: bold; color: #000; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 0.5px solid #ddd; padding-bottom: 1px;">
+            {{ auth.currentShop()?.name || 'MKS SHOP' }}
+          </div>
+
+          <!-- Product Name -->
+          <div style="font-size: 8.5pt; font-weight: bold; color: #000; line-height: 1.1; margin: 1px 0; overflow: hidden; height: 7mm; display: flex; align-items: center; justify-content: center;">
+            {{ barcodeProduct()?.name }}
+          </div>
+
+          <!-- Dual QR and Price Content -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 2mm;">
+            <!-- QR -->
+            <div style="display: flex; flex-direction: column; align-items: center; width: 16mm;">
+              @if (barcodeQrDataUrl()) {
+                <img [src]="barcodeQrDataUrl()" style="width: 14mm; height: 14mm; display: block;" />
+              }
+              <span style="font-size: 5pt; font-weight: bold; color: #000; margin-top: 0.5mm;">Lens QR</span>
+            </div>
+
+            <!-- Price & Barcode -->
+            <div style="flex: 1; text-align: right; display: flex; flex-direction: column; justify-content: center;">
+              @if (barcodeProduct()?.mrp && barcodeProduct()?.mrp > barcodeProduct()?.sellingPrice) {
+                <div style="font-size: 6.5pt; color: #555; text-decoration: line-through;">MRP: ₹{{ barcodeProduct()?.mrp }}</div>
+              }
+              <div style="font-size: 10.5pt; font-weight: 900; color: #000; line-height: 1;">
+                ₹{{ barcodeProduct()?.sellingPrice }}
+              </div>
+              <span style="font-size: 5.5pt; color: #555;">(Incl. all taxes)</span>
+
+              <div style="margin-top: 1mm;">
+                <div style="height: 4mm; width: 100%; background: repeating-linear-gradient(90deg, #000 0px, #000 1px, #fff 1px, #fff 2.5px, #000 2.5px, #000 3.5px, #fff 3.5px, #fff 5px);"></div>
+                <div style="font-family: monospace; font-size: 6pt; font-weight: bold; color: #000; letter-spacing: 0.5px;">
+                  {{ barcodeProduct()?.barcode || '890123456789' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      }
+
+    </div>
+  </div>
+}
+
+<style>
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .print-only-sticker-sheet, .print-only-sticker-sheet * {
+    visibility: visible !important;
+    display: flex !important;
+  }
+  .print-only-sticker-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: white !important;
+    display: block !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+</style>
+
+

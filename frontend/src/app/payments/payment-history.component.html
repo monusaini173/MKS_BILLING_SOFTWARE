@@ -1,0 +1,614 @@
+<div class="page-header no-print">
+  <div>
+    <div class="flex items-center gap-2">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #10B981, #059669); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">
+        <i class="fa-solid fa-receipt"></i>
+      </div>
+      <div>
+        <h1 class="page-title" style="margin-bottom: 2px;">भुगतान इतिहास (Successful Payment History)</h1>
+        <p class="page-subtitle" style="margin-bottom: 0;">सभी सफल भुगतानों का लाइव रिकॉर्ड — ग्राहक / पेयर का नाम, खरीदे गए प्रोडक्ट और पेमेंट माध्यम सहित।</p>
+      </div>
+    </div>
+  </div>
+  <div class="page-actions flex gap-2">
+    <button class="btn btn-outline" (click)="loadPayments(1)">
+      <i class="fa-solid fa-rotate"></i> रीफ़्रेश (Refresh)
+    </button>
+    <button class="btn btn-outline" (click)="printHistory()">
+      <i class="fa-solid fa-print"></i> प्रिंट रिपोर्ट (Print)
+    </button>
+    <button class="btn btn-primary" (click)="openDirectPaymentModal()" style="background: #10B981; border-color: #10B981;">
+      <i class="fa-solid fa-plus"></i> नया भुगतान जोड़ें (Add Payment)
+    </button>
+  </div>
+</div>
+
+<!-- Quick Statistics Banner -->
+<div class="grid grid-4 mb-4">
+  <!-- Total Received in Filter -->
+  <div class="stat-card" style="border-top: 3px solid #10B981;">
+    <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10B981;">
+      <i class="fa-solid fa-indian-rupee-sign"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value text-success">₹{{ summary().totalAmount | number:'1.2-2' }}</div>
+      <div class="stat-label">कुल प्राप्त भुगतान (Total Success: {{ summary().count }} ट्रांजेक्शन)</div>
+    </div>
+  </div>
+
+  <!-- Today's Total Collection -->
+  <div class="stat-card" style="border-top: 3px solid #4F46E5;">
+    <div class="stat-icon" style="background: rgba(79, 70, 229, 0.15); color: #4F46E5;">
+      <i class="fa-solid fa-calendar-day"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="color: #4F46E5;">₹{{ todaySummary().total | number:'1.2-2' }}</div>
+      <div class="stat-label">आज की कुल वसूली (Today's Collection: {{ todaySummary().count }} बिल)</div>
+    </div>
+  </div>
+
+  <!-- UPI / Online Payments -->
+  <div class="stat-card" style="border-top: 3px solid #06B6D4;">
+    <div class="stat-icon" style="background: rgba(6, 182, 212, 0.15); color: #0891B2;">
+      <i class="fa-solid fa-qrcode"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="color: #0891B2;">₹{{ summary().upiAmount | number:'1.2-2' }}</div>
+      <div class="stat-label">ऑनलाइन UPI / QR वसूली (PhonePe / GPay)</div>
+    </div>
+  </div>
+
+  <!-- Cash Payments -->
+  <div class="stat-card" style="border-top: 3px solid #F59E0B;">
+    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #D97706;">
+      <i class="fa-solid fa-money-bill-wave"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="color: #D97706;">₹{{ summary().cashAmount | number:'1.2-2' }}</div>
+      <div class="stat-label">नकद भुगतान संग्रह (Cash Collection)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-4 no-print" style="box-shadow: var(--shadow-sm);">
+  <div class="card-body" style="padding: 16px 20px;">
+    <div class="flex gap-3 items-center" style="flex-wrap: wrap;">
+      
+      <!-- Live Search Box -->
+      <div style="flex: 1; min-width: 280px; position: relative;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 12px; color: var(--gray-400);"></i>
+        <input 
+          type="text" 
+          class="form-control" 
+          style="padding-left: 36px;" 
+          placeholder="ग्राहक नाम, पेयर नाम, मोबाइल, प्रोडक्ट का नाम या इनवॉइस / UTR नं खोजें..." 
+          [(ngModel)]="searchQuery" 
+          (input)="onSearchChange()"
+        >
+      </div>
+
+      <!-- Date Range Filter -->
+      <div style="min-width: 150px;">
+        <select class="form-control" [(ngModel)]="filter" (ngModelChange)="onFilterChange()">
+          <option value="today">📅 आज (Today)</option>
+          <option value="yesterday">📅 कल (Yesterday)</option>
+          <option value="week">📅 पिछले 7 दिन (Last 7 Days)</option>
+          <option value="month">📅 इस महीने (This Month)</option>
+          <option value="year">📅 इस साल (This Year)</option>
+          <option value="custom">📅 कस्टम तारीख (Custom)</option>
+          <option value="all">📅 सभी समय (All Time)</option>
+        </select>
+      </div>
+
+      <!-- Payment Method Filter -->
+      <div style="min-width: 140px;">
+        <select class="form-control" [(ngModel)]="selectedMethod" (ngModelChange)="onFilterChange()">
+          <option value="ALL">💳 सभी माध्यम (All Modes)</option>
+          <option value="UPI">📲 UPI / QR (PhonePe/GPay)</option>
+          <option value="CASH">💵 नकद (CASH)</option>
+          <option value="CARD">💳 कार्ड (CARD)</option>
+          <option value="BANK_TRANSFER">🏛️ बैंक ट्रांसफर</option>
+          <option value="CREDIT">📝 उधार / क्रेडिट</option>
+        </select>
+      </div>
+
+      <!-- Custom Date Inputs -->
+      @if (filter === 'custom') {
+        <div class="flex gap-2 items-center">
+          <input type="date" class="form-control" [(ngModel)]="startDate" style="width: 140px;">
+          <span class="text-muted">से</span>
+          <input type="date" class="form-control" [(ngModel)]="endDate" style="width: 140px;">
+          <button class="btn btn-primary" (click)="onFilterChange()">लागू करें</button>
+        </div>
+      }
+
+      <button class="btn btn-secondary btn-sm" (click)="clearFilters()" title="फ़िल्टर रीसेट करें">
+        <i class="fa-solid fa-filter-circle-xmark"></i> साफ़ करें
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<!-- Transactions Table Card -->
+<div class="card">
+  <div class="card-header flex justify-between items-center">
+    <div class="card-title flex items-center gap-2">
+      <span>सफल भुगतान सूची (Successful Payments)</span>
+      <span class="badge badge-success" style="font-size: 11px;">{{ totalRecords }} Logs</span>
+    </div>
+    <div class="text-muted" style="font-size: 12px;">
+      पेमेंट पर क्लिक करके पूरी रसीद और प्रोडक्ट विवरण देखें
+    </div>
+  </div>
+
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-center items-center" style="min-height: 250px;">
+        <div class="spinner"></div>
+      </div>
+    } @else if (payments().length === 0) {
+      <div class="empty-state" style="padding: 50px 20px;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; font-size: 28px; color: #10B981;">
+          <i class="fa-solid fa-receipt"></i>
+        </div>
+        <h3 style="font-weight: 700;">कोई भुगतान रिकॉर्ड नहीं मिला</h3>
+        <p class="text-muted">चयनित तारीख या खोज के अनुसार कोई सफल पेमेंट नहीं मिली।</p>
+        <button class="btn btn-outline-primary btn-sm mt-3" (click)="clearFilters()">सभी पेमेंट देखें</button>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 140px;">दिनांक व समय</th>
+              <th style="min-width: 180px;">किस नाम से पेमेंट आया (Payer)</th>
+              <th style="min-width: 260px;">📦 प्रोडक्ट का नाम (Purchased Items)</th>
+              <th style="width: 130px;">पेमेंट माध्यम (Mode)</th>
+              <th style="width: 140px;">इनवॉइस / UTR ID</th>
+              <th style="width: 130px; text-align: right;">राशि (Amount)</th>
+              <th style="width: 100px; text-align: center;">स्थिति</th>
+              <th style="width: 120px; text-align: center;" class="no-print">एक्शन</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (pay of payments(); track pay._id) {
+              <tr style="cursor: pointer; transition: background 0.15s;" (click)="viewPaymentDetails(pay)">
+                
+                <!-- Date & Time -->
+                <td>
+                  <div class="font-semibold" style="font-size: 13px;">
+                    {{ pay.date | date:'dd MMM yyyy' }}
+                  </div>
+                  <div class="text-muted" style="font-size: 11px;">
+                    {{ pay.date | date:'hh:mm a' }}
+                  </div>
+                </td>
+
+                <!-- Payer / Customer Name -->
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">
+                      {{ (pay.payerName || pay.partyName || 'C')[0] | uppercase }}
+                    </div>
+                    <div>
+                      <div class="font-bold text-primary" style="font-size: 13.5px;">
+                        {{ pay.payerName || pay.partyName || 'Walk-in Customer' }}
+                      </div>
+                      <div class="text-muted flex items-center gap-1" style="font-size: 11.5px;">
+                        @if (pay.customerMobile) {
+                          <i class="fa-solid fa-phone" style="font-size: 10px;"></i> {{ pay.customerMobile }}
+                        } @else {
+                          <span>Direct Payment</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Products Included (Product Name Sahit) -->
+                <td>
+                  @if (pay.items && pay.items.length > 0) {
+                    <div class="flex gap-1 items-center" style="flex-wrap: wrap;">
+                      @for (item of pay.items.slice(0, 3); track item.productName) {
+                        <span 
+                          class="badge" 
+                          style="background: #F3F4F6; color: #374151; border: 1px solid #E5E7EB; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"
+                        >
+                          <i class="fa-solid fa-box text-primary" style="font-size: 10px;"></i>
+                          <span>{{ item.productName }}</span>
+                          <strong style="color: #4F46E5;">x{{ item.quantity }}</strong>
+                        </span>
+                      }
+                      @if (pay.items.length > 3) {
+                        <span class="badge badge-secondary" style="font-size: 11px; padding: 2px 6px;">
+                          +{{ pay.items.length - 3 }} और प्रोडक्ट
+                        </span>
+                      }
+                    </div>
+                  } @else {
+                    <div class="text-muted" style="font-size: 12px;">
+                      <i class="fa-solid fa-receipt"></i> इनवॉइस बिल भुगतान / खाता सेटलमेंट
+                    </div>
+                  }
+                </td>
+
+                <!-- Payment Method / Mode -->
+                <td>
+                  <span class="badge" [ngClass]="{
+                    'badge-info': pay.method === 'UPI',
+                    'badge-success': pay.method === 'CASH',
+                    'badge-warning': pay.method === 'CARD',
+                    'badge-secondary': pay.method === 'BANK_TRANSFER' || pay.method === 'CREDIT'
+                  }" style="font-weight: 700; font-size: 11.5px; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
+                    @if (pay.method === 'UPI') {
+                      <i class="fa-solid fa-qrcode"></i> UPI / PhonePe
+                    } @else if (pay.method === 'CASH') {
+                      <i class="fa-solid fa-money-bill-wave"></i> CASH (नकद)
+                    } @else if (pay.method === 'CARD') {
+                      <i class="fa-solid fa-credit-card"></i> CARD
+                    } @else {
+                      <i class="fa-solid fa-building-columns"></i> {{ pay.method }}
+                    }
+                  </span>
+                </td>
+
+                <!-- Invoice Number & Txn Ref -->
+                <td>
+                  @if (pay.referenceNumber) {
+                    <div class="font-semibold" style="font-size: 12.5px;">
+                      @if (pay.referenceId) {
+                        <a [routerLink]="['/billing', pay.referenceId, 'invoice']" (click)="$event.stopPropagation()" style="color: #4F46E5; text-decoration: underline;" title="View Invoice">
+                          #{{ pay.referenceNumber }}
+                        </a>
+                      } @else {
+                        <span>#{{ pay.referenceNumber }}</span>
+                      }
+                    </div>
+                  }
+                  @if (pay.transactionId) {
+                    <div class="text-muted" style="font-size: 10.5px; font-family: monospace;" title="Transaction ID">
+                      Txn: {{ pay.transactionId }}
+                    </div>
+                  }
+                </td>
+
+                <!-- Amount -->
+                <td style="text-align: right;">
+                  <div class="font-bold text-success" style="font-size: 15px;">
+                    + ₹{{ pay.amount | number:'1.2-2' }}
+                  </div>
+                </td>
+
+                <!-- Status -->
+                <td style="text-align: center;">
+                  <span class="badge badge-success" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-circle-check"></i> सफल
+                  </span>
+                </td>
+
+                <!-- Actions -->
+                <td style="text-align: center;" class="no-print" (click)="$event.stopPropagation()">
+                  <div class="flex justify-center gap-1">
+                    <button 
+                      class="btn btn-sm btn-outline" 
+                      (click)="viewPaymentDetails(pay)" 
+                      title="पूरी रसीद देखें"
+                      style="padding: 4px 8px;"
+                    >
+                      <i class="fa-solid fa-eye text-primary"></i>
+                    </button>
+                    
+                    <button 
+                      class="btn btn-sm" 
+                      (click)="shareWhatsAppReceipt(pay, $event)" 
+                      style="background: #25D366; color: white; border: none; padding: 4px 8px;"
+                      title="WhatsApp पर रसीद भेजें"
+                    >
+                      <i class="fa-brands fa-whatsapp"></i>
+                    </button>
+
+                    @if (pay.referenceId) {
+                      <a 
+                        [routerLink]="['/billing', pay.referenceId, 'invoice']" 
+                        class="btn btn-sm btn-secondary" 
+                        title="इनवॉइस बिल खोलें"
+                        style="padding: 4px 8px;"
+                      >
+                        <i class="fa-solid fa-file-invoice"></i>
+                      </a>
+                    }
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (totalPages > 1) {
+        <div class="card-footer flex justify-between items-center no-print" style="padding: 12px 20px;">
+          <span class="text-muted" style="font-size: 13px;">
+            पेज {{ currentPage }} / {{ totalPages }} (कुल {{ totalRecords }} पेमेंट्स)
+          </span>
+          <div class="flex gap-2">
+            <button 
+              class="btn btn-secondary btn-sm" 
+              [disabled]="currentPage === 1" 
+              (click)="loadPayments(currentPage - 1)"
+            >
+              <i class="fa-solid fa-chevron-left"></i> पिछला
+            </button>
+            <button 
+              class="btn btn-secondary btn-sm" 
+              [disabled]="currentPage === totalPages" 
+              (click)="loadPayments(currentPage + 1)"
+            >
+              अगला <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>
+
+<!-- =========================================================================
+     MODAL: Payment Receipt Details Breakdown
+     ========================================================================= -->
+@if (showDetailModal() && selectedPaymentForModal()) {
+  <div class="modal-overlay" (click)="showDetailModal.set(false)">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()" style="max-width: 650px;">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #10B981, #059669); color: white;">
+        <div class="flex items-center gap-2">
+          <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; margin: 0; font-size: 17px;">
+              भुगतान विवरण रसीद (Payment Details)
+            </h3>
+            <span style="font-size: 12px; opacity: 0.9;">
+              स्थिति: ✅ SUCCESS / सफल भुगतान प्राप्त
+            </span>
+          </div>
+        </div>
+        <button class="modal-close" style="color: white;" (click)="showDetailModal.set(false)">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px 24px;">
+        
+        <!-- Payer and Amount Highlight -->
+        <div class="card mb-3" style="background: #F0FDF4; border: 1px solid #BBF7D0; padding: 14px 18px;">
+          <div class="flex justify-between items-center">
+            <div>
+              <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #166534; display: block;">
+                किस नाम से भुगतान आया (Payer Name)
+              </span>
+              <h3 style="margin: 2px 0 0 0; color: #14532D; font-weight: 700; font-size: 18px;">
+                {{ selectedPaymentForModal()?.payerName || selectedPaymentForModal()?.partyName || 'Customer' }}
+              </h3>
+              @if (selectedPaymentForModal()?.customerMobile) {
+                <div class="flex items-center gap-1 text-muted" style="font-size: 12px; margin-top: 2px;">
+                  <i class="fa-solid fa-phone"></i> {{ selectedPaymentForModal()?.customerMobile }}
+                </div>
+              }
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #166534; display: block;">
+                प्राप्त राशि (Amount Received)
+              </span>
+              <div style="font-size: 24px; font-weight: 800; color: #15803D;">
+                ₹{{ selectedPaymentForModal()?.amount | number:'1.2-2' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Meta Grid -->
+        <div class="grid grid-2 mb-3" style="font-size: 13px;">
+          <div class="card" style="padding: 12px 14px;">
+            <div class="text-muted" style="font-size: 11px; margin-bottom: 2px;">भुगतान माध्यम (Method)</div>
+            <div class="font-bold">
+              {{ selectedPaymentForModal()?.method }} ({{ selectedPaymentForModal()?.method === 'UPI' ? 'PhonePe / GPay / QR' : selectedPaymentForModal()?.method }})
+            </div>
+          </div>
+
+          <div class="card" style="padding: 12px 14px;">
+            <div class="text-muted" style="font-size: 11px; margin-bottom: 2px;">दिनांक व समय (Date & Time)</div>
+            <div class="font-semibold">
+              {{ selectedPaymentForModal()?.date | date:'dd MMMM yyyy, hh:mm a' }}
+            </div>
+          </div>
+
+          <div class="card" style="padding: 12px 14px;">
+            <div class="text-muted" style="font-size: 11px; margin-bottom: 2px;">इनवॉइस / बिल नंबर</div>
+            <div class="font-semibold text-primary">
+              #{{ selectedPaymentForModal()?.referenceNumber || 'N/A' }}
+            </div>
+          </div>
+
+          <div class="card" style="padding: 12px 14px;">
+            <div class="text-muted" style="font-size: 11px; margin-bottom: 2px;">ट्रांजेक्शन ID / UTR</div>
+            <div class="font-semibold" style="font-family: monospace;">
+              {{ selectedPaymentForModal()?.transactionId || 'N/A' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Products List in this Bill -->
+        <div class="card mb-3">
+          <div class="card-header" style="padding: 10px 14px; background: var(--gray-50);">
+            <div class="card-title" style="font-size: 13.5px;">
+              📦 खरीदे गए प्रोडक्ट्स की सूची (Products in this Payment)
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            @if (selectedPaymentForModal()?.items && selectedPaymentForModal()!.items!.length > 0) {
+              <div class="table-wrapper" style="border: none; border-radius: 0;">
+                <table>
+                  <thead>
+                    <tr style="font-size: 12px;">
+                      <th>प्रोडक्ट का नाम</th>
+                      <th style="text-align: center;">मात्रा (Qty)</th>
+                      <th style="text-align: right;">दर (Rate)</th>
+                      <th style="text-align: right;">कुल (Total)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (prod of selectedPaymentForModal()!.items!; track prod.productName) {
+                      <tr style="font-size: 13px;">
+                        <td class="font-semibold">
+                          <i class="fa-solid fa-box text-primary" style="margin-right: 6px; font-size: 11px;"></i>
+                          {{ prod.productName }}
+                        </td>
+                        <td style="text-align: center;">
+                          {{ prod.quantity }} {{ prod.unit || 'PCS' }}
+                        </td>
+                        <td style="text-align: right;">
+                          ₹{{ prod.rate | number:'1.2-2' }}
+                        </td>
+                        <td style="text-align: right;" class="font-bold">
+                          ₹{{ prod.total || (prod.rate ? prod.rate * prod.quantity : 0) | number:'1.2-2' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="text-center text-muted" style="padding: 20px;">
+                <i class="fa-solid fa-receipt" style="font-size: 24px; margin-bottom: 6px;"></i>
+                <div>यह एक सामान्य बिल / उधार खाता भुगतान प्रविष्टि है।</div>
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (selectedPaymentForModal()?.notes) {
+          <div class="alert alert-info" style="font-size: 12.5px; padding: 8px 12px; margin-bottom: 0;">
+            <strong>नोट:</strong> {{ selectedPaymentForModal()?.notes }}
+          </div>
+        }
+
+      </div>
+
+      <div class="modal-footer flex justify-between items-center">
+        <button class="btn btn-secondary" (click)="showDetailModal.set(false)">
+          बंद करें (Close)
+        </button>
+
+        <div class="flex gap-2">
+          <button 
+            class="btn" 
+            (click)="shareWhatsAppReceipt(selectedPaymentForModal()!)" 
+            style="background: #25D366; color: white; font-weight: 600;"
+          >
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp रसीद भेजें
+          </button>
+
+          @if (selectedPaymentForModal()?.referenceId) {
+            <a 
+              [routerLink]="['/billing', selectedPaymentForModal()?.referenceId, 'invoice']" 
+              class="btn btn-primary"
+            >
+              <i class="fa-solid fa-print"></i> पूरा इनवॉइस देखें
+            </a>
+          }
+        </div>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- =========================================================================
+     MODAL: Add Direct Payment Received
+     ========================================================================= -->
+@if (showDirectPaymentModal()) {
+  <div class="modal-overlay" (click)="showDirectPaymentModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 520px;">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #10B981, #059669); color: white;">
+        <h3 class="modal-title" style="color: white; margin: 0; font-size: 17px;">
+          <i class="fa-solid fa-plus-circle"></i> नया सफल भुगतान दर्ज करें (Add Payment)
+        </h3>
+        <button class="modal-close" style="color: white;" (click)="showDirectPaymentModal.set(false)">&times;</button>
+      </div>
+
+      <form [formGroup]="directPaymentForm" (ngSubmit)="saveDirectPayment()">
+        <div class="modal-body" style="padding: 20px 24px;">
+          
+          <div class="form-group mb-3">
+            <label class="form-label font-bold">किस नाम से पेमेंट आया (Payer / Customer Name) *</label>
+            <input type="text" class="form-control" formControlName="partyName" placeholder="उदाहरण: रमेश शर्मा / PhonePe User">
+            @if (directPaymentForm.get('partyName')?.touched && directPaymentForm.get('partyName')?.invalid) {
+              <div class="text-danger" style="font-size: 11.5px; margin-top: 2px;">कृपया नाम दर्ज करें।</div>
+            }
+          </div>
+
+          <div class="form-row mb-3">
+            <div class="form-group mb-0">
+              <label class="form-label font-bold">ग्राहक मोबाइल नंबर (Mobile)</label>
+              <input type="text" class="form-control" formControlName="customerMobile" placeholder="10 अंकों का मोबाइल">
+            </div>
+
+            <div class="form-group mb-0">
+              <label class="form-label font-bold">भुगतान राशि (Amount in ₹) *</label>
+              <input type="number" class="form-control" formControlName="amount" placeholder="0.00">
+              @if (directPaymentForm.get('amount')?.touched && directPaymentForm.get('amount')?.invalid) {
+                <div class="text-danger" style="font-size: 11.5px; margin-top: 2px;">कृपया सही राशि दर्ज करें।</div>
+              }
+            </div>
+          </div>
+
+          <div class="form-row mb-3">
+            <div class="form-group mb-0">
+              <label class="form-label font-bold">भुगतान माध्यम (Method) *</label>
+              <select class="form-control" formControlName="method">
+                <option value="UPI">📲 UPI (PhonePe / GPay / Paytm)</option>
+                <option value="CASH">💵 Cash (नकद)</option>
+                <option value="CARD">💳 Card (डेबिट/क्रेडिट कार्ड)</option>
+                <option value="BANK_TRANSFER">🏛️ Bank Transfer / NEFT</option>
+              </select>
+            </div>
+
+            <div class="form-group mb-0">
+              <label class="form-label font-bold">ट्रांजेक्शन / UTR Ref ID</label>
+              <input type="text" class="form-control" formControlName="transactionId" placeholder="UPI123456789">
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label font-bold">📦 संबंधित प्रोडक्ट का नाम (Product Name)</label>
+            <input type="text" class="form-control" formControlName="productName" placeholder="उदाहरण: 1 किलो बादाम, शर्ट, आदि">
+          </div>
+
+          <div class="form-group mb-0">
+            <label class="form-label">विवरण / नोट (Notes)</label>
+            <textarea class="form-control" formControlName="notes" rows="2" placeholder="कोई अतिरिक्त विवरण..."></textarea>
+          </div>
+
+        </div>
+
+        <div class="modal-footer flex justify-between items-center">
+          <button type="button" class="btn btn-secondary" (click)="showDirectPaymentModal.set(false)">
+            रद्द करें
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="submittingDirect()" style="background: #10B981; border-color: #10B981;">
+            @if (submittingDirect()) {
+              <i class="fa-solid fa-spinner fa-spin"></i> सहेज रहे हैं...
+            } @else {
+              <i class="fa-solid fa-check"></i> भुगतान सुरक्षित करें
+            }
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+}

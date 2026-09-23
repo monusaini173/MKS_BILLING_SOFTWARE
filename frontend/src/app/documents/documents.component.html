@@ -1,0 +1,486 @@
+<!-- Page Header -->
+<div class="page-header no-print">
+  <div>
+    <h1 class="page-title">
+      <i class="fa-solid fa-file-invoice-dollar" style="color: #3b82f6; margin-right: 8px;"></i>
+      Billing & Document Center (सभी बिलिंग दस्तावेज)
+    </h1>
+    <p class="page-subtitle">Generate Purchase Orders, Quotations, Sale Invoices, Purchase Bills, Returns & Delivery Challans.</p>
+  </div>
+  <div class="page-actions flex gap-2">
+    <button class="btn btn-primary" (click)="openCreateModal('PURCHASE_ORDER')" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+      <i class="fa-solid fa-plus"></i> + New Purchase Order (PO)
+    </button>
+    <button class="btn btn-secondary" (click)="openCreateModal('QUOTATION')" style="background: #0f172a; color: white;">
+      <i class="fa-solid fa-file-signature"></i> + New Quotation (कोटेशन)
+    </button>
+    <button class="btn btn-outline" (click)="openCreateModal('DELIVERY_CHALLAN')">
+      <i class="fa-solid fa-truck-ramp-box"></i> + Delivery Challan
+    </button>
+  </div>
+</div>
+
+<!-- Tabs Bar -->
+<div class="card mb-4 no-print" style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap gap-1.5">
+      <button 
+        class="btn btn-sm" 
+        [ngClass]="activeType() === 'ALL' ? 'btn-primary' : 'btn-ghost'"
+        (click)="switchTab('ALL')"
+        style="font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px;"
+      >
+        <i class="fa-solid fa-layer-group"></i> All (सभी)
+      </button>
+
+      <button 
+        class="btn btn-sm" 
+        [ngClass]="activeType() === 'PURCHASE_ORDER' ? 'btn-primary' : 'btn-ghost'"
+        (click)="switchTab('PURCHASE_ORDER')"
+        style="font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px;"
+      >
+        <i class="fa-solid fa-cart-flatbed"></i> Purchase Orders (PO)
+      </button>
+
+      <button 
+        class="btn btn-sm" 
+        [ngClass]="activeType() === 'QUOTATION' ? 'btn-primary' : 'btn-ghost'"
+        (click)="switchTab('QUOTATION')"
+        style="font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px;"
+      >
+        <i class="fa-solid fa-file-contract"></i> Quotations / Estimates
+      </button>
+
+      <button 
+        class="btn btn-sm" 
+        [ngClass]="activeType() === 'DELIVERY_CHALLAN' ? 'btn-primary' : 'btn-ghost'"
+        (click)="switchTab('DELIVERY_CHALLAN')"
+        style="font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px;"
+      >
+        <i class="fa-solid fa-truck"></i> Delivery Challans
+      </button>
+
+      <button 
+        class="btn btn-sm" 
+        [ngClass]="activeType() === 'SALES_RETURN' ? 'btn-primary' : 'btn-ghost'"
+        (click)="switchTab('SALES_RETURN')"
+        style="font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px;"
+      >
+        <i class="fa-solid fa-rotate-left"></i> Credit Notes (Sales Return)
+      </button>
+
+      <button 
+        class="btn btn-sm" 
+        [ngClass]="activeType() === 'PURCHASE_RETURN' ? 'btn-primary' : 'btn-ghost'"
+        (click)="switchTab('PURCHASE_RETURN')"
+        style="font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px;"
+      >
+        <i class="fa-solid fa-truck-arrow-right"></i> Debit Notes (Purchase Return)
+      </button>
+    </div>
+
+    <!-- Right Side: Filter Search -->
+    <div class="flex items-center gap-2" style="width: 260px;">
+      <input 
+        type="text" 
+        class="form-control form-control-sm" 
+        placeholder="🔍 Search No / Party..." 
+        [(ngModel)]="searchTerm" 
+        (keyup.enter)="loadDocuments()"
+      />
+    </div>
+  </div>
+</div>
+
+<!-- Documents List Table -->
+<div class="card no-print">
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 200px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (documents().length === 0) {
+      <div class="empty-state" style="padding: 40px 20px; text-align: center;">
+        <i class="fa-solid fa-folder-open" style="font-size: 40px; color: #94a3b8; margin-bottom: 12px;"></i>
+        <h3 style="font-size: 16px; font-weight: 700; color: #334155;">No Billing Documents Found</h3>
+        <p style="color: #64748b; font-size: 13px; margin-bottom: 16px;">Create a Purchase Order, Quotation, or Delivery Challan using the buttons above.</p>
+        <button class="btn btn-primary btn-sm" (click)="openCreateModal('PURCHASE_ORDER')">
+          <i class="fa-solid fa-plus"></i> Create First Document
+        </button>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Document No</th>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Party Name</th>
+              <th>Grand Total</th>
+              <th>Status</th>
+              <th style="text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (doc of documents(); track doc._id) {
+              <tr>
+                <td class="font-bold" style="color: var(--primary);">{{ doc.documentNumber }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getDocBadgeClass(doc.documentType)">
+                    {{ doc.documentType.replace('_', ' ') }}
+                  </span>
+                </td>
+                <td>{{ doc.documentDate | date:'dd-MM-yyyy' }}</td>
+                <td class="font-semibold">{{ doc.partyName }}</td>
+                <td class="font-bold">₹{{ doc.grandTotal | number:'1.2-2' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="{
+                    'badge-success': doc.status === 'CONVERTED' || doc.status === 'PAID',
+                    'badge-info': doc.status === 'ISSUED',
+                    'badge-warning': doc.status === 'DRAFT',
+                    'badge-danger': doc.status === 'CANCELLED'
+                  }">{{ doc.status }}</span>
+                </td>
+                <td style="text-align: center;">
+                  <div class="flex gap-1.5 items-center justify-center">
+                    <button 
+                      type="button" 
+                      class="btn btn-sm" 
+                      (click)="openViewModal(doc)"
+                      style="background: #0f172a; color: white; font-weight: 600; font-size: 11.5px; padding: 4px 10px; border-radius: 6px;"
+                    >
+                      <i class="fa-solid fa-print"></i> View / Print
+                    </button>
+
+                    @if (doc.status !== 'CONVERTED' && (doc.documentType === 'PURCHASE_ORDER' || doc.documentType === 'QUOTATION')) {
+                      <button 
+                        type="button" 
+                        class="btn btn-sm" 
+                        (click)="convertDoc(doc)"
+                        style="background: #059669; color: white; font-weight: 600; font-size: 11.5px; padding: 4px 10px; border-radius: 6px;"
+                        title="Convert to final invoice and update stock"
+                      >
+                        <i class="fa-solid fa-arrows-rotate"></i> Convert to Invoice
+                      </button>
+                    }
+
+                    <button 
+                      type="button" 
+                      class="btn btn-sm btn-ghost text-danger" 
+                      (click)="deleteDoc(doc)"
+                      style="padding: 4px 8px;"
+                      title="Delete document"
+                    >
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Modal: Create New Document -->
+@if (showCreateModal) {
+  <div class="modal-overlay no-print">
+    <div class="modal modal-xl" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="background: #0f172a; color: white; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+        <h3 class="modal-title" style="color: white; font-weight: 700; font-size: 16px;">
+          ➕ Create {{ getDocTitle(docType) }}
+        </h3>
+        <button class="modal-close" style="color: white;" (click)="showCreateModal = false">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;">
+        <!-- Top Row: Document Type & Party Information -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div class="form-group">
+            <label class="form-label font-semibold">Document Type <span class="text-danger">*</span></label>
+            <select class="form-control" [(ngModel)]="docType" (change)="updatePartyTypeByDocType()">
+              <option value="PURCHASE_ORDER">📜 Purchase Order (PO - खरीद आर्डर)</option>
+              <option value="QUOTATION">📋 Quotation / Proforma (कोटेशन / कच्चा बिल)</option>
+              <option value="DELIVERY_CHALLAN">🚚 Delivery Challan (डिलीवरी चालान)</option>
+              <option value="SALES_RETURN">↩️ Sales Return (Credit Note - सेल रिटर्न)</option>
+              <option value="PURCHASE_RETURN">↪️ Purchase Return (Debit Note - परचेज रिटर्न)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label font-semibold">
+              Select {{ partyType === 'SUPPLIER' ? 'Supplier (सप्लायर)' : 'Customer (ग्राहक)' }} <span class="text-danger">*</span>
+            </label>
+            <select class="form-control" [ngModel]="selectedPartyId" (ngModelChange)="onPartySelect($event)">
+              <option value="">-- Choose Party or Type Below --</option>
+              @if (partyType === 'SUPPLIER') {
+                @for (s of suppliers(); track s._id) {
+                  <option [value]="s._id">{{ s.companyName || s.name }} ({{ s.mobile || 'N/A' }})</option>
+                }
+              } @else {
+                @for (c of customers(); track c._id) {
+                  <option [value]="c._id">{{ c.name }} ({{ c.mobile || 'N/A' }})</option>
+                }
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label font-semibold">Party Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="partyName" placeholder="Enter party/business name..." />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div class="form-group">
+            <label class="form-label">Mobile Number</label>
+            <input type="text" class="form-control" [(ngModel)]="partyMobile" placeholder="Mobile phone..." />
+          </div>
+          <div class="form-group">
+            <label class="form-label">GSTIN (Optional)</label>
+            <input type="text" class="form-control" [(ngModel)]="partyGstin" placeholder="GSTIN number..." />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valid Until / Due Date</label>
+            <input type="date" class="form-control" [(ngModel)]="validUntilDate" />
+          </div>
+        </div>
+
+        <!-- Product Search & Addition -->
+        <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px; position: relative;">
+          <label class="form-label font-semibold mb-2">🔍 Search & Add Products to Item List</label>
+          <div class="flex gap-2">
+            <div style="flex: 1; position: relative;">
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="Search product by name or scan barcode..." 
+                [(ngModel)]="prodSearch"
+                (input)="searchProducts(prodSearch)"
+              />
+              @if (showProdDropdown && prodResults().length > 0) {
+                <div style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; max-height: 200px; overflow-y: auto;">
+                  @for (p of prodResults(); track p._id) {
+                    <div 
+                      (click)="addItem(p)"
+                      style="padding: 8px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
+                    >
+                      <span style="font-weight: 600; font-size: 13px; color: #1e293b;">{{ p.name }}</span>
+                      <span style="font-size: 12px; font-weight: 700; color: #059669;">₹{{ p.sellingPrice || p.price }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <button class="btn btn-secondary btn-sm" (click)="addCustomItem()">
+              <i class="fa-solid fa-plus"></i> Add Custom Row
+            </button>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="table-wrapper mb-4" style="border: 1px solid #e2e8f0; border-radius: 8px;">
+          <table>
+            <thead>
+              <tr style="background: #f1f5f9;">
+                <th style="width: 35%;">Item Description</th>
+                <th style="width: 12%;">Qty</th>
+                <th style="width: 15%;">Rate (₹)</th>
+                <th style="width: 12%;">GST %</th>
+                <th style="width: 16%;">Total (₹)</th>
+                <th style="width: 10%; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of docItems(); track $index) {
+                <tr>
+                  <td>
+                    <input type="text" class="form-control form-control-sm" [(ngModel)]="item.productName" />
+                  </td>
+                  <td>
+                    <input type="number" min="1" class="form-control form-control-sm" [(ngModel)]="item.quantity" (ngModelChange)="updateItemRow(item)" />
+                  </td>
+                  <td>
+                    <input type="number" min="0" class="form-control form-control-sm" [(ngModel)]="item.rate" (ngModelChange)="updateItemRow(item)" />
+                  </td>
+                  <td>
+                    <select class="form-control form-control-sm" [(ngModel)]="item.gstPercent" (ngModelChange)="updateItemRow(item)">
+                      <option [ngValue]="0">0%</option>
+                      <option [ngValue]="5">5%</option>
+                      <option [ngValue]="12">12%</option>
+                      <option [ngValue]="18">18%</option>
+                      <option [ngValue]="28">28%</option>
+                    </select>
+                  </td>
+                  <td class="font-bold">₹{{ item.total | number:'1.2-2' }}</td>
+                  <td style="text-align: center;">
+                    <button class="btn btn-sm btn-ghost text-danger" (click)="removeItem($index)">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Summary & Notes -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <div class="form-group mb-2">
+              <label class="form-label font-semibold">Notes & Remarks</label>
+              <textarea class="form-control" rows="2" [(ngModel)]="docNotes" placeholder="Additional notes or payment instructions..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Terms & Conditions</label>
+              <textarea class="form-control" rows="2" [(ngModel)]="termsConditions"></textarea>
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div class="flex justify-between items-center mb-2">
+              <span style="color: #64748b;">Subtotal:</span>
+              <span class="font-semibold">₹{{ subtotal | number:'1.2-2' }}</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+              <span style="color: #64748b;">Total GST:</span>
+              <span class="font-semibold">₹{{ totalGst | number:'1.2-2' }}</span>
+            </div>
+            <div class="flex justify-between items-center mb-2" style="border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+              <span class="font-bold" style="font-size: 16px; color: #0f172a;">Grand Total:</span>
+              <span class="font-bold" style="font-size: 18px; color: #059669;">₹{{ grandTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background: #f8fafc; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+        <button class="btn btn-secondary" (click)="showCreateModal = false">Cancel</button>
+        <button class="btn btn-primary" (click)="createDocument()" [disabled]="submitting">
+          <i class="fa-solid fa-check"></i> Save & Generate {{ getDocTitle(docType) }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: View & Printable Document -->
+@if (showViewModal() && selectedDoc()) {
+  <div class="modal-overlay">
+    <div class="modal modal-xl" style="max-width: 850px; background: #ffffff;">
+      <div class="modal-header no-print">
+        <h3 class="modal-title font-bold">
+          📄 {{ selectedDoc().documentNumber }} - {{ selectedDoc().documentType.replace('_', ' ') }}
+        </h3>
+        <div class="flex gap-2">
+          <button class="btn btn-primary btn-sm" (click)="printDocument()">
+            <i class="fa-solid fa-print"></i> Print Document
+          </button>
+          <button class="modal-close" (click)="showViewModal.set(false)">&times;</button>
+        </div>
+      </div>
+
+      <!-- Printable Sheet Canvas -->
+      <div class="modal-body printable-area" style="padding: 30px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #0f172a;">
+        <!-- Header Info -->
+        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 16px;">
+          <div>
+            <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0;">{{ shop()?.name || 'MKS Billing Software' }}</h2>
+            <p style="font-size: 12px; color: #475569; margin: 2px 0;">{{ shop()?.address || 'Main Road, Market' }}</p>
+            <p style="font-size: 12px; color: #475569; margin: 0;">Phone: {{ shop()?.mobile || 'N/A' }} | GSTIN: {{ shop()?.gstin || 'N/A' }}</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="display: inline-block; background: #0f172a; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 800; font-size: 14px; text-transform: uppercase; margin-bottom: 6px;">
+              {{ selectedDoc().documentType.replace('_', ' ') }}
+            </div>
+            <p style="font-size: 13px; font-weight: 700; margin: 0;">No: {{ selectedDoc().documentNumber }}</p>
+            <p style="font-size: 12px; color: #475569; margin: 0;">Date: {{ selectedDoc().documentDate | date:'dd-MM-yyyy' }}</p>
+          </div>
+        </div>
+
+        <!-- Bill To Party Info -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 16px; display: flex; justify-content: space-between;">
+          <div>
+            <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">PARTY DETAILS (Billed To):</p>
+            <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0;">{{ selectedDoc().partyName }}</h3>
+            @if (selectedDoc().partyMobile) {
+              <p style="font-size: 12px; margin: 2px 0; color: #334155;">Mobile: {{ selectedDoc().partyMobile }}</p>
+            }
+            @if (selectedDoc().partyGstin) {
+              <p style="font-size: 12px; margin: 0; color: #334155;">GSTIN: {{ selectedDoc().partyGstin }}</p>
+            }
+          </div>
+          @if (selectedDoc().validUntil) {
+            <div style="text-align: right;">
+              <p style="font-size: 11px; font-weight: 700; color: #64748b; margin: 0;">VALID UNTIL:</p>
+              <p style="font-size: 13px; font-weight: 700; color: #dc2626; margin: 0;">{{ selectedDoc().validUntil | date:'dd-MM-yyyy' }}</p>
+            </div>
+          }
+        </div>
+
+        <!-- Items Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12.5px;">
+          <thead>
+            <tr style="background: #0f172a; color: white;">
+              <th style="padding: 8px; text-align: left;">#</th>
+              <th style="padding: 8px; text-align: left;">Item Description</th>
+              <th style="padding: 8px; text-align: center;">Qty</th>
+              <th style="padding: 8px; text-align: right;">Rate (₹)</th>
+              <th style="padding: 8px; text-align: right;">GST</th>
+              <th style="padding: 8px; text-align: right;">Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of selectedDoc().items; track $index) {
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 8px;">{{ $index + 1 }}</td>
+                <td style="padding: 8px; font-weight: 600;">{{ item.productName }}</td>
+                <td style="padding: 8px; text-align: center;">{{ item.quantity }} {{ item.unit || 'PCS' }}</td>
+                <td style="padding: 8px; text-align: right;">₹{{ item.rate | number:'1.2-2' }}</td>
+                <td style="padding: 8px; text-align: right;">{{ item.gstPercent }}%</td>
+                <td style="padding: 8px; text-align: right; font-weight: 700;">₹{{ item.total | number:'1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <!-- Totals & Terms Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+          <div style="max-width: 60%;">
+            @if (selectedDoc().notes) {
+              <p style="font-size: 11px; margin: 0 0 4px 0;"><strong>Notes:</strong> {{ selectedDoc().notes }}</p>
+            }
+            @if (selectedDoc().termsConditions) {
+              <p style="font-size: 11px; color: #64748b; margin: 0; white-space: pre-line;"><strong>Terms:</strong> {{ selectedDoc().termsConditions }}</p>
+            }
+          </div>
+
+          <div style="width: 220px; text-align: right; border-top: 1.5px solid #0f172a; padding-top: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+              <span>Subtotal:</span>
+              <span>₹{{ selectedDoc().subtotal | number:'1.2-2' }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+              <span>Total GST:</span>
+              <span>₹{{ selectedDoc().totalGst | number:'1.2-2' }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: #0f172a; border-top: 1px solid #cbd5e1; padding-top: 4px;">
+              <span>Grand Total:</span>
+              <span>₹{{ selectedDoc().grandTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #64748b;">
+          <div>Thank you for doing business with us!</div>
+          <div style="text-align: center; border-top: 1px dashed #94a3b8; width: 160px; padding-top: 4px; color: #334155; font-weight: 600;">
+            Authorized Signatory
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

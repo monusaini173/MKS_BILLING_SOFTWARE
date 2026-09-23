@@ -1,0 +1,2602 @@
+<div class="billing-layout">
+  <!-- ============================================================== -->
+  <!-- 💎 1. TOP HEADER & POS MODE SWITCHER (Clean Glassmorphic Bar) -->
+  <!-- ============================================================== -->
+  <div style="grid-column: 1 / -1; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-shadow: 0 2px 10px rgba(15,23,42,0.03);">
+    
+    <!-- Left: Shop Identity & Trade Badge -->
+    <div class="flex items-center gap-3">
+      <div style="position: relative; width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #0f766e, #0d9488); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; box-shadow: 0 4px 10px rgba(13,148,136,0.25);">
+        <i [class]="shopConfig().icon"></i>
+      </div>
+      <div>
+        <div style="font-size: 14.5px; font-weight: 900; color: #0f172a; line-height: 1.2; display: flex; align-items: center; gap: 6px;">
+          <span>{{ shop()?.name || 'Sanjeevani Medical & Pharmacy' }}</span>
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+        </div>
+        <div style="font-size: 11px; font-weight: 700; color: #0d9488; margin-top: 2px;">
+          {{ shopConfig().label }} &bull; {{ shopConfig().badgeText }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Segmented Mode Switcher (Sale POS vs Purchase Inward) -->
+    <div style="display: inline-flex; background: #f1f5f9; padding: 3px; border-radius: 25px; border: 1px solid #e2e8f0;">
+      <button 
+        type="button" 
+        (click)="setBillingMode('SALE')"
+        style="border: none; border-radius: 20px; padding: 7px 20px; font-weight: 800; font-size: 12.5px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: inline-flex; align-items: center; gap: 6px;"
+        [style.background]="billingMode() === 'SALE' ? 'linear-gradient(135deg, #0d9488, #0f766e)' : 'transparent'"
+        [style.color]="billingMode() === 'SALE' ? 'white' : '#475569'"
+        [style.boxShadow]="billingMode() === 'SALE' ? '0 3px 10px rgba(13,148,136,0.35)' : 'none'"
+      >
+        <i class="fa-solid fa-receipt"></i>
+        <span>{{ lang.isHindi() ? 'बिक्री बिल (Sale POS)' : 'Sale POS Bill' }}</span>
+      </button>
+
+      <button 
+        type="button" 
+        (click)="setBillingMode('PURCHASE')"
+        style="border: none; border-radius: 20px; padding: 7px 20px; font-weight: 800; font-size: 12.5px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: inline-flex; align-items: center; gap: 6px;"
+        [style.background]="billingMode() === 'PURCHASE' ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'transparent'"
+        [style.color]="billingMode() === 'PURCHASE' ? 'white' : '#475569'"
+        [style.boxShadow]="billingMode() === 'PURCHASE' ? '0 3px 10px rgba(37,99,235,0.35)' : 'none'"
+      >
+        <i class="fa-solid fa-truck-ramp-box"></i>
+        <span>{{ lang.isHindi() ? 'खरीद बिल (Purchase Inward)' : 'Purchase Inward' }}</span>
+      </button>
+    </div>
+
+    <!-- Right: Quick Settings & Live Clock -->
+    <div class="flex items-center gap-2">
+      <!-- GST Tax Mode Pill -->
+      <button 
+        type="button"
+        (click)="toggleGSTMode()" 
+        style="font-size: 11.5px; font-weight: 800; padding: 5px 12px; border-radius: 20px; cursor: pointer; transition: all 0.2s; border: 1px solid;"
+        [style.background]="isInterState() ? '#eef2ff' : '#f0fdf4'"
+        [style.color]="isInterState() ? '#4f46e5' : '#15803d'"
+        [style.borderColor]="isInterState() ? '#c7d2fe' : '#bbf7d0'"
+        title="Click to Switch GST Mode (Local vs Inter-State)"
+      >
+        <i class="fa-solid fa-arrows-spin text-primary" style="margin-right: 4px;"></i>
+        <span>GST: <strong>{{ isInterState() ? 'IGST (Inter-State)' : 'CGST+SGST (Local)' }}</strong></span>
+      </button>
+
+      <!-- Live Clock Badge -->
+      <div style="font-size: 11px; font-weight: 700; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;">
+        <i class="fa-regular fa-clock" style="color: #0d9488;"></i>
+        <span>{{ liveBillDate() }} &bull; {{ liveBillTime() }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✏️ EDIT BILL BANNER (Visible only when editing an existing bill) -->
+  @if (editingSaleId()) {
+    <div style="grid-column: 1 / -1; background: linear-gradient(135deg, #ea580c, #c2410c); color: white; border-radius: 12px; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; box-shadow: 0 4px 14px rgba(234,88,12,0.25);">
+      <div class="flex items-center gap-3">
+        <span style="font-size: 20px;">✏️</span>
+        <div>
+          <div style="font-weight: 900; font-size: 13.5px;">बिल संपादन मोड सक्रिय (Edit Bill Mode Active)</div>
+          <div style="font-size: 11.5px; opacity: 0.95;">
+            आप बिल नं. <strong>{{ editingInvoiceNumber() }}</strong> को एडिट कर रहे हैं। बदलाव करके नीचे 'बिल अपडेट करें' दबाएं।
+          </div>
+        </div>
+      </div>
+      <button 
+        type="button" 
+        (click)="cancelEditMode()" 
+        class="btn btn-sm"
+        style="background: white; color: #ea580c; font-weight: 800; border: none; border-radius: 8px; padding: 5px 12px; cursor: pointer;"
+      >
+        <i class="fa-solid fa-xmark"></i> रद्द करें (Cancel Edit)
+      </button>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- 💊 2. MEDICAL DOCTOR, PATIENT & RX BAR (Sleek Clean Strip)     -->
+  <!-- ============================================================== -->
+  @if (shopConfig().posFeatures.hasDoctorPatient && billingMode() === 'SALE') {
+    <div style="grid-column: 1 / -1; background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 12px; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+      <div class="flex items-center gap-2.5 flex-wrap" style="flex: 1;">
+        <!-- Rx Badge Icon -->
+        <span style="background: #0d9488; color: white; font-weight: 900; font-size: 13px; padding: 4px 9px; border-radius: 7px; font-family: 'Times New Roman', serif; letter-spacing: 0.5px;">
+          ℞
+        </span>
+
+        <!-- Doctor Input with Autocomplete -->
+        <div style="position: relative; min-width: 220px; flex: 1; display: flex; gap: 4px; align-items: center;">
+          <input 
+            type="text" 
+            class="form-control" 
+            [ngModel]="doctorName()" 
+            (ngModelChange)="doctorName.set($event)"
+            placeholder="👨‍⚕️ डॉक्टर (Dr. Name / Clinic)..." 
+            style="padding: 6px 10px; font-size: 12px; font-weight: 700; border-radius: 8px; border-color: #99f6e4; background: white; flex: 1;"
+            list="doctorsList"
+          >
+          <datalist id="doctorsList">
+            @for (doc of doctors(); track doc._id) {
+              <option [value]="doc.name + (doc.clinic ? ' (' + doc.clinic + ')' : '')">{{ doc.specialization ? doc.specialization + ' - ' : '' }}{{ doc.regNumber }}</option>
+            }
+          </datalist>
+          <button 
+            type="button" 
+            (click)="showDoctorModal = true"
+            class="btn btn-outline btn-xs" 
+            style="padding: 5px 8px; font-size: 11px; font-weight: 800; border-radius: 6px; background: white; color: #0d9488; border-color: #99f6e4;"
+            title="नया डॉक्टर रजिस्टर करें"
+          >
+            + डॉ
+          </button>
+        </div>
+
+        <!-- Patient Name Input -->
+        <div style="position: relative; min-width: 180px; flex: 1;">
+          <input 
+            type="text" 
+            class="form-control" 
+            [ngModel]="patientName()" 
+            (ngModelChange)="patientName.set($event)"
+            placeholder="🏥 मरीज का नाम (Patient)..." 
+            style="padding: 6px 10px; font-size: 12px; font-weight: 700; border-radius: 8px; border-color: #99f6e4; background: white;"
+          >
+        </div>
+
+        <!-- Patient Age / Gender Group -->
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <input 
+            type="text" 
+            class="form-control" 
+            [ngModel]="patientAge()" 
+            (ngModelChange)="patientAge.set($event)"
+            placeholder="उम्र" 
+            style="width: 55px; padding: 6px 4px; font-size: 12px; font-weight: 700; border-radius: 8px; border-color: #99f6e4; background: white; text-align: center;"
+          >
+          <select 
+            class="form-control" 
+            [ngModel]="patientGender()" 
+            (ngModelChange)="patientGender.set($event)"
+            style="width: 60px; padding: 6px 4px; font-size: 11.5px; font-weight: 700; border-radius: 8px; border-color: #99f6e4; background: white;"
+          >
+            <option value="">लिंग</option>
+            <option value="Male">M</option>
+            <option value="Female">F</option>
+            <option value="Other">O</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Prescription Ref & Toggle -->
+      <div class="flex items-center gap-2">
+        @if (isPrescriptionBill()) {
+          <input 
+            type="text" 
+            class="form-control" 
+            [ngModel]="prescriptionRef()" 
+            (ngModelChange)="prescriptionRef.set($event)"
+            placeholder="पर्चा नं. (Rx Ref)..." 
+            style="width: 120px; padding: 5px 8px; font-size: 11.5px; font-weight: 700; border-radius: 8px; border-color: #0d9488; background: white;"
+          />
+        }
+        <button 
+          type="button" 
+          (click)="isPrescriptionBill.set(!isPrescriptionBill())"
+          style="border: none; border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 800; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px;"
+          [style.background]="isPrescriptionBill() ? '#0d9488' : '#ccfbf1'"
+          [style.color]="isPrescriptionBill() ? 'white' : '#0f766e'"
+        >
+          <i class="fa-solid fa-file-prescription"></i>
+          <span>{{ isPrescriptionBill() ? '✓ पर्चा संलग्न (Rx)' : '+ पर्चा नंबर' }}</span>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- 🛒 3. LEFT MAIN POS PANEL: Search, Categories & Cart Table    -->
+  <!-- ============================================================== -->
+  <div class="billing-panel" style="display: flex; flex-direction: column; background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 2px 10px rgba(15,23,42,0.03);">
+    
+    <!-- Top Search Bar & Actions Ribbon -->
+    <div style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: #ffffff;" class="flex gap-2.5 items-center flex-wrap">
+      
+      <!-- Prominent POS Search Input -->
+      <div class="pos-search-box" style="position: relative; flex: 1; min-width: 260px;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #0d9488; font-size: 14px;"></i>
+        <input 
+          #searchInputEl
+          type="text" 
+          class="pos-search-input"
+          [placeholder]="shopConfig().specializedLabels.searchPlaceholder" 
+          [(ngModel)]="searchQuery" 
+          (ngModelChange)="searchProducts($event)"
+          (keydown.enter)="onBarcodeScan($event)"
+          style="width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-weight: 600; outline: none; transition: border-color 0.2s;"
+          onfocus="this.style.borderColor='#0d9488';"
+          onblur="this.style.borderColor='#cbd5e1';"
+        >
+
+        <!-- Dropdown search suggestions -->
+        <div *ngIf="showDropdown" class="card" style="position: absolute; left: 0; right: 0; top: 46px; z-index: 100; max-height: 320px; overflow-y: auto; box-shadow: 0 15px 35px rgba(15,23,42,0.15); border-radius: 12px; border: 1px solid #e2e8f0; background: white;">
+          <div class="card-body" style="padding: 6px;">
+            @if (searchResults().length > 1) {
+              <div 
+                style="padding: 8px 12px; background: #eef2ff; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;"
+                (click)="addAllToCart()"
+              >
+                <span style="font-weight: 800; color: #4f46e5; font-size: 12px;">
+                  <i class="fa-solid fa-cart-plus" style="margin-right: 4px;"></i>
+                  {{ lang.isHindi() ? 'सभी जोड़ें' : 'Add All' }} ({{ searchResults().length }} आइटम)
+                </span>
+                <span style="font-size: 10.5px; color: #6366f1; font-weight: 700;">क्लिक करें</span>
+              </div>
+            }
+            @for (prod of searchResults(); track prod._id) {
+              <div 
+                (click)="addToCart(prod)" 
+                style="padding: 9px 12px; border-bottom: 1px solid #f1f5f9; border-radius: 8px; cursor: pointer; transition: all 0.15s ease;"
+                onmouseover="this.style.background='#f0fdfa';"
+                onmouseout="this.style.background='transparent';"
+                class="flex justify-between items-center"
+              >
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span style="font-weight: 800; font-size: 13px; color: #0f172a;">{{ prod.name }}</span>
+                    @if (prod.genericName) {
+                      <span style="font-size: 10.5px; background: #f0fdfa; color: #0d9488; padding: 1px 6px; border-radius: 4px; border: 1px solid #ccfbf1; font-weight: 700;">
+                        🧪 {{ prod.genericName }}
+                      </span>
+                    }
+                  </div>
+                  <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                    @if (prod.batchNumber) { <strong>Batch: {{ prod.batchNumber }}</strong> &bull; }
+                    @if (prod.expiryDate) { <span>Exp: {{ prod.expiryDate | date:'MM/yy' }} &bull; </span> }
+                    @if (prod.rackLocation) { <span style="color: #0d9488;">📍 {{ prod.rackLocation }} &bull; </span> }
+                    MRP: ₹{{ prod.mrp || prod.sellingPrice }}
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <span style="display: block; font-size: 14px; font-weight: 900; color: #0d9488;">₹{{ prod.sellingPrice | number:'1.2-2' }}</span>
+                  <span class="badge" [ngClass]="prod.quantity > 0 ? 'badge-success' : 'badge-danger'" style="font-size: 9.5px; font-weight: 800;">
+                    {{ prod.quantity > 0 ? 'स्टॉक: ' + prod.quantity : 'Out of Stock (0)' }}
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons Strip -->
+      <div class="flex gap-2 items-center flex-wrap">
+        
+        <!-- ➕ 1-Click New Bill Button -->
+        <button 
+          type="button" 
+          class="btn btn-sm" 
+          (click)="startNewBill(true)"
+          style="background: #0d9488; color: white; font-weight: 800; font-size: 12px; border-radius: 8px; padding: 7px 14px; border: none; box-shadow: 0 2px 8px rgba(13,148,136,0.3);"
+          title="नया बिल शुरू करें (वर्तमान बिल होल्ड हो जाएगा)"
+        >
+          <i class="fa-solid fa-plus"></i> नया बिल
+        </button>
+
+        <!-- 📜 1-Click Fast Search Invoices / Customer Bills Modal -->
+        <button 
+          type="button" 
+          class="btn btn-sm" 
+          (click)="openInvoiceSearch()"
+          style="background: #eef2ff; color: #4338ca; border: 1.5px solid #c7d2fe; font-weight: 800; font-size: 12px; border-radius: 8px; padding: 7px 12px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;"
+          title="ग्राहक या बिल नंबर से पुराने बिल खोजें"
+        >
+          <i class="fa-solid fa-receipt text-primary"></i>
+          <span>📜 बिल खोजें</span>
+        </button>
+
+        <!-- 📂 Hold Bills Queue (F7) -->
+        <button 
+          type="button" 
+          class="btn btn-sm" 
+          (click)="showPendingBillsModal.set(true)"
+          style="background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; font-weight: 800; font-size: 12px; border-radius: 8px; padding: 7px 12px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;"
+          title="होल्ड बिल खोलें (F7)"
+        >
+          <i class="fa-solid fa-folder-open text-primary"></i>
+          <span>होल्ड (F7)</span>
+          @if (pendingBills().length > 0) {
+            <span class="badge badge-danger" style="font-size: 9.5px; padding: 1px 6px; border-radius: 10px; font-weight: 900;">{{ pendingBills().length }}</span>
+          }
+        </button>
+
+        <!-- Multi-Item Bulk Select Button -->
+        <button 
+          type="button" 
+          class="btn btn-sm" 
+          (click)="openBulkProductModal()"
+          style="background: #4f46e5; color: white; font-weight: 800; font-size: 12px; border-radius: 8px; padding: 7px 12px; border: none; box-shadow: 0 2px 8px rgba(79,70,229,0.25);"
+          title="एक साथ कई दवाइयां जोड़ें"
+        >
+          <i class="fa-solid fa-layer-group"></i> बल्क चयन
+        </button>
+
+        <!-- Custom Quick Item Button -->
+        <button 
+          type="button" 
+          class="btn btn-sm btn-outline" 
+          (click)="openCustomItemModal()"
+          style="font-size: 12px; font-weight: 700; border-radius: 8px; padding: 6px 10px; border-color: #cbd5e1;"
+          title="खुला सामान जोड़ें"
+        >
+          + खुला
+        </button>
+
+        <!-- Clear Cart Trash Button -->
+        @if (cart().length > 0) {
+          <button class="btn btn-outline btn-sm text-danger" (click)="clearCart(true)" title="कार्ट खाली करें" style="border-radius: 8px; padding: 6px 10px; border-color: #fee2e2; background: #fff1f2;">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- 🏷️ Clean Specialized Category Pills Ribbon (Hidden scrollbar) -->
+    <div style="padding: 6px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 6px; overflow-x: auto; white-space: nowrap; scrollbar-width: none;">
+      @for (cat of shopConfig().quickCategories; track cat) {
+        <button 
+          type="button"
+          (click)="selectCategoryTab(cat)"
+          style="border: 1px solid; border-radius: 14px; padding: 3px 11px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s;"
+          [style.background]="selectedCategoryTab() === cat ? shopConfig().accentColor : 'white'"
+          [style.color]="selectedCategoryTab() === cat ? 'white' : '#334155'"
+          [style.borderColor]="selectedCategoryTab() === cat ? shopConfig().accentColor : '#cbd5e1'"
+        >
+          {{ cat }}
+        </button>
+      }
+    </div>
+
+    <!-- Trade-Adaptive Fast Items Ribbon (Medical Fast Essentials) -->
+    @if (showFastItemsBar() && billingMode() === 'SALE' && quickFavorites().length > 0) {
+      <div style="padding: 5px 16px; background: #ffffff; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; gap: 6px; overflow-x: auto; white-space: nowrap; scrollbar-width: none;">
+        <span style="font-size: 10.5px; font-weight: 800; color: #64748b; display: inline-flex; align-items: center; gap: 3px; text-transform: uppercase;">
+          <i class="fa-solid fa-bolt text-warning"></i> त्वरित:
+        </span>
+        @for (fast of quickFavorites(); track fast.name) {
+          <button 
+            type="button" 
+            class="fast-item-chip"
+            (click)="addFastItemToCart(fast)"
+            style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 2px 9px; font-size: 11px; font-weight: 700; color: #334155; cursor: pointer; transition: all 0.15s;"
+            onmouseover="this.style.background='#f0fdfa'; this.style.borderColor='#99f6e4';"
+            onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#e2e8f0';"
+          >
+            <span>{{ fast.icon }}</span>
+            <span>{{ fast.name }}</span>
+            <span style="color: #0d9488; font-weight: 900; margin-left: 2px;">₹{{ fast.rate }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- ============================================================== -->
+    <!-- 📋 POS CART DATA TABLE AREA                                     -->
+    <!-- ============================================================== -->
+    <div class="pos-table-container" style="flex: 1; overflow-y: auto;">
+      @if (cart().length === 0) {
+        <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+          <div style="width: 64px; height: 64px; background: #f0fdfa; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid #ccfbf1;">
+            <i [class]="shopConfig().icon" style="font-size: 28px; color: #0d9488;"></i>
+          </div>
+          <h3 style="font-size: 16px; font-weight: 900; color: #0f172a; margin-bottom: 4px;">
+            {{ shopConfig().label }} {{ lang.isHindi() ? 'बिलिंग काउंटर तैयार है' : 'Billing Ready' }}
+          </h3>
+          <p style="font-size: 12px; color: #64748b; max-width: 380px; margin: 0 auto 14px auto;">
+            दवा का नाम, साल्ट (Generic Salt) या बारकोड सर्च करें अथवा शॉर्टकट कुंजी दबाएं
+          </p>
+          <div class="flex gap-2 justify-center flex-wrap" style="font-size: 11px; font-weight: 700; color: #64748b;">
+            <span style="background: #f1f5f9; padding: 3px 8px; border-radius: 6px;"><kbd style="color: #0d9488;">F1</kbd> सर्च</span>
+            <span style="background: #f1f5f9; padding: 3px 8px; border-radius: 6px;"><kbd style="color: #0d9488;">F7</kbd> होल्ड बिल</span>
+            <span style="background: #f1f5f9; padding: 3px 8px; border-radius: 6px;"><kbd style="color: #0d9488;">F8</kbd> नकद कैलकुलेटर</span>
+            <span style="background: #f1f5f9; padding: 3px 8px; border-radius: 6px;"><kbd style="color: #0d9488;">F9</kbd> बिल प्रिंट</span>
+          </div>
+        </div>
+      } @else {
+        <table class="pos-cart-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 11.5px; color: #475569; font-weight: 800;">
+              <th style="padding: 10px 14px; text-align: left;">{{ shopConfig().specializedLabels.itemLabel }}</th>
+              <th style="padding: 10px; width: 140px; text-align: center;">मात्रा (Qty)</th>
+              <th style="padding: 10px; width: 110px; text-align: right;">
+                {{ billingMode() === 'SALE' ? 'दर (Rate ₹)' : 'खरीद दर (₹)' }}
+              </th>
+              <th style="padding: 10px; width: 110px; text-align: center;">छूट (Disc)</th>
+              <th style="padding: 10px; width: 65px; text-align: center;">GST</th>
+              <th style="padding: 10px 14px; width: 115px; text-align: right;">कुल (Total ₹)</th>
+              <th style="width: 36px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of cart(); track item.productId; let idx = $index) {
+              <tr class="pos-cart-row" [style.background]="item.isBelowCost ? '#fff1f2' : 'transparent'" style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 14px;">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span style="font-weight: 800; font-size: 13px; color: #0f172a;">{{ item.productName }}</span>
+                    
+                    <!-- 💊 Medical: Expiry Live Badge -->
+                    @if (item.expiryDate && getExpiryBadge(item.expiryDate); as expBadge) {
+                      <span [style.background]="expBadge.bg" [style.color]="expBadge.color" style="font-size: 9.5px; font-weight: 800; padding: 1px 5px; border-radius: 4px;">
+                        {{ expBadge.label }}
+                      </span>
+                    }
+
+                    <!-- 💊 Medical: Batch Badge -->
+                    @if (item.batchNumber) {
+                      <span style="font-size: 9.5px; font-weight: 700; background: #f1f5f9; color: #334155; padding: 1px 5px; border-radius: 4px; font-family: monospace;">
+                        B:{{ item.batchNumber }}
+                      </span>
+                    }
+
+                    <!-- 💊 Multi-Batch FEFO Switcher -->
+                    @if (item.availableBatches && item.availableBatches.length > 1) {
+                      <div style="display: inline-flex; align-items: center; gap: 3px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 1px 5px;">
+                        <span style="font-size: 9px; font-weight: 800; color: #166534;">FEFO:</span>
+                        <select 
+                          [ngModel]="item.batchNumber" 
+                          (ngModelChange)="onBatchChange(item, $event)"
+                          style="font-size: 9.5px; font-weight: 800; border: none; background: transparent; color: #14532d; outline: none; cursor: pointer;"
+                        >
+                          @for (b of item.availableBatches; track b.batchNumber) {
+                            <option [value]="b.batchNumber">
+                              {{ b.batchNumber }} (Exp: {{ b.expiryDate | date:'MM/yy' }} | Stock: {{ b.quantity }})
+                            </option>
+                          }
+                        </select>
+                      </div>
+                    }
+
+                    <!-- Below Cost Warning Badge -->
+                    @if (item.isBelowCost) {
+                      <span class="badge badge-danger" style="font-size: 9px; font-weight: 800; padding: 1px 5px;" title="चेतावनी: खरीद रेट से कम में बिक रहा है!">
+                        <i class="fa-solid fa-triangle-exclamation"></i> लागत से कम
+                      </span>
+                    }
+                  </div>
+
+                  <!-- Medical Generic Salt & Rack location metadata -->
+                  <div class="flex items-center gap-2 mt-1 flex-wrap" style="font-size: 11px; color: #64748b;">
+                    @if (item.genericName) {
+                      <span style="color: #0d9488; font-weight: 700;">🧪 {{ item.genericName }}</span>
+                    }
+                    @if (item.rackLocation) {
+                      <span>&bull; 📍 {{ item.rackLocation }}</span>
+                    }
+                    @if (shopConfig().posFeatures.hasStripTablet) {
+                      <button 
+                        type="button" 
+                        (click)="toggleStripTablet(item)"
+                        style="border: 1px solid #ccfbf1; border-radius: 4px; padding: 0 5px; font-size: 9.5px; font-weight: 800; cursor: pointer; background: #f0fdfa; color: #0d9488;"
+                      >
+                        {{ item.isTabletUnit ? 'टैबलेट (Single)' : 'स्ट्रिप (Full)' }}
+                      </button>
+                    }
+                  </div>
+                </td>
+
+                <!-- Quantity Cell -->
+                <td style="padding: 8px; text-align: center;">
+                  <div class="qty-control" style="display: inline-flex; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;"
+                    [style.borderColor]="billingMode() === 'SALE' && item.stockQty !== undefined && item.quantity >= item.stockQty ? '#f59e0b' : '#cbd5e1'">
+                    <button type="button" class="qty-btn" (click)="updateQty(item, item.quantity - 1)" style="border: none; background: transparent; width: 26px; height: 26px; font-weight: 900; cursor: pointer;">-</button>
+                    <input 
+                      type="number" 
+                      class="qty-input" 
+                      [(ngModel)]="item.quantity" 
+                      (ngModelChange)="onQtyChange(item, $event)"
+                      min="1" 
+                      [max]="billingMode() === 'SALE' && item.stockQty !== undefined ? item.stockQty : null"
+                      style="width: 44px; text-align: center; border: none; font-weight: 800; font-size: 12.5px; outline: none; background: transparent;"
+                    >
+                    <button type="button" class="qty-btn" (click)="updateQty(item, item.quantity + 1)" style="border: none; background: transparent; width: 26px; height: 26px; font-weight: 900; cursor: pointer;">+</button>
+                  </div>
+                  @if (billingMode() === 'SALE' && item.stockQty !== undefined) {
+                    <div style="font-size: 9.5px; font-weight: 700; color: #64748b; margin-top: 2px;">
+                      उपलब्ध: <span [style.color]="item.quantity >= item.stockQty ? '#ea580c' : '#059669'">{{ item.stockQty }}</span>
+                    </div>
+                  }
+                  <!-- Purchase Inward Free Qty -->
+                  @if (billingMode() === 'PURCHASE') {
+                    <div style="display: flex; gap: 2px; align-items: center; justify-content: center; margin-top: 3px;">
+                      <span style="font-size: 9.5px; font-weight: 800; color: #2563eb;">+ Free:</span>
+                      <input type="number" [(ngModel)]="item.freeQuantity" placeholder="0" min="0" style="width: 38px; padding: 1px 3px; font-size: 10px; text-align: center; border: 1px solid #bfdbfe; border-radius: 4px;">
+                    </div>
+                  }
+                </td>
+
+                <!-- Rate Cell -->
+                <td style="padding: 8px; text-align: right;">
+                  <input 
+                    type="number" 
+                    [(ngModel)]="item.rate" 
+                    (ngModelChange)="onRateChange(item, $event)"
+                    style="width: 80px; text-align: right; font-size: 12.5px; font-weight: 800; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 6px;"
+                  >
+                </td>
+
+                <!-- Discount Cell -->
+                <td style="padding: 8px; text-align: center;">
+                  <div style="display: inline-flex; align-items: center; gap: 2px;">
+                    <input 
+                      type="number" 
+                      [(ngModel)]="item.discount" 
+                      (ngModelChange)="onDiscountChange(item, $event)"
+                      placeholder="0"
+                      min="0"
+                      style="width: 45px; text-align: center; font-size: 12px; font-weight: 700; padding: 4px; border: 1px solid #cbd5e1; border-radius: 6px;"
+                    >
+                    <button 
+                      type="button" 
+                      (click)="toggleDiscountType(item)"
+                      style="border: 1px solid #cbd5e1; background: #f1f5f9; border-radius: 4px; padding: 3px 5px; font-size: 10px; font-weight: 800; cursor: pointer;"
+                    >
+                      {{ item.discountType === 'PERCENT' ? '%' : '₹' }}
+                    </button>
+                  </div>
+                </td>
+
+                <!-- GST % Cell -->
+                <td style="padding: 8px; text-align: center; font-size: 12px; font-weight: 700; color: #64748b;">
+                  {{ item.gstPercent }}%
+                </td>
+
+                <!-- Total Cell -->
+                <td style="padding: 8px 14px; text-align: right; font-size: 13.5px; font-weight: 900; color: #0f172a;">
+                  ₹{{ item.total | number:'1.2-2' }}
+                </td>
+
+                <!-- Remove Button -->
+                <td style="padding: 8px 6px; text-align: center;">
+                  <button type="button" class="btn-remove-item" (click)="removeFromCart(item)" style="border: none; background: transparent; color: #ef4444; font-size: 13px; cursor: pointer;">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 💳 4. RIGHT CHECKOUT SIDEBAR PANEL                              -->
+  <!-- ============================================================== -->
+  <div class="billing-sidebar">
+    
+    <!-- Customer / Supplier Selector Card -->
+    @if (billingMode() === 'SALE') {
+      <div style="background: #f8fafc; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
+        <div class="flex justify-between items-center mb-2">
+          <label style="margin: 0; font-size: 11.5px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-user text-primary"></i> {{ lang.isHindi() ? 'ग्राहक' : 'Customer' }}
+          </label>
+          <button type="button" class="btn btn-outline btn-xs" (click)="showCustomerModal = true" style="padding: 2px 7px; font-size: 10.5px; border-radius: 6px; font-weight: 700; background: white;">
+            + {{ lang.isHindi() ? 'नया ग्राहक' : 'New' }}
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 6px;">
+          <input 
+            type="text" 
+            class="form-control" 
+            style="font-size: 11.5px; font-weight: 700; padding: 5px 8px; border-radius: 6px; background: white; flex: 1;"
+            [ngModel]="selectedCustomerName" 
+            (ngModelChange)="onCustomerNameInput($event)"
+            [placeholder]="lang.isHindi() ? 'ग्राहक का नाम दर्ज करें' : 'Customer Name'"
+          >
+          <input 
+            type="text" 
+            class="form-control" 
+            style="font-size: 11.5px; font-weight: 700; padding: 5px 8px; border-radius: 6px; background: white; width: 115px;"
+            [ngModel]="selectedCustomerMobile" 
+            (ngModelChange)="onCustomerMobileInput($event)"
+            [placeholder]="lang.isHindi() ? 'मोबाइल नंबर' : 'Mobile No'"
+            maxlength="10"
+          >
+        </div>
+
+        <!-- 🚨 PROMINENT PREVIOUS DUE (PURANA UDHAAR) ALERT BOX -->
+        @if (selectedCustomerBalance() > 0) {
+          <div style="margin-top: 8px; background: linear-gradient(135deg, #fff7ed, #ffedd5); border: 2px solid #ea580c; border-radius: 8px; padding: 8px 10px; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.12); animation: fadeIn 0.2s ease;">
+            
+            <div class="flex justify-between items-center mb-1">
+              <span style="font-size: 11.5px; font-weight: 900; color: #9a3412; display: flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ea580c;"></i>
+                {{ lang.isHindi() ? 'पुराना बकाया अलर्ट!' : 'Previous Due Alert!' }}
+              </span>
+              <span style="background: #ea580c; color: white; font-weight: 900; font-size: 11.5px; padding: 2px 7px; border-radius: 6px;">
+                ₹{{ selectedCustomerBalance() | number:'1.2-2' }}
+              </span>
+            </div>
+
+            <div style="font-size: 11px; color: #7c2d12; font-weight: 600; margin-bottom: 6px;">
+              {{ lang.isHindi() 
+                  ? 'ग्राहक का ₹' + (selectedCustomerBalance() | number:'1.2-2') + ' पिछला उधार बाकी है।' 
+                  : 'Customer has ₹' + (selectedCustomerBalance() | number:'1.2-2') + ' previous pending due.' }}
+            </div>
+
+            <!-- Option 1: Add Previous Due to this Bill -->
+            <label class="flex items-center gap-2" style="background: white; border: 1.5px solid #ea580c; border-radius: 6px; padding: 5px 8px; cursor: pointer; user-select: none; margin-bottom: 5px;">
+              <input 
+                type="checkbox" 
+                [checked]="includePreviousDue()" 
+                (change)="toggleIncludePreviousDue()"
+                style="width: 16px; height: 16px; accent-color: #ea580c;"
+              >
+              <span style="font-size: 11px; font-weight: 800; color: #9a3412;">
+                {{ lang.isHindi() ? '➕ इस बिल में पुराना बकाया जोड़ें' : '➕ Add Previous Due to this Bill' }}
+              </span>
+            </label>
+
+            <!-- Option 2: Settle Separately Button -->
+            <button 
+              type="button" 
+              class="btn btn-xs" 
+              (click)="openCollectDueModal()"
+              style="width: 100%; background: #16a34a; color: white; font-weight: 800; font-size: 10.5px; border-radius: 6px; padding: 4px; border: none; display: flex; align-items: center; justify-content: center; gap: 4px;"
+            >
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+              {{ lang.isHindi() ? '💵 पुराना बकाया अभी जमा करें' : '💵 Settle / Collect Due Now' }}
+            </button>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Purchase Supplier Card -->
+      <div style="background: #eff6ff; padding: 10px 12px; border-radius: 10px; border: 1px solid #bfdbfe;">
+        <div class="flex justify-between items-center mb-2">
+          <label style="margin: 0; font-size: 11.5px; font-weight: 800; color: #1e40af; display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-truck-field"></i> {{ lang.isHindi() ? 'सप्लायर' : 'Supplier' }}
+          </label>
+          <button type="button" class="btn btn-outline btn-xs" (click)="showSupplierModal = true" style="padding: 2px 7px; font-size: 10.5px; border-radius: 6px; font-weight: 700; background: white;">
+            + {{ lang.isHindi() ? 'नया' : 'New' }}
+          </button>
+        </div>
+
+        <select 
+          class="form-control" 
+          [ngModel]="selectedSupplierId" 
+          (ngModelChange)="onSupplierChange($event)" 
+          style="font-size: 11.5px; font-weight: 700; margin-bottom: 6px; background: white; border-radius: 6px; padding: 5px 8px;"
+        >
+          <option value="">{{ lang.isHindi() ? '-- सप्लायर चुनें --' : '-- Select Supplier --' }}</option>
+          @for (sup of suppliers(); track sup._id) {
+            <option [value]="sup._id">{{ sup.name }} {{ sup.companyName ? '(' + sup.companyName + ')' : '' }}</option>
+          }
+        </select>
+
+        <div class="flex gap-2">
+          <input type="text" class="form-control" style="font-size: 11.5px; padding: 4px 6px; background: white; border-radius: 6px; width: 85px;" [(ngModel)]="supplierInvoiceNo" [placeholder]="lang.isHindi() ? 'बिल नं.' : 'Bill No'">
+          <input type="text" class="form-control" style="font-size: 11.5px; padding: 4px 6px; background: white; border-radius: 6px; flex: 1;" [(ngModel)]="selectedSupplierName" [placeholder]="lang.isHindi() ? 'सप्लायर नाम' : 'Supplier Name'">
+        </div>
+      </div>
+    }
+
+    <!-- 💎 GRAND TOTAL HERO DISPLAY CARD -->
+    <div class="grand-total-hero">
+      <div class="flex justify-between items-center" style="margin-bottom: 2px;">
+        <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8;">
+          {{ lang.isHindi() ? 'कुल देय राशि' : 'Net Payable Amount' }}
+        </span>
+        <span style="font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 12px; background: rgba(16,185,129,0.25); color: #34d399;">
+          🛒 {{ cart().length }} Items
+        </span>
+      </div>
+      
+      <div class="hero-amount">
+        ₹{{ grandTotal | number:'1.2-2' }}
+      </div>
+
+      <!-- Item Total + Previous Due Breakdown if included -->
+      @if (includePreviousDue() && selectedCustomerBalance() > 0) {
+        <div style="background: rgba(234,88,12,0.2); border-radius: 6px; padding: 4px 8px; margin-top: 6px; font-size: 11px; color: #fed7aa; display: flex; justify-content: space-between;">
+          <span>नया बिल: ₹{{ (subtotal + totalGst) | number:'1.2-2' }}</span>
+          <span>+ पिछला बकाया: <strong>₹{{ selectedCustomerBalance() | number:'1.2-2' }}</strong></span>
+        </div>
+      }
+
+      <div class="flex justify-between items-center" style="margin-top: 6px; font-size: 11.5px; color: #cbd5e1; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 6px;">
+        <span>Subtotal: <strong style="color: #ffffff;">₹{{ subtotal | number:'1.2-2' }}</strong></span>
+        <span>GST: <strong style="color: #ffffff;">₹{{ totalGst | number:'1.2-2' }}</strong></span>
+      </div>
+    </div>
+
+    <!-- Payment Modes Grid -->
+    <div>
+      <label style="font-size: 11px; font-weight: 800; color: #475569; margin-bottom: 4px; display: block;">
+        {{ lang.isHindi() ? 'भुगतान का तरीका' : 'Payment Mode' }}
+      </label>
+      
+      <div class="pay-pill-grid">
+        <div class="pay-pill" [class.active]="paymentMethod === 'CASH'" (click)="setPaymentMethod('CASH')">
+          <i class="fa-solid fa-money-bill-1" style="color: #10b981;"></i> Cash
+        </div>
+        <div class="pay-pill" [class.active]="paymentMethod === 'UPI'" (click)="setPaymentMethod('UPI')">
+          <i class="fa-solid fa-qrcode" style="color: #6366f1;"></i> UPI QR
+        </div>
+        <div class="pay-pill" [class.active]="paymentMethod === 'CARD'" (click)="setPaymentMethod('CARD')">
+          <i class="fa-solid fa-credit-card" style="color: #3b82f6;"></i> Card
+        </div>
+        <div class="pay-pill" [class.active]="paymentMethod === 'CREDIT'" (click)="setPaymentMethod('CREDIT')">
+          <i class="fa-solid fa-hand-holding-dollar" style="color: #ef4444;"></i> Udhaar
+        </div>
+      </div>
+    </div>
+
+    <!-- 💵 INLINE CASH CALCULATOR (Visible when Cash payment selected) -->
+    @if (paymentMethod === 'CASH' && billingMode() === 'SALE' && cart().length > 0) {
+      <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #22c55e; border-radius: 12px; padding: 12px 14px; animation: fadeIn 0.2s ease;">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-2">
+          <span style="font-size: 11.5px; font-weight: 900; color: #15803d; display: flex; align-items: center; gap: 5px;">
+            <i class="fa-solid fa-calculator" style="color: #16a34a;"></i> 💵 नकद कैलकुलेटर (Cash Calc)
+          </span>
+          <span style="font-size: 10px; font-weight: 700; color: #166534; background: #bbf7d0; padding: 2px 7px; border-radius: 10px;">
+            बिल: <strong>₹{{ grandTotal | number:'1.2-2' }}</strong>
+          </span>
+        </div>
+
+        <!-- Cash Received Input -->
+        <div style="position: relative; margin-bottom: 10px;">
+          <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 16px; font-weight: 900; color: #15803d; z-index: 1;">₹</span>
+          <input 
+            type="number" 
+            class="form-control"
+            [ngModel]="cashReceived()"
+            (ngModelChange)="onCashReceivedInput($event)"
+            placeholder="ग्राहक ने दिए (Cash Given)..."
+            style="padding-left: 28px; font-size: 18px; font-weight: 900; height: 44px; border: 2px solid #22c55e; border-radius: 8px; color: #0f172a; background: white; width: 100%;"
+            autofocus
+          >
+        </div>
+
+        <!-- Quick Note Chips -->
+        <div class="flex gap-1 flex-wrap mb-2">
+          <button type="button" (click)="setCashTender(grandTotal)" style="background: #4ade80; color: #14532d; border: none; border-radius: 6px; padding: 3px 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">
+            Exact
+          </button>
+          @for (note of [100, 200, 500, 1000, 2000]; track note) {
+            @if (note >= grandTotal || note === 500) {
+              <button type="button" (click)="setCashTender(note)" 
+                style="background: white; color: #166534; border: 1px solid #86efac; border-radius: 6px; padding: 3px 8px; font-size: 10.5px; font-weight: 700; cursor: pointer;">
+                ₹{{ note }}
+              </button>
+            }
+          }
+        </div>
+
+        <!-- Change Return Display -->
+        <div [style.background]="cashReceived() > 0 && cashReceived() < grandTotal ? '#fef2f2' : '#166534'" 
+             [style.borderColor]="cashReceived() > 0 && cashReceived() < grandTotal ? '#fca5a5' : '#15803d'"
+             style="border: 2px solid; border-radius: 10px; padding: 10px 14px; text-align: center; transition: all 0.2s;">
+          
+          @if (cashReceived() === 0) {
+            <div style="color: #d1fae5; font-size: 12px; font-weight: 700; opacity: 0.8;">
+              ↑ ग्राहक ने कितने दिए, ऊपर डालें
+            </div>
+          } @else if (cashReceived() < grandTotal) {
+            <div style="color: #dc2626; font-size: 11.5px; font-weight: 800;">
+              ⚠️ ₹{{ (grandTotal - cashReceived()) | number:'1.2-2' }} कम है (Short)
+            </div>
+          } @else {
+            <div style="color: #bbf7d0; font-size: 11px; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px;">
+              वापस दें (Change Return)
+            </div>
+            <div style="font-size: 28px; font-weight: 900; color: #fef08a; line-height: 1.1;">
+              ₹{{ changeReturn() | number:'1.2-2' }}
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Main Checkout CTA Actions -->
+    <div class="flex gap-2" style="margin-top: auto; flex-direction: column;">
+      @if (billingMode() === 'SALE') {
+        <!-- Secondary Actions Row -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <button 
+            type="button" 
+            class="btn btn-outline btn-sm" 
+            (click)="shareBillOnWhatsApp()" 
+            [disabled]="cart().length === 0"
+            style="border-color: #22c55e; color: #15803d; font-weight: 800; font-size: 11px; background: #f0fdf4; border-radius: 8px; padding: 6px;"
+          >
+            <i class="fa-brands fa-whatsapp" style="color: #22c55e;"></i> WhatsApp
+          </button>
+
+          <button 
+            type="button"
+            class="btn btn-sm" 
+            (click)="openPaymentQrModal()" 
+            [disabled]="submitting || cart().length === 0" 
+            style="background: #4f46e5; color: white; font-weight: 800; font-size: 11px; border: none; border-radius: 8px; padding: 6px;"
+          >
+            <i class="fa-solid fa-qrcode"></i> UPI QR
+          </button>
+        </div>
+
+        <!-- Complete Sale & Print Bill (F9) -->
+        <button 
+          class="btn btn-success btn-lg w-full" 
+          (click)="submitBill()" 
+          [disabled]="submitting || cart().length === 0" 
+          [style.background]="editingSaleId() ? 'linear-gradient(135deg, #ea580c, #c2410c)' : 'linear-gradient(135deg, #0d9488, #0f766e)'"
+          style="font-weight: 900; font-size: 14px; border-radius: 10px; padding: 11px; box-shadow: 0 4px 14px rgba(13,148,136,0.3); border: none; cursor: pointer;"
+        >
+          @if (submitting) {
+            <div class="spinner spinner-sm"></div> {{ editingSaleId() ? 'Updating...' : 'Generating...' }}
+          } @else if (editingSaleId()) {
+            <i class="fa-solid fa-floppy-disk"></i> ✏️ बिल अपडेट करें (Update Invoice)
+          } @else {
+            <i class="fa-solid fa-print"></i> 🛒 बिल प्रिंट करें (F9)
+          }
+        </button>
+      } @else {
+        <!-- Purchase Mode Submit Button -->
+        <button 
+          class="btn btn-primary btn-lg w-full" 
+          (click)="submitBill()" 
+          [disabled]="submitting || cart().length === 0" 
+          style="background: linear-gradient(135deg, #2563eb, #1d4ed8); font-weight: 900; font-size: 14.5px; border: none; border-radius: 10px; padding: 12px; box-shadow: 0 4px 15px rgba(37,99,235,0.3);"
+        >
+          @if (submitting) {
+            <div class="spinner spinner-sm"></div> Saving Purchase Bill...
+          } @else {
+            <i class="fa-solid fa-boxes-packing"></i> {{ lang.isHindi() ? '📦 खरीद बिल सुरक्षित करें (F9)' : '📦 Save Purchase Bill (F9)' }}
+          }
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Bottom Legend Ribbon -->
+  <div style="grid-column: 1 / -1; background: #0f172a; color: white; padding: 8px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 11.5px; border-radius: 0 0 8px 8px;">
+    <div class="flex items-center gap-3 flex-wrap">
+      <span style="color: #94a3b8; font-weight: 700;"><i class="fa-solid fa-keyboard text-primary"></i> POS Shortcuts:</span>
+      <span><kbd style="background: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 800; color: #38bdf8;">F1</kbd> Search / Barcode</span>
+      <span><kbd style="background: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 800; color: #38bdf8;">F2</kbd> New Customer</span>
+      <span><kbd style="background: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 800; color: #38bdf8;">F4</kbd> UPI QR</span>
+      <span><kbd style="background: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 800; color: #38bdf8;">F6</kbd> Hold Bill</span>
+      <span><kbd style="background: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 800; color: #38bdf8;">F7</kbd> Pending Bills</span>
+      <span><kbd style="background: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 800; color: #38bdf8;">F8</kbd> Change Calc</span>
+      <span><kbd style="background: #16a34a; padding: 2px 6px; border-radius: 4px; font-weight: 800; color: white;">F9</kbd> Save & Print</span>
+      <span><kbd style="background: #ef4444; padding: 2px 6px; border-radius: 4px; font-weight: 800; color: white;">ESC</kbd> Close Popup</span>
+    </div>
+    <div style="color: #94a3b8; font-size: 11px;">
+      <i class="fa-solid fa-shield-halved text-success"></i> Auto-Draft Protected
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 💳 DYNAMIC LIVE UPI QR CODE & PAYMENT MODAL -->
+<!-- ========================================== -->
+@if (showPaymentQrModal()) {
+  <div class="modal-overlay" (click)="showPaymentQrModal.set(false)" style="display: flex; align-items: center; justify-content: center; z-index: 9999; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(6px);">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 380px; width: 92%; max-height: 92vh; overflow-y: auto; border-radius: 24px; overflow-x: hidden; padding: 0; box-shadow: 0 25px 60px rgba(0,0,0,0.5); border: 2px solid rgba(95,37,159,0.3); background: #ffffff;">
+      
+      <!-- PhonePe Style Header -->
+      <div style="background: linear-gradient(135deg, #4d148c, #5f259f); color: white; padding: 18px 20px 14px; text-align: center; position: relative;">
+        <button (click)="showPaymentQrModal.set(false)" style="position: absolute; top: 12px; right: 14px; background: rgba(255,255,255,0.2); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">&times;</button>
+        
+        <!-- PhonePe Logo Header -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px;">
+          <div style="width: 32px; height: 32px; background: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+            <span style="color: #5f259f; font-weight: 900; font-size: 19px; line-height: 1;">पे</span>
+          </div>
+          <span style="font-size: 20px; font-weight: 900; letter-spacing: -0.3px; color: #ffffff;">PhonePe</span>
+        </div>
+        
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #c084fc; text-transform: uppercase;">
+          ACCEPTED HERE
+        </div>
+        <div style="font-size: 11px; color: rgba(255,255,255,0.85); margin-top: 2px;">
+          Scan & Pay Using Any UPI App
+        </div>
+
+        <!-- Grand Total Badge -->
+        <div style="margin-top: 12px; background: rgba(255,255,255,0.15); border-radius: 12px; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.9);">भुगतान राशि:</span>
+          <span style="font-size: 22px; font-weight: 900; color: #a7f3d0; letter-spacing: -0.5px;">₹{{ grandTotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <!-- Scanner Body -->
+      <div style="padding: 20px 18px 16px; text-align: center; background: #ffffff;">
+        
+        <!-- QR Code Container with Center Logo -->
+        <div style="background: white; display: inline-block; padding: 12px; border-radius: 18px; border: 2.5px solid #5f259f; box-shadow: 0 10px 30px -5px rgba(95,37,159,0.2); position: relative; margin-bottom: 8px;">
+          @if (qrCodeImageUrl()) {
+            <div style="position: relative; display: inline-block;">
+              <img 
+                [src]="qrCodeImageUrl()" 
+                alt="Payment Scanner" 
+                style="width: 210px; height: 210px; display: block; margin: 0 auto; border-radius: 8px;"
+              >
+              <!-- Center PhonePe Badge -->
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: #5f259f; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.3); pointer-events: none;">
+                <span style="color: white; font-weight: 900; font-size: 21px; line-height: 1;">पे</span>
+              </div>
+            </div>
+          } @else {
+            <div style="width: 210px; height: 210px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px;">
+              <div class="spinner spinner-sm"></div>
+            </div>
+          }
+        </div>
+
+        <!-- Payee Name - Clean & Prominent -->
+        <div style="margin-top: 10px; margin-bottom: 12px;">
+          <div style="font-size: 21px; font-weight: 900; color: #0f172a; letter-spacing: -0.2px;">
+            {{ shopUpiName() || shop()?.upiName || shop()?.ownerName || shop()?.name || 'UPI Pay' }}
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 3px;" *ngIf="shopUpiId() || shop()?.upiId">
+            <span style="font-size: 12px; font-weight: 700; color: #64748b; font-family: monospace;">{{ shopUpiId() || shop()?.upiId }}</span>
+            <button type="button" class="btn btn-xs" (click)="copyUpiLink()" title="Copy UPI ID" style="padding: 2px 6px; font-size: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; color: #334155;">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 🚀 1-CLICK INSTANT CONFIRMATION & SOUNDBOX BUTTON (PRIMARY) -->
+        <button 
+          type="button" 
+          class="btn w-full mb-2" 
+          (click)="confirmAndSaveBill()"
+          [disabled]="submitting"
+          style="font-weight: 900; font-size: 15px; border-radius: 12px; padding: 13px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; box-shadow: 0 6px 20px rgba(16,185,129,0.4); cursor: pointer;"
+        >
+          <i class="fa-solid fa-circle-check" style="margin-right: 6px; font-size: 17px;"></i> 
+          ✅ पेमेंट हो गया (Save Bill - F9)
+        </button>
+
+        <div style="display: flex; gap: 8px;">
+          <button 
+            type="button" 
+            class="btn btn-outline btn-xs w-full" 
+            (click)="showPaymentQrModal.set(false)"
+            style="font-size: 11.5px; font-weight: 700; color: #64748b; border-color: #e2e8f0; padding: 7px;"
+          >
+            <i class="fa-solid fa-xmark"></i> बंद करें (Close)
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-outline btn-xs w-full" 
+            (click)="payViaRazorpay()"
+            [disabled]="isRazorpayLoading()"
+            style="font-size: 11px; font-weight: 700; color: #475569; border-color: #e2e8f0; padding: 7px;"
+          >
+            <i class="fa-solid fa-credit-card"></i> Other Cards/NetBanking
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ======================================================== -->
+<!-- 🎉 FULLSCREEN PAYMENT SUCCESSFUL CELEBRATION OVERLAY      -->
+<!-- ======================================================== -->
+@if (showPaymentSuccessOverlay()) {
+  <div style="position: fixed; inset: 0; background: rgba(15,23,42,0.92); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #064e3b, #022c22); border: 2px solid #10b981; border-radius: 28px; padding: 36px 30px; max-width: 440px; width: 100%; text-align: center; color: white; box-shadow: 0 25px 60px rgba(16,185,129,0.35); animation: cardFadeIn 0.3s ease;">
+      
+      <!-- Pulsating Green Shield Icon -->
+      <div style="width: 90px; height: 90px; margin: 0 auto 18px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 40px rgba(16,185,129,0.7); animation: bounce 0.6s infinite alternate;">
+        <i class="fa-solid fa-check" style="font-size: 48px; color: white;"></i>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px;">
+        <span style="font-size: 18px;">🔊</span>
+        <span style="font-size: 13px; font-weight: 800; color: #6ee7b7; letter-spacing: 1px; text-transform: uppercase;">
+          Smart Soundbox Announcement
+        </span>
+      </div>
+
+      <h2 style="font-size: 26px; font-weight: 900; color: #ffffff; margin: 0 0 8px 0; letter-spacing: -0.5px;">
+        Payment Successful!
+      </h2>
+
+      <p style="font-size: 13.5px; color: #a7f3d0; margin: 0 0 16px 0;">
+        {{ shop()?.name || 'दुकान' }} पर UPI से भुगतान प्राप्त हुआ
+      </p>
+
+      <!-- Big Highlighted Amount Badge -->
+      <div style="background: rgba(255,255,255,0.12); border: 1.5px solid rgba(52,211,153,0.4); border-radius: 16px; padding: 14px; margin-bottom: 20px;">
+        <div style="font-size: 11.5px; color: #a7f3d0; font-weight: 700;">प्राप्त राशि (Amount Received):</div>
+        <div style="font-size: 34px; font-weight: 900; color: #34d399; letter-spacing: -1px; margin-top: 2px;">
+          ₹{{ successAnnouncedAmount() | number:'1.2-2' }}
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: #6ee7b7; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <i class="fa-solid fa-circle-notch fa-spin"></i> बिल तैयार हो रहा है...
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- Modal Quick Customer Add -->
+@if (showCustomerModal) {
+  <div class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Register New Customer</h3>
+        <button class="modal-close" (click)="showCustomerModal = false">&times;</button>
+      </div>
+      <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Customer Name <span class="required">*</span></label>
+            <input type="text" formControlName="name" class="form-control" placeholder="Full name">
+            @if (customerForm.get('name')?.touched && customerForm.get('name')?.invalid) {
+              <div class="form-error">Customer name is required.</div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Mobile Number <span class="required">*</span></label>
+            <input type="text" formControlName="mobile" class="form-control" placeholder="10 digit number">
+            @if (customerForm.get('mobile')?.touched && customerForm.get('mobile')?.invalid) {
+              <div class="form-error">Enter a valid 10-digit mobile number.</div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input type="email" formControlName="email" class="form-control" placeholder="email@domain.com">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">GSTIN</label>
+            <input type="text" formControlName="gstin" class="form-control" placeholder="e.g. 07AAAAA1111A1Z1" style="text-transform: uppercase;">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Address</label>
+            <textarea formControlName="address" class="form-control" placeholder="Full Billing Address" style="min-height: 48px;"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showCustomerModal = false">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- 📦 1. PENDING / HELD BILLS MODAL -->
+<!-- ========================================== -->
+@if (showPendingBillsModal()) {
+  <div class="modal-overlay" (click)="showPendingBillsModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 600px; border-radius: 14px; overflow: hidden; padding: 0;">
+      <div class="modal-header" style="background: #1e1b4b; color: white; padding: 16px 20px;">
+        <div class="flex items-center gap-2">
+          <span style="font-size: 20px;">📦</span>
+          <div>
+            <h3 class="modal-title" style="color: white; margin: 0; font-size: 17px;">Pending / Held Bills (पेंडिंग बिल बॉक्स)</h3>
+            <p style="margin: 0; font-size: 11.5px; color: rgba(255,255,255,0.8);">कुल {{ pendingBills().length }} पेंडिंग बिल सुरक्षित हैं</p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="showPendingBillsModal.set(false)" style="color: white;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px; max-height: 420px; overflow-y: auto;">
+        @if (pendingBills().length === 0) {
+          <div class="empty-state" style="padding: 40px 20px;">
+            <i class="fa-solid fa-box-open" style="font-size: 42px; color: #9ca3af; margin-bottom: 12px;"></i>
+            <h4>कोई पेंडिंग बिल नहीं है</h4>
+            <p style="font-size: 12px; color: #6b7280;">जब भी कोई कस्टमर सामान चुन रहा हो, आप <strong>"बिल होल्ड करें"</strong> दबाकर उसे यहाँ सुरक्षित रख सकते हैं।</p>
+          </div>
+        } @else {
+          <div class="flex gap-2" style="flex-direction: column;">
+            @for (bill of pendingBills(); track bill.id) {
+              <div 
+                style="background: white; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);"
+                class="flex justify-between items-center gap-3"
+              >
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <span style="font-weight: 800; font-size: 14px; color: #1f2937;">👤 {{ bill.customerName }}</span>
+                    @if (bill.customerMobile) {
+                      <span class="badge" style="background: #f3f4f6; color: #4b5563; font-size: 11px;">📱 {{ bill.customerMobile }}</span>
+                    }
+                  </div>
+                  <div style="font-size: 12px; color: #6b7280;">
+                    <span>📦 <strong>{{ bill.itemCount }} आइटम्स</strong></span> | 
+                    <span class="font-bold text-success" style="font-size: 13px;">₹{{ bill.grandTotal | number:'1.2-2' }}</span> | 
+                    <span style="font-size: 11px;">⏱️ {{ bill.timestamp | date:'shortTime' }}</span>
+                  </div>
+                </div>
+
+                <div class="flex gap-2 items-center">
+                  <button 
+                    type="button" 
+                    class="btn btn-sm btn-primary" 
+                    (click)="restorePendingBill(bill)"
+                    style="font-weight: 700; font-size: 12px; padding: 6px 14px;"
+                  >
+                    <i class="fa-solid fa-arrow-rotate-left"></i> बिल खोलें
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-sm btn-outline text-danger" 
+                    (click)="deletePendingBill(bill.id, $event)"
+                    style="padding: 6px 10px;"
+                    title="हटाएं"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 20px; background: #f9fafb;">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="showPendingBillsModal.set(false)">बंद करें (Close)</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- 🛍️ 2. MULTIPLE PRODUCTS BULK SELECTOR MODAL -->
+<!-- ========================================== -->
+@if (showBulkModal()) {
+  <div class="modal-overlay" (click)="showBulkModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 800px; width: 95%; border-radius: 14px; overflow: hidden; padding: 0;">
+      
+      <!-- Modal Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #312e81, #4f46e5); color: white; padding: 16px 20px;">
+        <div>
+          <h3 class="modal-title" style="color: white; margin: 0; font-size: 17px;">
+            <i class="fa-solid fa-layer-group"></i> मल्टीपल प्रोडक्ट चयन (Bulk Add to Cart)
+          </h3>
+          <p style="margin: 0; font-size: 11.5px; color: rgba(255,255,255,0.85);">
+            एक साथ जितने चाहें उतने प्रोडक्ट्स और उनकी क्वांटिटी चुनकर बिल में जोड़ें
+          </p>
+        </div>
+        <button class="modal-close" (click)="showBulkModal.set(false)" style="color: white;">&times;</button>
+      </div>
+
+      <!-- Filters & Search Bar -->
+      <div style="padding: 12px 20px; background: #f3f4f6; border-bottom: 1px solid #e5e7eb;" class="flex gap-2 items-center flex-wrap">
+        <div style="flex: 1; min-width: 200px;">
+          <input 
+            type="text" 
+            class="form-control" 
+            placeholder="Search products by name, SKU or barcode..." 
+            [(ngModel)]="bulkSearchText"
+            (ngModelChange)="filterBulkProducts()"
+            style="padding: 6px 12px; font-size: 12.5px;"
+          >
+        </div>
+
+        <select 
+          class="form-control" 
+          [(ngModel)]="bulkCategoryFilter"
+          (ngModelChange)="filterBulkProducts()"
+          style="width: 170px; padding: 6px 10px; font-size: 12px;"
+        >
+          <option value="ALL">📁 सभी कैटेगरी (All)</option>
+          @for (cat of bulkCategories(); track cat) {
+            <option [value]="cat">{{ cat }}</option>
+          }
+        </select>
+
+        <div class="flex gap-1">
+          <button type="button" class="btn btn-sm btn-outline" (click)="selectAllBulkFiltered(true)" style="font-size: 11px;">
+            सब चुनें (Select All)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline" (click)="selectAllBulkFiltered(false)" style="font-size: 11px;">
+            हटाएं (Clear)
+          </button>
+        </div>
+      </div>
+
+      <!-- Products Grid / Table -->
+      <div style="padding: 12px 20px; max-height: 420px; overflow-y: auto;">
+        @if (bulkFilteredProducts().length === 0) {
+          <div class="empty-state" style="padding: 30px;">
+            <p>कोई प्रोडक्ट नहीं मिला।</p>
+          </div>
+        } @else {
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px;">
+            @for (prod of bulkFilteredProducts(); track prod._id) {
+              <div 
+                (click)="toggleBulkItem(prod)"
+                [style.borderColor]="isBulkItemSelected(prod._id) ? '#4f46e5' : '#e5e7eb'"
+                [style.background]="isBulkItemSelected(prod._id) ? '#eef2ff' : 'white'"
+                style="border: 2px solid; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.15s ease;"
+                class="flex flex-col justify-between"
+              >
+                <div>
+                  <div class="flex justify-between items-start gap-2 mb-1">
+                    <span style="font-weight: 700; font-size: 13px; color: #1f2937; line-height: 1.3;">{{ prod.name }}</span>
+                    <input 
+                      type="checkbox" 
+                      [checked]="isBulkItemSelected(prod._id)"
+                      (click)="$event.stopPropagation(); toggleBulkItem(prod);"
+                      style="width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer;"
+                    >
+                  </div>
+                  <div style="font-size: 11px; color: #6b7280; margin-bottom: 6px;">
+                    {{ prod.category ? prod.category + ' | ' : '' }}Stock: <strong [style.color]="prod.quantity > 0 ? '#10b981' : '#ef4444'">{{ prod.quantity }} {{ prod.unit || 'PCS' }}</strong>
+                  </div>
+                </div>
+
+                <div class="flex justify-between items-center mt-2 pt-2" style="border-top: 1px dashed #e5e7eb;">
+                  <span style="font-size: 14px; font-weight: 800; color: #4f46e5;">₹{{ prod.sellingPrice | number:'1.2-2' }}</span>
+
+                  <!-- Quantity selector if selected -->
+                  @if (isBulkItemSelected(prod._id)) {
+                    <div class="flex items-center gap-1" (click)="$event.stopPropagation()">
+                      <button 
+                        type="button" 
+                        class="qty-btn" 
+                        (click)="updateBulkQty(prod._id, -1, false, $event)"
+                        style="width: 24px; height: 24px; font-size: 12px;"
+                      >-</button>
+                      <span style="font-weight: 800; font-size: 13px; min-width: 20px; text-align: center;">
+                        {{ getBulkItemQty(prod._id) }}
+                      </span>
+                      <button 
+                        type="button" 
+                        class="qty-btn" 
+                        (click)="updateBulkQty(prod._id, 1, false, $event)"
+                        style="width: 24px; height: 24px; font-size: 12px;"
+                      >+</button>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Footer Action -->
+      <div class="modal-footer" style="padding: 14px 20px; background: #f9fafb;" class="flex justify-between items-center">
+        <div style="font-size: 13px; font-weight: 700; color: #4f46e5;">
+          चयनित: <strong>{{ getSelectedBulkCount() }} प्रोडक्ट्स</strong>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" class="btn btn-secondary" (click)="showBulkModal.set(false)">रद्द करें</button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="applyBulkSelectionToCart()"
+            [disabled]="getSelectedBulkCount() === 0"
+            style="font-weight: 800; padding: 8px 20px;"
+          >
+            <i class="fa-solid fa-cart-plus"></i> बिल में जोड़ें ({{ getSelectedBulkCount() }} Items)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- ➕ 3. CUSTOM QUICK ITEM MODAL -->
+<!-- ========================================== -->
+@if (showCustomItemModal()) {
+  <div class="modal-overlay" (click)="showCustomItemModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 440px; border-radius: 14px; overflow: hidden;">
+      <div class="modal-header" style="background: #0f172a; color: white; padding: 14px 18px;">
+        <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px;">
+          <i class="fa-solid fa-plus-circle"></i> खुला सामान जोड़ें (Custom Item)
+        </h3>
+        <button class="modal-close" (click)="showCustomItemModal.set(false)" style="color: white;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px;">
+        <div class="form-group">
+          <label class="form-label">आइटम / सर्विस का नाम <span class="required">*</span></label>
+          <input 
+            type="text" 
+            class="form-control" 
+            placeholder="उदा. खुला तेल, सिलाई चार्ज, पैकिंग आदि"
+            [ngModel]="customItemName()" 
+            (ngModelChange)="customItemName.set($event)"
+          >
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">दर / कीमत (Rate ₹) <span class="required">*</span></label>
+            <input 
+              type="number" 
+              class="form-control" 
+              placeholder="0.00"
+              [ngModel]="customItemRate()" 
+              (ngModelChange)="customItemRate.set($event)"
+            >
+          </div>
+          <div class="form-group">
+            <label class="form-label">मात्रा (Qty)</label>
+            <input 
+              type="number" 
+              class="form-control" 
+              min="1"
+              [ngModel]="customItemQty()" 
+              (ngModelChange)="customItemQty.set($event)"
+            >
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">इकाई (Unit)</label>
+            <select class="form-control" [ngModel]="customItemUnit()" (ngModelChange)="customItemUnit.set($event)">
+              <option value="PCS">PCS (पीस)</option>
+              <option value="KG">KG (किलो)</option>
+              <option value="GM">GM (ग्राम)</option>
+              <option value="LTR">LTR (लीटर)</option>
+              <option value="MTR">MTR (मीटर)</option>
+              <option value="BOX">BOX (डिब्बा)</option>
+              <option value="PKT">PKT (पैकेट)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">GST %</label>
+            <select class="form-control" [ngModel]="customItemGst()" (ngModelChange)="customItemGst.set($event)">
+              <option [value]="0">0% (Nil)</option>
+              <option [value]="5">5%</option>
+              <option [value]="12">12%</option>
+              <option [value]="18">18%</option>
+              <option [value]="28">28%</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 18px; background: #f8fafc;">
+        <button type="button" class="btn btn-secondary" (click)="showCustomItemModal.set(false)">रद्द करें</button>
+        <button type="button" class="btn btn-primary" (click)="addCustomItemToCart()" style="font-weight: 700;">
+          <i class="fa-solid fa-check"></i> कार्ट में जोड़ें
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- 💰 4. RECENT SUCCESSFUL PAYMENTS MODAL -->
+<!-- ========================================== -->
+@if (showRecentPaymentsModal()) {
+  <div class="modal-overlay" (click)="showRecentPaymentsModal.set(false)">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()" style="max-width: 800px; border-radius: 14px; overflow: hidden;">
+      
+      <div class="modal-header" style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 14px 20px;">
+        <div class="flex items-center gap-2">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px;">
+              हाल के सफल भुगतान (Recent Successful Payments)
+            </h3>
+            <span style="font-size: 11.5px; opacity: 0.9;">
+              लाइव पेमेंट सूची: किसने पेमेंट भेजा, खरीदे गए प्रोडक्ट और माध्यम
+            </span>
+          </div>
+        </div>
+        <button class="modal-close" (click)="showRecentPaymentsModal.set(false)" style="color: white;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 0; max-height: 480px; overflow-y: auto;">
+        @if (isRecentPaymentsLoading()) {
+          <div class="flex justify-center items-center" style="min-height: 200px;">
+            <div class="spinner"></div>
+          </div>
+        } @else if (recentPayments().length === 0) {
+          <div class="empty-state" style="padding: 40px 20px;">
+            <i class="fa-solid fa-receipt text-success" style="font-size: 32px; margin-bottom: 8px;"></i>
+            <h4>कोई हालिया भुगतान नहीं मिला</h4>
+            <p class="text-muted">आज अभी तक कोई सफल पेमेंट रिकॉर्ड नहीं हुई है।</p>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0;">
+            <table>
+              <thead>
+                <tr style="font-size: 12px; background: var(--gray-50);">
+                  <th>दिनांक/समय</th>
+                  <th>किसने भेजा (Payer)</th>
+                  <th>📦 प्रोडक्ट (Products)</th>
+                  <th>माध्यम (Mode)</th>
+                  <th style="text-align: right;">राशि (Amount)</th>
+                  <th style="text-align: center;">इनवॉइस</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pay of recentPayments(); track pay._id) {
+                  <tr style="font-size: 12.5px;">
+                    <td>
+                      <div class="font-semibold">{{ pay.date | date:'dd MMM, hh:mm a' }}</div>
+                      @if (pay.transactionId) {
+                        <div class="text-muted" style="font-size: 10px; font-family: monospace;">{{ pay.transactionId }}</div>
+                      }
+                    </td>
+                    <td>
+                      <div class="font-bold text-primary">{{ pay.payerName || pay.partyName || 'Customer' }}</div>
+                      @if (pay.customerMobile) {
+                        <div class="text-muted" style="font-size: 11px;">📱 {{ pay.customerMobile }}</div>
+                      }
+                    </td>
+                    <td>
+                      @if (pay.items && pay.items.length > 0) {
+                        <div class="flex gap-1" style="flex-wrap: wrap;">
+                          @for (it of pay.items.slice(0, 2); track it.productName) {
+                            <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 11px; font-weight: 600; padding: 2px 6px;">
+                              {{ it.productName }} <strong style="color: #4f46e5;">x{{ it.quantity }}</strong>
+                            </span>
+                          }
+                          @if (pay.items.length > 2) {
+                            <span class="badge badge-secondary" style="font-size: 10px;">+{{ pay.items.length - 2 }}</span>
+                          }
+                        </div>
+                      } @else {
+                        <span class="text-muted" style="font-size: 11px;">Bill Payment</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'badge-info': pay.method === 'UPI',
+                        'badge-success': pay.method === 'CASH',
+                        'badge-warning': pay.method === 'CARD',
+                        'badge-secondary': pay.method === 'BANK_TRANSFER' || pay.method === 'CREDIT'
+                      }" style="font-weight: 700; font-size: 11px;">
+                        {{ pay.method }}
+                      </span>
+                    </td>
+                    <td style="text-align: right;">
+                      <div class="font-bold text-success" style="font-size: 14px;">
+                        ₹{{ pay.amount | number:'1.2-2' }}
+                      </div>
+                    </td>
+                    <td style="text-align: center;">
+                      @if (pay.referenceId) {
+                        <a [routerLink]="['/billing', pay.referenceId, 'invoice']" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 11px;" (click)="showRecentPaymentsModal.set(false)">
+                          #{{ pay.referenceNumber }}
+                        </a>
+                      } @else {
+                        <span class="text-muted">-</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer flex justify-between items-center" style="padding: 12px 18px; background: #f8fafc;">
+        <a routerLink="/payments" class="btn btn-sm btn-primary" (click)="showRecentPaymentsModal.set(false)" style="background: #10B981; border-color: #10B981; font-weight: 700;">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> पूरा भुगतान इतिहास देखें (View Full History)
+        </a>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="showRecentPaymentsModal.set(false)">
+          बंद करें (Close)
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- 🚚 5. NEW SUPPLIER CREATION MODAL -->
+<!-- ========================================== -->
+@if (showSupplierModal) {
+  <div class="modal-overlay" (click)="showSupplierModal = false">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 480px; border-radius: 14px; overflow: hidden; padding: 0;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 14px 20px;">
+        <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 700;">
+          <i class="fa-solid fa-truck-field" style="margin-right: 6px;"></i>
+          {{ lang.isHindi() ? 'नया सप्लायर / विक्रेता जोड़ें' : 'Add New Supplier' }}
+        </h3>
+        <button class="modal-close" (click)="showSupplierModal = false" style="color: white;">&times;</button>
+      </div>
+
+      <form [formGroup]="supplierForm" (ngSubmit)="saveSupplier()">
+        <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">{{ lang.isHindi() ? 'सप्लायर / व्यक्ति का नाम' : 'Supplier / Contact Name' }} <span class="text-danger">*</span></label>
+            <input type="text" formControlName="name" class="form-control" placeholder="e.g. Ramesh Agrawal">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">{{ lang.isHindi() ? 'कंपनी / फर्म का नाम (Company/Agency)' : 'Agency / Company Name' }}</label>
+            <input type="text" formControlName="companyName" class="form-control" placeholder="e.g. Balaji Enterprises">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 600;">{{ lang.isHindi() ? 'मोबाइल नंबर' : 'Mobile Number' }} <span class="text-danger">*</span></label>
+              <input type="text" formControlName="mobile" class="form-control" placeholder="10-digit mobile">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 600;">GSTIN (Optional)</label>
+              <input type="text" formControlName="gstin" class="form-control" placeholder="15-digit GSTIN">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">{{ lang.isHindi() ? 'सप्लायर का पता' : 'Address / City' }}</label>
+            <input type="text" formControlName="address" class="form-control" placeholder="City / Market address">
+          </div>
+        </div>
+
+        <div class="modal-footer flex justify-between items-center" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-secondary" (click)="showSupplierModal = false">
+            {{ lang.isHindi() ? 'रद्द करें' : 'Cancel' }}
+          </button>
+          <button type="submit" class="btn btn-primary" style="font-weight: 700;">
+            <i class="fa-solid fa-check"></i> {{ lang.isHindi() ? 'सप्लायर सुरक्षित करें' : 'Save Supplier' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- 📦 6. PURCHASE BILL INWARD INVOICE MODAL -->
+<!-- ========================================== -->
+@if (showPurchaseBillModal() && savedPurchaseBill()) {
+  <div class="modal-overlay no-print" (click)="showPurchaseBillModal.set(false)" style="z-index: 1050; padding: 10px;">
+    <div class="modal modal-xl" (click)="$event.stopPropagation()" style="max-width: 950px; display: flex; flex-direction: column; max-height: 95vh; background: #f1f5f9; border-radius: 14px; overflow: hidden;">
+      
+      <!-- Header (Hidden on Print) -->
+      <div class="modal-header no-print" style="background: #0f172a; color: white; padding: 12px 20px; border-bottom: 1px solid #334155;">
+        <div class="flex items-center gap-3">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: #2563eb; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 800;">
+              {{ lang.isHindi() ? 'खरीद इनवॉइस वाउचर (Purchase Inward Bill)' : 'Purchase Inward Bill' }}
+            </h3>
+            <span style="font-size: 11.5px; color: #94a3b8;">
+              बिल नं: <strong style="color: #60a5fa;">{{ savedPurchaseBill()?.purchaseNumber }}</strong> | {{ savedPurchaseBill()?.purchaseDate | date:'dd MMM yyyy, hh:mm a' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- 🖨️ Format Selector -->
+          <div style="display: inline-flex; background: #1e293b; padding: 3px; border-radius: 12px; border: 1px solid #334155;">
+            <button 
+              type="button"
+              (click)="purchasePrintFormat.set('A4')"
+              [style.background]="purchasePrintFormat() === 'A4' ? '#2563eb' : 'transparent'"
+              [style.color]="purchasePrintFormat() === 'A4' ? 'white' : '#94a3b8'"
+              style="border: none; border-radius: 9px; padding: 4px 12px; font-weight: 700; font-size: 11.5px; cursor: pointer;"
+            >
+              📄 A4 लेजर / PDF
+            </button>
+
+            <button 
+              type="button"
+              (click)="purchasePrintFormat.set('THERMAL_80')"
+              [style.background]="purchasePrintFormat() === 'THERMAL_80' ? '#2563eb' : 'transparent'"
+              [style.color]="purchasePrintFormat() === 'THERMAL_80' ? 'white' : '#94a3b8'"
+              style="border: none; border-radius: 9px; padding: 4px 12px; font-weight: 700; font-size: 11.5px; cursor: pointer;"
+              title="TSC TE244 / 3-इंच 80mm थर्मल प्रिंटर"
+            >
+              🧾 TSC TE244 / 80mm
+            </button>
+
+            <button 
+              type="button"
+              (click)="purchasePrintFormat.set('THERMAL_58')"
+              [style.background]="purchasePrintFormat() === 'THERMAL_58' ? '#2563eb' : 'transparent'"
+              [style.color]="purchasePrintFormat() === 'THERMAL_58' ? 'white' : '#94a3b8'"
+              style="border: none; border-radius: 9px; padding: 4px 12px; font-weight: 700; font-size: 11.5px; cursor: pointer;"
+              title="58mm छोटा प्रिंटर"
+            >
+              🧾 58mm
+            </button>
+          </div>
+
+          <!-- Copy Selector for A4 -->
+          @if (purchasePrintFormat() === 'A4') {
+            <select [ngModel]="purchaseCopyType()" (ngModelChange)="purchaseCopyType.set($event)" style="background: #1e293b; color: white; border: 1px solid #334155; border-radius: 8px; font-size: 11.5px; padding: 4px 8px;">
+              <option value="ORIGINAL">Original (Store Copy)</option>
+              <option value="DUPLICATE">Duplicate (Supplier)</option>
+              <option value="OFFICE">Triplicate (Auditor/CA)</option>
+            </select>
+          }
+
+          <button 
+            type="button" 
+            class="btn btn-sm" 
+            (click)="printPurchaseReceipt()" 
+            style="font-weight: 800; font-size: 12px; padding: 6px 16px; border-radius: 8px; background: #10b981; color: white; border: none; box-shadow: 0 2px 8px rgba(16,185,129,0.35);"
+          >
+            <i class="fa-solid fa-print"></i> 🖨️ प्रिंट करें (Print)
+          </button>
+
+          <button class="modal-close" (click)="showPurchaseBillModal.set(false)" style="color: #94a3b8; font-size: 24px; margin-left: 4px;">&times;</button>
+        </div>
+      </div>
+
+      <!-- Printable Purchase Bill Paper Body -->
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;">
+        
+        <!-- ========================================== -->
+        <!-- 📄 OPTION 1: A4 TAX INVOICE FORMAT         -->
+        <!-- ========================================== -->
+        @if (purchasePrintFormat() === 'A4') {
+          <div class="billing-purchase-a4-paper" style="max-width: 850px; margin: 0 auto; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); font-family: 'Inter', Arial, sans-serif; color: #0f172a; box-sizing: border-box;">
+            
+            <div style="border: 2px solid #0f172a; background: #ffffff;">
+              
+              <!-- 1. Top Title Bar -->
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: #f8fafc; border-bottom: 1.5px solid #0f172a;">
+                <div style="font-size: 10.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
+                  @if (purchaseCopyType() === 'ORIGINAL') { [ ORIGINAL FOR STORE / RECIPIENT ] }
+                  @else if (purchaseCopyType() === 'DUPLICATE') { [ DUPLICATE FOR SUPPLIER ] }
+                  @else { [ TRIPLICATE FOR AUDITOR / OFFICE ] }
+                </div>
+                <div style="font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: 1px;">
+                  PURCHASE INWARD VOUCHER
+                </div>
+                <div style="font-size: 10.5px; font-weight: 700; color: #2563eb; text-transform: uppercase;">
+                  TAX INVOICE / खरीद इनवॉइस
+                </div>
+              </div>
+
+              <!-- 2. Buyer & Metadata Grid -->
+              <table style="width: 100%; border-collapse: collapse; margin: 0;">
+                <tbody>
+                  <tr>
+                    <!-- Store / Buyer (Left) -->
+                    <td style="width: 55%; padding: 12px 16px; vertical-align: top; border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">
+                      <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">
+                        🏢 खरीददार / स्टोर विवरण (Buyer / Consignee):
+                      </div>
+                      <div style="font-size: 17px; font-weight: 900; color: #0f172a; line-height: 1.2;">
+                        {{ shop()?.name || 'MKS BILLING STORE' }}
+                      </div>
+                      <div style="font-size: 11.5px; color: #334155; margin-top: 2px;">
+                        {{ shop()?.address || 'Main Market' }}
+                        @if (shop()?.city) { , {{ shop()?.city }} }
+                        @if (shop()?.state) { , {{ shop()?.state }} }
+                        @if (shop()?.pincode) { - {{ shop()?.pincode }} }
+                      </div>
+                      <div style="font-size: 11.5px; color: #334155; margin-top: 2px;">
+                        <strong>फोन (Phone):</strong> {{ shop()?.mobile || 'N/A' }}
+                        @if (shop()?.email) { | <strong>Email:</strong> {{ shop()?.email }} }
+                      </div>
+                      <div style="font-size: 11.5px; color: #0f172a; margin-top: 4px;">
+                        <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 700; border: 1px solid #e2e8f0;">
+                          GSTIN: {{ shop()?.gstin || 'URP (Unregistered)' }}
+                        </span>
+                      </div>
+                    </td>
+
+                    <!-- Voucher Meta (Right) -->
+                    <td style="width: 45%; padding: 12px 16px; vertical-align: top; border-bottom: 1px solid #cbd5e1; background: #fafafa;">
+                      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">वाउचर नं (Voucher No):</td>
+                          <td style="padding: 2px 0; text-align: right; font-weight: 800; color: #2563eb; font-family: monospace; font-size: 13px;">
+                            {{ savedPurchaseBill()?.purchaseNumber }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">दिनांक (Date & Time):</td>
+                          <td style="padding: 2px 0; text-align: right; font-weight: 700; color: #0f172a;">
+                            {{ (savedPurchaseBill()?.purchaseDate || savedPurchaseBill()?.createdAt) | date:'dd-MM-yyyy, hh:mm a' }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">सप्लायर बिल नं (Bill Ref):</td>
+                          <td style="padding: 2px 0; text-align: right; font-weight: 800; color: #0f172a;">
+                            {{ savedPurchaseBill()?.supplierInvoice || 'Direct Inward' }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">भुगतान माध्यम (Mode):</td>
+                          <td style="padding: 2px 0; text-align: right; font-weight: 700; color: #0f172a;">
+                            {{ savedPurchaseBill()?.paymentMethod }}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 2px 0; color: #64748b; font-weight: 600;">स्थिति (Status):</td>
+                          <td style="padding: 2px 0; text-align: right;">
+                            <span style="font-weight: 800; font-size: 11px; padding: 1px 6px; border-radius: 4px;"
+                              [style.background]="savedPurchaseBill()?.status === 'PAID' ? '#dcfce7' : savedPurchaseBill()?.status === 'PARTIAL' ? '#fef3c7' : '#fee2e2'"
+                              [style.color]="savedPurchaseBill()?.status === 'PAID' ? '#166534' : savedPurchaseBill()?.status === 'PARTIAL' ? '#92400e' : '#991b1b'"
+                            >
+                              {{ savedPurchaseBill()?.status }}
+                            </span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- 3. Supplier Details Row -->
+                  <tr>
+                    <td colspan="2" style="padding: 10px 16px; background: #f8fafc; border-bottom: 1.5px solid #0f172a;">
+                      <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">
+                        🚚 सप्लायर / विक्रेता विवरण (Supplier / Consignor Details):
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <div>
+                          <span style="font-size: 14px; font-weight: 800; color: #0f172a;">
+                            {{ savedPurchaseBill()?.supplierName || selectedSupplierName || 'Unknown Supplier' }}
+                          </span>
+                          @if (getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.companyName && getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.companyName !== savedPurchaseBill()?.supplierName) {
+                            <span style="font-size: 12px; color: #475569;"> ({{ getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.companyName }})</span>
+                          }
+                          @if (getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.mobile || selectedSupplierMobile) {
+                            <span style="font-size: 12px; color: #334155; margin-left: 10px;">📱 {{ getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.mobile || selectedSupplierMobile }}</span>
+                          }
+                        </div>
+                        @if (getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.gstin || selectedSupplierGstin) {
+                          <div style="font-size: 11.5px; font-weight: 700; color: #0f172a;">
+                            GSTIN: <span style="font-family: monospace;">{{ getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.gstin || selectedSupplierGstin }}</span>
+                          </div>
+                        }
+                      </div>
+                      @if (getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.address) {
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                          📍 {{ getPurchaseSupplierDetails(savedPurchaseBill()?.supplierId)?.address }}
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- 4. Items Table -->
+              <table style="width: 100%; border-collapse: collapse; margin: 0; font-size: 12px;">
+                <thead>
+                  <tr style="background: #f1f5f9; border-bottom: 1.5px solid #0f172a; text-align: left;">
+                    <th style="padding: 8px 10px; width: 35px; border-right: 1px solid #cbd5e1; text-align: center;">#</th>
+                    <th style="padding: 8px 10px; border-right: 1px solid #cbd5e1;">आइटम विवरण (Item / Description)</th>
+                    <th style="padding: 8px 10px; width: 70px; border-right: 1px solid #cbd5e1; text-align: center;">HSN</th>
+                    <th style="padding: 8px 10px; width: 75px; border-right: 1px solid #cbd5e1; text-align: center;">मात्रा (Qty)</th>
+                    <th style="padding: 8px 10px; width: 90px; border-right: 1px solid #cbd5e1; text-align: right;">दर (Rate ₹)</th>
+                    <th style="padding: 8px 10px; width: 95px; border-right: 1px solid #cbd5e1; text-align: right;">कर योग्य (Taxable)</th>
+                    <th style="padding: 8px 10px; width: 85px; border-right: 1px solid #cbd5e1; text-align: center;">GST %</th>
+                    <th style="padding: 8px 10px; width: 105px; text-align: right;">कुल राशि (Total ₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (it of savedPurchaseBill()?.items; track $index; let idx = $index) {
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                      <td style="padding: 7px 10px; text-align: center; border-right: 1px solid #cbd5e1; color: #64748b;">{{ idx + 1 }}</td>
+                      <td style="padding: 7px 10px; border-right: 1px solid #cbd5e1;">
+                        <div style="font-weight: 700; color: #0f172a;">{{ it.productName }}</div>
+                        @if (it.sku || it.barcode) {
+                          <div style="font-size: 10px; color: #64748b;">SKU/Code: {{ it.sku || it.barcode }}</div>
+                        }
+                      </td>
+                      <td style="padding: 7px 10px; text-align: center; border-right: 1px solid #cbd5e1; font-family: monospace; font-size: 11px;">
+                        {{ it.hsnCode || '-' }}
+                      </td>
+                      <td style="padding: 7px 10px; text-align: center; border-right: 1px solid #cbd5e1; font-weight: 700;">
+                        {{ it.quantity }} {{ it.unit || 'PCS' }}
+                      </td>
+                      <td style="padding: 7px 10px; text-align: right; border-right: 1px solid #cbd5e1; font-weight: 600;">
+                        ₹{{ it.purchasePrice | number:'1.2-2' }}
+                      </td>
+                      <td style="padding: 7px 10px; text-align: right; border-right: 1px solid #cbd5e1;">
+                        ₹{{ (it.subtotal || (it.purchasePrice * it.quantity)) | number:'1.2-2' }}
+                      </td>
+                      <td style="padding: 7px 10px; text-align: center; border-right: 1px solid #cbd5e1; font-size: 11.5px;">
+                        {{ it.gstPercent || 0 }}%
+                      </td>
+                      <td style="padding: 7px 10px; text-align: right; font-weight: 800; color: #0f172a;">
+                        ₹{{ it.total | number:'1.2-2' }}
+                      </td>
+                    </tr>
+                  }
+
+                  @if ((savedPurchaseBill()?.items?.length || 0) < 3) {
+                    <tr style="height: 35px; border-bottom: 1px solid #f1f5f9;">
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td style="border-right: 1px solid #cbd5e1;"></td>
+                      <td></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+
+              <!-- 5. Totals & Financial Summary -->
+              <table style="width: 100%; border-collapse: collapse; margin: 0; border-top: 1.5px solid #0f172a; font-size: 12.5px;">
+                <tbody>
+                  <tr>
+                    <td style="width: 55%; padding: 12px 16px; vertical-align: top; border-right: 1.5px solid #0f172a; background: #fafafa;">
+                      <div style="font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 4px;">
+                        📌 नोट्स व रिमार्क्स (Notes / Remarks):
+                      </div>
+                      <div style="font-size: 12px; color: #334155; min-height: 40px;">
+                        {{ savedPurchaseBill()?.notes || 'Wholesale Inward stock entry logged and verified into inventory.' }}
+                      </div>
+
+                      <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 11px; color: #64748b;">
+                        कुल आइटम: <strong>{{ savedPurchaseBill()?.items?.length || 0 }}</strong>
+                      </div>
+                    </td>
+
+                    <td style="width: 45%; padding: 0; vertical-align: top;">
+                      <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                          <td style="padding: 6px 14px; color: #475569; font-weight: 600;">कर योग्य राशि (Taxable Subtotal):</td>
+                          <td style="padding: 6px 14px; text-align: right; font-weight: 700;">
+                            ₹{{ savedPurchaseBill()?.subtotal | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                        @if (savedPurchaseBill()?.totalGst > 0) {
+                          <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 6px 14px; color: #475569; font-weight: 600;">कुल GST (Total GST):</td>
+                            <td style="padding: 6px 14px; text-align: right; font-weight: 700;">
+                              ₹{{ (savedPurchaseBill()?.totalGst || 0) | number:'1.2-2' }}
+                            </td>
+                          </tr>
+                        }
+                        <tr style="background: #0f172a; color: white;">
+                          <td style="padding: 8px 14px; font-size: 14px; font-weight: 800;">कुल खरीद राशि (Grand Total):</td>
+                          <td style="padding: 8px 14px; text-align: right; font-size: 16px; font-weight: 900; color: #38bdf8;">
+                            ₹{{ savedPurchaseBill()?.grandTotal | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0; background: #f0fdf4;">
+                          <td style="padding: 6px 14px; color: #166534; font-weight: 700;">भुगतान किया (Paid Amount):</td>
+                          <td style="padding: 6px 14px; text-align: right; font-weight: 800; color: #166534;">
+                            ₹{{ (savedPurchaseBill()?.amountPaid || 0) | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                        <tr [style.background]="(savedPurchaseBill()?.balanceDue || 0) > 0 ? '#fef2f2' : '#f8fafc'">
+                          <td style="padding: 6px 14px; font-weight: 700;" [style.color]="(savedPurchaseBill()?.balanceDue || 0) > 0 ? '#991b1b' : '#475569'">
+                            बकाया देनदारी (Balance Due):
+                          </td>
+                          <td style="padding: 6px 14px; text-align: right; font-weight: 900;" [style.color]="(savedPurchaseBill()?.balanceDue || 0) > 0 ? '#b91c1c' : '#166534'">
+                            ₹{{ (savedPurchaseBill()?.balanceDue || 0) | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- 6. Signatures -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; padding: 24px 20px 12px; border-top: 1.5px solid #0f172a; background: #ffffff;">
+                <div style="text-align: center; width: 200px;">
+                  <div style="border-top: 1px dashed #94a3b8; padding-top: 4px; font-size: 11px; font-weight: 700; color: #475569;">
+                    सप्लायर / वाहक हस्ताक्षर<br>(Supplier / Carrier Sign)
+                  </div>
+                </div>
+
+                <div style="text-align: center; font-size: 10px; color: #94a3b8;">
+                  This is a Computer Generated Purchase Inward Tax Voucher.<br>MKS Billing Software
+                </div>
+
+                <div style="text-align: center; width: 220px;">
+                  <div style="font-size: 11px; font-weight: 700; color: #0f172a; margin-bottom: 24px;">
+                    For {{ shop()?.name || 'MKS STORE' }}
+                  </div>
+                  <div style="border-top: 1px dashed #94a3b8; padding-top: 4px; font-size: 11px; font-weight: 700; color: #475569;">
+                    स्टोर इन-चार्ज / अधिकृत हस्ताक्षर<br>(Authorized Signatory)
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        }
+
+        <!-- ========================================== -->
+        <!-- 🧾 OPTION 2 & 3: THERMAL (TSC TE244 & 58MM) -->
+        <!-- ========================================== -->
+        @if (purchasePrintFormat() === 'THERMAL_80' || purchasePrintFormat() === 'THERMAL_58') {
+          <div class="billing-purchase-thermal-paper" [style.max-width]="purchasePrintFormat() === 'THERMAL_80' ? '300px' : '230px'" style="margin: 0 auto; background: white; padding: 14px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); font-family: 'Courier New', Courier, monospace; color: black; font-size: 11.5px; line-height: 1.3;">
+            
+            <!-- Store Header -->
+            <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+              <div style="font-size: 14px; font-weight: 900; text-transform: uppercase;">
+                {{ shop()?.name || 'MKS STORE' }}
+              </div>
+              <div style="font-size: 10px;">{{ shop()?.address }}</div>
+              <div style="font-size: 10px;">फोन: {{ shop()?.mobile }}</div>
+              @if (shop()?.gstin) {
+                <div style="font-size: 10px;">GSTIN: {{ shop()?.gstin }}</div>
+              }
+              <div style="font-size: 12px; font-weight: 900; margin-top: 4px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 2px 0;">
+                ** PURCHASE VOUCHER **
+              </div>
+            </div>
+
+            <!-- Metadata -->
+            <div style="font-size: 10.5px; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+              <div>वाउचर नं: <strong>{{ savedPurchaseBill()?.purchaseNumber }}</strong></div>
+              <div>दिनांक: {{ (savedPurchaseBill()?.purchaseDate || savedPurchaseBill()?.createdAt) | date:'dd-MM-yyyy, hh:mm a' }}</div>
+              <div>सप्लायर: <strong>{{ savedPurchaseBill()?.supplierName || selectedSupplierName }}</strong></div>
+              @if (savedPurchaseBill()?.supplierInvoice) {
+                <div>सप्लायर बिल नं: {{ savedPurchaseBill()?.supplierInvoice }}</div>
+              }
+              <div>भुगतान: {{ savedPurchaseBill()?.paymentMethod }}</div>
+            </div>
+
+            <!-- Items -->
+            <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+              <div style="display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px;">
+                <span>आइटम (Item)</span>
+                <span>मात्रा x दर = कुल</span>
+              </div>
+              @for (it of savedPurchaseBill()?.items; track $index) {
+                <div style="margin-top: 4px;">
+                  <div style="font-weight: bold;">{{ it.productName }}</div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10.5px;">
+                    <span>{{ it.quantity }} {{ it.unit || 'PCS' }} &#64; ₹{{ it.purchasePrice }}</span>
+                    <strong>₹{{ it.total | number:'1.2-2' }}</strong>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Totals -->
+            <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; font-size: 11px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Subtotal:</span>
+                <span>₹{{ savedPurchaseBill()?.subtotal | number:'1.2-2' }}</span>
+              </div>
+              @if (savedPurchaseBill()?.totalGst > 0) {
+                <div style="display: flex; justify-content: space-between;">
+                  <span>Total GST:</span>
+                  <span>₹{{ savedPurchaseBill()?.totalGst | number:'1.2-2' }}</span>
+                </div>
+              }
+              <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 0; margin-top: 3px;">
+                <span>GRAND TOTAL:</span>
+                <span>₹{{ savedPurchaseBill()?.grandTotal | number:'1.2-2' }}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                <span>Paid:</span>
+                <span>₹{{ (savedPurchaseBill()?.amountPaid || 0) | number:'1.2-2' }}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>Balance Due:</span>
+                <span>₹{{ (savedPurchaseBill()?.balanceDue || 0) | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="text-align: center; font-size: 9.5px; margin-top: 6px;">
+              <div>*** STOCK INWARD VERIFIED ***</div>
+              <div>Authorized Store Signatory</div>
+            </div>
+
+          </div>
+        }
+
+      </div>
+
+      <!-- Footer Buttons (Hidden on Print) -->
+      <div class="modal-footer flex justify-between items-center no-print" style="padding: 12px 20px; background: white; border-top: 1px solid #e2e8f0;">
+        <button type="button" class="btn btn-outline" (click)="showPurchaseBillModal.set(false)">
+          <i class="fa-solid fa-plus"></i> नया खरीद बिल बनाएं
+        </button>
+
+        <div class="flex gap-2">
+          <button type="button" class="btn btn-primary" (click)="printPurchaseReceipt()" style="font-weight: 800; background: #0f172a; border: none; padding: 8px 24px; border-radius: 8px; font-size: 13.5px; box-shadow: 0 4px 12px rgba(15,23,42,0.25);">
+            <i class="fa-solid fa-print"></i> 🖨️ खरीद बिल प्रिंट करें (Print)
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="showPurchaseBillModal.set(false)">
+            बंद करें (Close)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+}
+
+<style>
+@media print {
+  /* Hide all background website elements */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only the purchase invoice */
+  .billing-purchase-a4-paper, .billing-purchase-a4-paper *,
+  .billing-purchase-thermal-paper, .billing-purchase-thermal-paper * {
+    visibility: visible !important;
+  }
+
+  .billing-purchase-a4-paper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+  }
+
+  .billing-purchase-thermal-paper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+</style>
+
+
+<!-- ========================================== -->
+<!-- 💵 CASH TENDER & CHANGE RETURN CALCULATOR MODAL (F8) -->
+<!-- ========================================== -->
+@if (showChangeModal()) {
+  <div class="modal-overlay" (click)="showChangeModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 460px; border-radius: 16px; overflow: hidden; padding: 0;">
+      
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #14532d, #16a34a); color: white; padding: 18px 20px;">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span style="font-size: 24px;">💵</span>
+            <div>
+              <h3 style="font-size: 17px; font-weight: 800; margin: 0; color: white;">Cash Tender & Change Return</h3>
+              <p style="font-size: 11.5px; color: rgba(255,255,255,0.85); margin: 0;">नकद भुगतान व छुट्टा/वापसी कैलकुलेटर (F8)</p>
+            </div>
+          </div>
+          <button (click)="showChangeModal.set(false)" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;">&times;</button>
+        </div>
+
+        <!-- Total Bill Amount Ribbon -->
+        <div style="margin-top: 14px; background: rgba(255,255,255,0.18); border-radius: 10px; padding: 10px 14px;" class="flex justify-between items-center">
+          <span style="font-size: 13px; font-weight: 700; color: white;">कुल बिल राशि (Grand Total):</span>
+          <span style="font-size: 24px; font-weight: 900; color: #fef08a;">₹{{ grandTotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding: 20px; background: #fafafa;">
+        
+        <!-- Cash Received Input -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 800; color: #1f2937;">
+            ग्राहक ने कितने नकद दिए? (Cash Received ₹)
+          </label>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 800; color: #4b5563;">₹</span>
+            <input 
+              type="number" 
+              class="form-control" 
+              style="padding-left: 36px; font-size: 20px; font-weight: 900; height: 48px; border: 2px solid #cbd5e1; border-radius: 8px; color: #0f172a; background: white;"
+              [ngModel]="cashReceived()"
+              (ngModelChange)="onCashReceivedInput($event)"
+              placeholder="0.00"
+              autofocus
+            >
+          </div>
+        </div>
+
+        <!-- Quick Currency Chips -->
+        <div style="margin-bottom: 16px;">
+          <span style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 6px; display: block;">त्वरित नोट बटन (Quick Notes):</span>
+          <div class="flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm" (click)="setCashTender(grandTotal)" style="background: #e2e8f0; font-weight: 800; font-size: 12px;">Exact (₹{{ grandTotal }})</button>
+            <button type="button" class="btn btn-sm" (click)="setCashTender(100)" style="background: white; border: 1px solid #cbd5e1; font-weight: 700; font-size: 12px;">₹100</button>
+            <button type="button" class="btn btn-sm" (click)="setCashTender(200)" style="background: white; border: 1px solid #cbd5e1; font-weight: 700; font-size: 12px;">₹200</button>
+            <button type="button" class="btn btn-sm" (click)="setCashTender(500)" style="background: white; border: 1px solid #cbd5e1; font-weight: 700; font-size: 12px;">₹500</button>
+            <button type="button" class="btn btn-sm" (click)="setCashTender(2000)" style="background: white; border: 1px solid #cbd5e1; font-weight: 700; font-size: 12px;">₹2000</button>
+          </div>
+        </div>
+
+        <!-- Return Change Result Display Box -->
+        <div style="background: #ecfdf5; border: 2px solid #22c55e; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 4px 12px rgba(34,197,94,0.15);">
+          <span style="font-size: 12px; font-weight: 800; color: #15803d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">
+            ग्राहक को वापस करने योग्य राशि (Change to Return)
+          </span>
+          <div style="font-size: 34px; font-weight: 900; color: #166534; line-height: 1.1;">
+            ₹{{ changeReturn() | number:'1.2-2' }}
+          </div>
+          @if (cashReceived() < grandTotal && cashReceived() > 0) {
+            <span style="font-size: 11px; color: #dc2626; font-weight: 700; margin-top: 4px; display: block;">
+              ⚠️ प्राप्त राशि बिल से कम है! (₹{{ (grandTotal - cashReceived()) | number:'1.2-2' }} कम)
+            </span>
+          }
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+        <button type="button" class="btn btn-outline" (click)="showChangeModal.set(false)">
+          रद्द करें (Cancel)
+        </button>
+
+        <button 
+          type="button" 
+          class="btn btn-success" 
+          (click)="confirmCashAndSubmit()"
+          style="font-weight: 800; font-size: 13.5px; padding: 8px 18px; background: #16a34a; border-color: #16a34a;"
+        >
+          <i class="fa-solid fa-check"></i> नकद पुष्टि व बिल सेव करें (Confirm & Save)
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- 💰 QUICK OVERDUE UDHAAR COLLECTION MODAL -->
+<!-- ========================================== -->
+@if (showCollectDueModal()) {
+  <div class="modal-overlay" (click)="showCollectDueModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 440px; border-radius: 16px; overflow: hidden; padding: 0; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+      
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #ea580c, #c2410c); color: white; padding: 18px 20px;">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span style="font-size: 22px;">💰</span>
+            <div>
+              <h3 style="font-size: 16.5px; font-weight: 800; margin: 0; color: white;">पुराना बकाया जमा करें (Collect Old Due)</h3>
+              <p style="font-size: 11.5px; color: rgba(255,255,255,0.85); margin: 0;">{{ selectedCustomerName }} ({{ selectedCustomerMobile }})</p>
+            </div>
+          </div>
+          <button (click)="showCollectDueModal.set(false)" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;">&times;</button>
+        </div>
+
+        <div style="margin-top: 14px; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px 14px;" class="flex justify-between items-center">
+          <span style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.9);">कुल पुराना बकाया (Total Due):</span>
+          <span style="font-size: 22px; font-weight: 900; color: #fed7aa;">₹{{ selectedCustomerBalance() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding: 20px; background: white;">
+        
+        <div class="form-group mb-3">
+          <label style="font-size: 12px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: block;">
+            जमा की जाने वाली राशि (Amount to Collect ₹) <span class="text-danger">*</span>
+          </label>
+          <input 
+            type="number" 
+            class="form-control" 
+            style="font-size: 18px; font-weight: 900; color: #ea580c; padding: 8px 12px;"
+            [ngModel]="collectDueAmount()" 
+            (ngModelChange)="collectDueAmount.set($event)"
+            placeholder="0.00"
+          >
+          <div class="flex gap-2 mt-2">
+            <button type="button" class="btn btn-xs" (click)="collectDueAmount.set(selectedCustomerBalance())" style="background: #f1f5f9; font-weight: 700; border: 1px solid #cbd5e1;">पूरा बकाया (₹{{ selectedCustomerBalance() }})</button>
+            <button type="button" class="btn btn-xs" (click)="collectDueAmount.set(Math.min(500, selectedCustomerBalance()))" style="background: #f1f5f9; font-weight: 700; border: 1px solid #cbd5e1;">₹500</button>
+            <button type="button" class="btn btn-xs" (click)="collectDueAmount.set(Math.min(1000, selectedCustomerBalance()))" style="background: #f1f5f9; font-weight: 700; border: 1px solid #cbd5e1;">₹1000</button>
+            <button type="button" class="btn btn-xs" (click)="collectDueAmount.set(Math.min(5000, selectedCustomerBalance()))" style="background: #f1f5f9; font-weight: 700; border: 1px solid #cbd5e1;">₹5000</button>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label style="font-size: 12px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: block;">
+            भुगतान का माध्यम (Payment Mode)
+          </label>
+          <div class="flex gap-2">
+            <button 
+              type="button" 
+              class="btn btn-sm flex-1" 
+              (click)="collectDuePaymentMode.set('CASH')"
+              [style.background]="collectDuePaymentMode() === 'CASH' ? '#10b981' : '#f1f5f9'"
+              [style.color]="collectDuePaymentMode() === 'CASH' ? 'white' : '#334155'"
+              style="font-weight: 800; border: none; border-radius: 8px;"
+            >
+              <i class="fa-solid fa-money-bill-1"></i> Cash (नकद)
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-sm flex-1" 
+              (click)="collectDuePaymentMode.set('UPI')"
+              [style.background]="collectDuePaymentMode() === 'UPI' ? '#6366f1' : '#f1f5f9'"
+              [style.color]="collectDuePaymentMode() === 'UPI' ? 'white' : '#334155'"
+              style="font-weight: 800; border: none; border-radius: 8px;"
+            >
+              <i class="fa-solid fa-qrcode"></i> UPI (ऑनलाइन)
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group mb-0">
+          <label style="font-size: 11.5px; font-weight: 700; color: #64748b; margin-bottom: 2px; display: block;">
+            रिमार्क / नोट (Notes)
+          </label>
+          <input 
+            type="text" 
+            class="form-control" 
+            style="font-size: 12px; padding: 6px 10px;"
+            [ngModel]="collectDueNotes()" 
+            (ngModelChange)="collectDueNotes.set($event)"
+            placeholder="e.g. Counter Payment"
+          >
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer flex justify-between items-center" style="padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+        <button type="button" class="btn btn-outline" (click)="showCollectDueModal.set(false)" [disabled]="isCollectingDue()">
+          रद्द करें
+        </button>
+
+        <button 
+          type="button" 
+          class="btn btn-success" 
+          (click)="submitCollectDuePayment()"
+          [disabled]="isCollectingDue() || collectDueAmount() <= 0"
+          style="font-weight: 900; font-size: 13.5px; padding: 8px 18px; background: #16a34a; border-color: #16a34a;"
+        >
+          @if (isCollectingDue()) {
+            <div class="spinner spinner-sm"></div> जमा हो रहा है...
+          } @else {
+            <i class="fa-solid fa-check"></i> ₹{{ collectDueAmount() | number:'1.2-2' }} जमा करें
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- 👨‍⚕️ QUICK DOCTOR REGISTRATION MODAL -->
+@if (showDoctorModal) {
+  <div class="modal-overlay" (click)="showDoctorModal = false" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1050; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;">
+    <div class="modal-card" (click)="$event.stopPropagation()" style="background: white; border-radius: 16px; width: 100%; max-width: 480px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #0d9488, #042f2e); padding: 18px 24px; color: white;" class="flex justify-between items-center">
+        <div>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-user-doctor"></i> नया डॉक्टर जोड़ें (Doctor Registry)
+          </h3>
+          <p style="margin: 4px 0 0; font-size: 11.5px; color: rgba(255,255,255,0.85);">
+            पर्चा व बिलिंग के लिए डॉक्टर का नाम व रजिस्ट्रेशन सुरक्षित करें
+          </p>
+        </div>
+        <button type="button" (click)="showDoctorModal = false" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <form [formGroup]="doctorForm" (ngSubmit)="saveDoctor()" style="padding: 20px;">
+        <div class="form-group mb-3">
+          <label style="font-size: 12px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: block;">
+            डॉक्टर का नाम (Doctor Name) <span class="text-danger">*</span>
+          </label>
+          <input type="text" formControlName="name" class="form-control" placeholder="e.g. Dr. R.K. Sharma" style="font-size: 13px; padding: 8px 12px;">
+        </div>
+
+        <div class="form-row form-row-2 mb-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">
+              क्लिनिक / अस्पताल (Clinic)
+            </label>
+            <input type="text" formControlName="clinic" class="form-control" placeholder="e.g. City Hospital">
+          </div>
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">
+              रजिस्ट्रेशन नंबर (Reg No.)
+            </label>
+            <input type="text" formControlName="regNumber" class="form-control" placeholder="e.g. MCI-12345">
+          </div>
+        </div>
+
+        <div class="form-row form-row-2 mb-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">
+              मोबाइल नंबर (Mobile)
+            </label>
+            <input type="text" formControlName="mobile" class="form-control" placeholder="10 Digits">
+          </div>
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">
+              विशेषज्ञता (Degree/Spec.)
+            </label>
+            <input type="text" formControlName="specialization" class="form-control" placeholder="e.g. MBBS, MD">
+          </div>
+        </div>
+
+        <div class="modal-footer flex justify-between items-center" style="margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-outline" (click)="showDoctorModal = false">
+            रद्द करें
+          </button>
+          <button type="submit" class="btn btn-primary" style="background: #0d9488; border-color: #0d9488; font-weight: 800;">
+            <i class="fa-solid fa-floppy-disk"></i> सुरक्षित करें
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- 🏢 QUICK SUPPLIER / PHARMA DISTRIBUTOR REGISTRATION MODAL -->
+@if (showSupplierModal) {
+  <div class="modal-overlay" (click)="showSupplierModal = false" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1050; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;">
+    <div class="modal-card" (click)="$event.stopPropagation()" style="background: white; border-radius: 16px; width: 100%; max-width: 500px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #1e40af, #1d4ed8); padding: 18px 24px; color: white;" class="flex justify-between items-center">
+        <div>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-truck-field"></i> नया सप्लायर / फार्मा डिस्ट्रीब्यूटर जोड़ें
+          </h3>
+          <p style="margin: 4px 0 0; font-size: 11.5px; color: rgba(255,255,255,0.85);">
+            दवा खरीद व इनवर्ड बिलिंग के लिए सप्लायर का विवरण सुरक्षित करें
+          </p>
+        </div>
+        <button type="button" (click)="showSupplierModal = false" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <form [formGroup]="supplierForm" (ngSubmit)="saveSupplier()" style="padding: 20px;">
+        <div class="form-row form-row-2 mb-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: block;">
+              सप्लायर का नाम (Supplier Name) <span class="text-danger">*</span>
+            </label>
+            <input type="text" formControlName="name" class="form-control" placeholder="e.g. Rajesh Kumar" style="font-size: 13px;">
+          </div>
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">
+              कंपनी / एजेंसी (Agency/Firm)
+            </label>
+            <input type="text" formControlName="companyName" class="form-control" placeholder="e.g. Cipla Pharma Agency">
+          </div>
+        </div>
+
+        <div class="form-row form-row-2 mb-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: block;">
+              मोबाइल नंबर (Mobile) <span class="text-danger">*</span>
+            </label>
+            <input type="text" formControlName="mobile" class="form-control" placeholder="10 Digits" maxlength="10">
+          </div>
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">
+              ईमेल (Email)
+            </label>
+            <input type="email" formControlName="email" class="form-control" placeholder="supplier@pharma.com">
+          </div>
+        </div>
+
+        <div class="form-row form-row-2 mb-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 700; color: #0d9488; margin-bottom: 4px; display: block;">
+              💊 ड्रग लाइसेंस नं. (D.L. No.)
+            </label>
+            <input type="text" formControlName="drugLicenseNumber" class="form-control" placeholder="DL-20B-12345/21B">
+          </div>
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">
+              GSTIN (GST नंबर)
+            </label>
+            <input type="text" formControlName="gstin" class="form-control" placeholder="15-digit GSTIN" style="text-transform: uppercase;">
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; display: block;">
+            पता व शहर (Address & City)
+          </label>
+          <input type="text" formControlName="address" class="form-control" placeholder="Shop / Warehouse Address">
+        </div>
+
+        <div class="modal-footer flex justify-between items-center" style="margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0;">
+          <button type="button" class="btn btn-outline" (click)="showSupplierModal = false">
+            रद्द करें
+          </button>
+          <button type="submit" class="btn btn-primary" style="background: #1e40af; border-color: #1e40af; font-weight: 800;">
+            <i class="fa-solid fa-truck-ramp-box"></i> सप्लायर जोड़ें (Save Supplier)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ============================================================ -->
+<!-- 📜 FAST INVOICE & CUSTOMER BILL SEARCH MODAL -->
+<!-- ============================================================ -->
+@if (showInvoiceSearchModal()) {
+  <div class="modal-overlay" (click)="showInvoiceSearchModal.set(false)" style="z-index: 9999; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;">
+    <div class="modal" (click)="$event.stopPropagation()" style="max-width: 860px; width: 95%; max-height: 90vh; border-radius: 16px; overflow: hidden; padding: 0; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.45); border: 2px solid #6366f1;">
+      
+      <!-- Modal Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e1b4b, #312e81, #4338ca); color: white; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center;">
+        <div class="flex items-center gap-2">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 16px;">
+            📜
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; margin: 0; font-size: 16px; font-weight: 800;">
+              पुराने बिल व इनवॉइस खोजें (Search Invoices)
+            </h3>
+            <p style="color: rgba(255,255,255,0.8); font-size: 11.5px; margin: 2px 0 0;">
+              ग्राहक के नाम, बिल नंबर या मोबाइल नंबर से तुरंत बिल खोजें
+            </p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="showInvoiceSearchModal.set(false)" style="color: white; font-size: 22px; border: none; background: none; cursor: pointer;">&times;</button>
+      </div>
+
+      <!-- Search Input Area -->
+      <div style="padding: 16px 22px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+        <div style="position: relative;">
+          <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #4f46e5; font-size: 16px;"></i>
+          <input 
+            type="text" 
+            class="form-control" 
+            [ngModel]="invoiceSearchQuery()" 
+            (ngModelChange)="onInvoiceSearchInput($event)"
+            placeholder="ग्राहक का नाम, इनवॉइस नं. (उदा. INV-001) या मोबाइल नंबर..."
+            style="padding-left: 42px; padding-right: 36px; height: 44px; font-size: 14px; font-weight: 700; border-radius: 10px; border: 2px solid #818cf8; background: white;"
+            autofocus
+          >
+          <button 
+            *ngIf="invoiceSearchQuery()" 
+            type="button" 
+            (click)="onInvoiceSearchInput('')" 
+            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Results Body -->
+      <div class="modal-body" style="padding: 0; overflow-y: auto; flex: 1; min-height: 280px; max-height: 55vh;">
+        @if (isInvoiceSearching()) {
+          <div class="flex items-center justify-center" style="min-height: 200px;">
+            <div class="spinner" style="margin: 0 auto;"></div>
+          </div>
+        } @else if (invoiceSearchResults().length === 0) {
+          <div class="empty-state" style="padding: 40px 20px; text-align: center;">
+            <i class="fa-solid fa-receipt" style="font-size: 40px; color: #cbd5e1; margin-bottom: 10px;"></i>
+            <h4 style="font-size: 15px; font-weight: 700; color: #334155;">कोई इनवॉइस नहीं मिला</h4>
+            <p style="font-size: 12.5px; color: #64748b; margin-top: 4px;">
+              @if (invoiceSearchQuery()) {
+                "{{ invoiceSearchQuery() }}" से मिलता-जुलता कोई बिल नहीं मिला।
+              } @else {
+                ग्राहक का नाम या बिल नंबर लिखकर खोजें।
+              }
+            </p>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                  <th style="padding: 10px 14px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">इनवॉइस नं.</th>
+                  <th style="padding: 10px 14px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">दिनांक</th>
+                  <th style="padding: 10px 14px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase;">ग्राहक का नाम</th>
+                  <th style="padding: 10px 14px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right;">कुल (₹)</th>
+                  <th style="padding: 10px 14px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right;">जमा (₹)</th>
+                  <th style="padding: 10px 14px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right;">बकाया (₹)</th>
+                  <th style="padding: 10px 14px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center;">स्थिति</th>
+                  <th style="padding: 10px 14px; font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center;">एक्शन</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (sale of invoiceSearchResults(); track sale._id) {
+                  <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;" class="hover:bg-slate-50">
+                    <td style="padding: 10px 14px; font-weight: 800;">
+                      <a [routerLink]="['/billing', sale._id, 'invoice']" (click)="showInvoiceSearchModal.set(false)" style="color: #4f46e5; text-decoration: none; font-size: 13px;">
+                        🧾 {{ sale.invoiceNumber }}
+                      </a>
+                    </td>
+                    <td style="padding: 10px 14px; font-size: 12px; color: #475569;">
+                      {{ sale.invoiceDate | date:'dd-MM-yyyy' }}
+                    </td>
+                    <td style="padding: 10px 14px;">
+                      <div style="font-weight: 700; font-size: 13px; color: #1e293b;">
+                        {{ sale.customerName || 'Walk-in Customer' }}
+                      </div>
+                      <div *ngIf="sale.customerMobile" style="font-size: 11px; color: #64748b;">
+                        📞 {{ sale.customerMobile }}
+                      </div>
+                    </td>
+                    <td style="padding: 10px 14px; font-weight: 800; font-size: 13.5px; text-align: right; color: #0f172a;">
+                      ₹{{ sale.grandTotal | number:'1.2-2' }}
+                    </td>
+                    <td style="padding: 10px 14px; font-weight: 700; font-size: 13px; text-align: right; color: #16a34a;">
+                      ₹{{ sale.amountPaid | number:'1.2-2' }}
+                    </td>
+                    <td style="padding: 10px 14px; font-weight: 800; font-size: 13px; text-align: right; color: sale.balanceDue > 0 ? '#dc2626' : '#64748b';">
+                      @if (sale.balanceDue > 0) {
+                        <span style="color: #dc2626; background: #fef2f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecaca;">
+                          ₹{{ sale.balanceDue | number:'1.2-2' }}
+                        </span>
+                      } @else {
+                        <span style="color: #10b981;">₹0</span>
+                      }
+                    </td>
+                    <td style="padding: 10px 14px; text-align: center;">
+                      <span class="badge" [ngClass]="{
+                        'badge-success': sale.status === 'PAID',
+                        'badge-warning': sale.status === 'PARTIAL',
+                        'badge-danger': sale.status === 'PENDING'
+                      }" style="font-size: 10.5px; padding: 3px 8px; font-weight: 800;">
+                        {{ sale.status === 'PAID' ? '✅ चुकता (Paid)' : (sale.status === 'PARTIAL' ? '⚠️ आंशिक (Partial)' : '🚨 उधार (Due)') }}
+                      </span>
+                    </td>
+                    <td style="padding: 10px 14px; text-align: center;">
+                      <div class="flex gap-1 items-center justify-center">
+                        <a [routerLink]="['/billing', sale._id, 'invoice']" (click)="showInvoiceSearchModal.set(false)" class="btn btn-sm btn-outline" style="padding: 3px 8px; font-size: 11px;" title="बिल खोलें व प्रिंट करें">
+                          <i class="fa-solid fa-eye"></i> देखें
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline" (click)="shareInvoiceWhatsApp(sale, $event)" style="border-color: #25d366; color: #166534; padding: 3px 7px; font-size: 11px;" title="WhatsApp पर भेजें">
+                          <i class="fa-brands fa-whatsapp" style="color: #25d366;"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer flex justify-between items-center" style="padding: 12px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+        <span style="font-size: 12px; color: #64748b;">
+          कुल <strong>{{ invoiceSearchResults().length }}</strong> इनवॉइस मिले
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="showInvoiceSearchModal.set(false)" style="font-weight: 700;">
+          बंद करें (Close)
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+
+

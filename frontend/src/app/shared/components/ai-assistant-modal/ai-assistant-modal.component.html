@@ -1,0 +1,330 @@
+<!-- Floating AI Trigger Button (Bottom-Right FAB) -->
+<button 
+  type="button" 
+  class="ai-fab-btn no-print" 
+  (click)="ai.toggleChat()" 
+  [class.active]="ai.isOpen()"
+  title="🤖 MKS मुनीम जी AI — 24/7 दुकानदार सहायता"
+>
+  <div class="fab-icon-wrap">
+    <span class="ai-sparkle">✨</span>
+    <i class="fa-solid fa-robot"></i>
+  </div>
+  <span class="fab-label">
+    <span class="fab-title">मुनीम जी AI</span>
+    <span class="fab-sub">समस्या समाधान</span>
+  </span>
+  <span class="fab-badge">24/7</span>
+</button>
+
+<!-- Main AI Chatbot Window Drawer / Modal -->
+@if (ai.isOpen()) {
+  <div class="ai-chat-backdrop" (click)="ai.closeChat()"></div>
+
+  <div class="ai-chat-card no-print" [class.expanded]="isExpanded()">
+    
+    <!-- Chat Header -->
+    <div class="ai-header">
+      <div class="ai-header-info">
+        <div class="ai-avatar">
+          <i class="fa-solid fa-robot"></i>
+          <span class="online-indicator"></span>
+        </div>
+        <div>
+          <h4 class="ai-header-title">
+            <span>MKS मुनीम जी AI</span>
+            <span class="ai-pill">दुकानदार मित्र</span>
+          </h4>
+          <p class="ai-header-sub">
+            <i class="fa-solid fa-bolt text-warning"></i> बिलिंग, उधारी, स्टॉक व बिक्री समाधान
+          </p>
+        </div>
+      </div>
+
+      <!-- Header Controls -->
+      <div class="ai-header-actions">
+        <button 
+          type="button" 
+          class="head-btn" 
+          (click)="ai.clearChat()" 
+          title="चैट क्लियर करें (Clear Chat)"
+        >
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+
+        <button 
+          type="button" 
+          class="head-btn" 
+          (click)="isExpanded.set(!isExpanded())" 
+          [title]="isExpanded() ? 'सामान्य आकार' : 'बड़ी स्क्रीन (Expand)'"
+        >
+          <i class="fa-solid" [ngClass]="isExpanded() ? 'fa-compress' : 'fa-expand'"></i>
+        </button>
+
+        <button 
+          type="button" 
+          class="head-btn close-btn" 
+          (click)="ai.closeChat()" 
+          title="बंद करें (Close)"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Category Filter Bar -->
+    <div class="ai-categories-bar">
+      <button 
+        type="button" 
+        class="cat-chip" 
+        [class.active]="ai.selectedCategory() === 'ALL'"
+        (click)="filterCategory('ALL')"
+      >
+        🌟 सभी (All)
+      </button>
+      <button 
+        type="button" 
+        class="cat-chip" 
+        [class.active]="ai.selectedCategory() === 'CREDIT'"
+        (click)="filterCategory('CREDIT')"
+      >
+        💰 उधारी वसूली
+      </button>
+      <button 
+        type="button" 
+        class="cat-chip" 
+        [class.active]="ai.selectedCategory() === 'BILLING'"
+        (click)="filterCategory('BILLING')"
+      >
+        🧾 बिलिंग व POS
+      </button>
+      <button 
+        type="button" 
+        class="cat-chip" 
+        [class.active]="ai.selectedCategory() === 'GROWTH'"
+        (click)="filterCategory('GROWTH')"
+      >
+        📈 बिक्री बढ़ाएं
+      </button>
+      <button 
+        type="button" 
+        class="cat-chip" 
+        [class.active]="ai.selectedCategory() === 'STOCK'"
+        (click)="filterCategory('STOCK')"
+      >
+        📦 स्टॉक व बारकोड
+      </button>
+      <button 
+        type="button" 
+        class="cat-chip" 
+        [class.active]="ai.selectedCategory() === 'GST'"
+        (click)="filterCategory('GST')"
+      >
+        📜 GST व टैक्स
+      </button>
+    </div>
+
+    <!-- Chat Messages Scroll Area -->
+    <div class="ai-messages-body" #chatScrollContainer>
+      @for (msg of ai.messages(); track msg.id) {
+        <div class="msg-row" [ngClass]="msg.sender === 'user' ? 'user-row' : 'bot-row'">
+          
+          @if (msg.sender === 'bot') {
+            <div class="bot-icon-bubble">
+              <i class="fa-solid fa-robot"></i>
+            </div>
+          }
+
+          <div class="msg-bubble" [ngClass]="msg.sender === 'user' ? 'user-bubble' : 'bot-bubble'">
+            <!-- Message Content -->
+            <div class="msg-text" [innerHTML]="formatMessageText(msg.text)"></div>
+
+            <!-- WhatsApp Template Box if available -->
+            @if (msg.whatsappTemplate) {
+              <div class="template-card">
+                <div class="template-header">
+                  <span>📲 रेडी WhatsApp तकादा संदेश:</span>
+                  <button 
+                    type="button" 
+                    class="btn-mini-copy" 
+                    (click)="copyText(msg.id, msg.whatsappTemplate)"
+                  >
+                    <i class="fa-solid fa-copy"></i> कॉपी करें
+                  </button>
+                </div>
+                <div class="template-text">{{ msg.whatsappTemplate }}</div>
+              </div>
+            }
+
+            <!-- Action Shortcut Buttons -->
+            @if (msg.actions && msg.actions.length > 0) {
+              <div class="msg-actions-grid">
+                @for (act of msg.actions; track act.label) {
+                  <button 
+                    type="button" 
+                    class="msg-action-btn" 
+                    (click)="navigateAction(act)"
+                  >
+                    @if (act.icon) {
+                      <i [class]="act.icon"></i>
+                    }
+                    <span>{{ act.label }}</span>
+                  </button>
+                }
+              </div>
+            }
+
+            <!-- Bottom utility buttons for bot message -->
+            @if (msg.sender === 'bot') {
+              <div class="msg-footer">
+                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+                <div class="msg-tools">
+                  <button 
+                    type="button" 
+                    class="tool-btn" 
+                    (click)="speakText(msg.text)" 
+                    title="आवाज़ में सुनें (Listen)"
+                  >
+                    <i class="fa-solid fa-volume-high"></i>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="tool-btn" 
+                    (click)="copyText(msg.id, msg.text)" 
+                    title="समाधान कॉपी करें"
+                  >
+                    <i class="fa-solid fa-copy"></i>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="tool-btn whatsapp" 
+                    (click)="shareOnWhatsApp(msg.text)" 
+                    title="WhatsApp पर शेयर करें"
+                  >
+                    <i class="fa-brands fa-whatsapp"></i>
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="msg-footer user-footer">
+                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+              </div>
+            }
+
+          </div>
+        </div>
+      }
+
+      <!-- Typing indicator -->
+      @if (ai.isTyping()) {
+        <div class="msg-row bot-row">
+          <div class="bot-icon-bubble">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div class="msg-bubble bot-bubble typing-bubble">
+            <div class="typing-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span class="typing-text">मुनीम जी AI समाधान खोज रहे हैं...</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Quick Prompts Horizontal Bar -->
+    <div class="ai-quick-prompts-bar">
+      <div class="prompts-label">⚡ त्वरित प्रश्न (Quick Help):</div>
+      <div class="prompts-scroller">
+        @for (p of getFilteredPrompts(); track p.id) {
+          <button 
+            type="button" 
+            class="prompt-btn" 
+            (click)="selectPrompt(p)"
+          >
+            <i [class]="p.icon"></i>
+            <span>{{ p.title }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Input Footer Bar -->
+    <div class="ai-input-footer">
+      
+      <!-- 🎙️ Active Listening Realtime Speech Banner with Volume Meter -->
+      @if (isListening()) {
+        <div class="live-voice-banner">
+          <div class="voice-wave-anim">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="live-voice-content">
+            <div class="flex items-center justify-between">
+              <div class="live-voice-label">🎙️ बोलिए, आवाज़ रिकॉर्ड हो रही है:</div>
+              <!-- Voice Lang Toggle -->
+              <button 
+                type="button" 
+                (click)="toggleVoiceLanguage()" 
+                style="background: white; border: 1px solid #fca5a5; font-size: 10px; font-weight: 800; color: #991b1b; padding: 1px 6px; border-radius: 10px; cursor: pointer;"
+              >
+                {{ selectedVoiceLang() === 'hi-IN' ? '🇮🇳 हिन्दी' : '🇬🇧 Hinglish' }}
+              </button>
+            </div>
+            <div class="live-voice-text">"{{ userInput() || 'माइक में बोलें...' }}"</div>
+            
+            <!-- Live Mic Volume Sound Level Bar -->
+            <div style="background: rgba(0,0,0,0.1); height: 4px; border-radius: 4px; margin-top: 4px; overflow: hidden;">
+              <div 
+                style="background: #22c55e; height: 100%; border-radius: 4px; transition: width 0.08s ease;" 
+                [style.width.%]="audioLevel() > 5 ? audioLevel() : 10"
+              ></div>
+            </div>
+          </div>
+          <button type="button" class="btn-voice-send" (click)="stopListeningAndSend()" [disabled]="!userInput().trim()">
+            <i class="fa-solid fa-check"></i> पूछें
+          </button>
+        </div>
+      }
+
+      <div class="input-container" [class.input-listening]="isListening()">
+        <!-- Voice Input Mic Button -->
+        <button 
+          type="button" 
+          class="voice-mic-btn" 
+          [class.recording]="isListening()"
+          (click)="toggleVoiceInput()" 
+          title="बोलकर सवाल पूछें (Speak in Hindi)"
+        >
+          <i class="fa-solid" [ngClass]="isListening() ? 'fa-microphone-lines fa-fade' : 'fa-microphone'"></i>
+        </button>
+
+        <!-- Text Input Field -->
+        <input 
+          type="text" 
+          class="chat-text-input" 
+          [ngModel]="userInput()" 
+          (ngModelChange)="userInput.set($event)" 
+          (keydown.enter)="sendMessage()"
+          placeholder="यहाँ अपनी दुकान या सॉफ्टवेयर की समस्या पूछें (जैसे: उधार कैसे वसूलें?)..."
+        />
+
+        <!-- Send Button -->
+        <button 
+          type="button" 
+          class="send-btn" 
+          [disabled]="!userInput().trim()" 
+          (click)="sendMessage()"
+          title="संदेश भेजें"
+        >
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </div>
+
+      <div class="ai-footer-note">
+        <span>💡 <strong>टिप:</strong> माइक (Mic) बटन दबाकर हिंदी या इंग्लिश में सीधे बोलें!</span>
+      </div>
+    </div>
+
+  </div>
+}

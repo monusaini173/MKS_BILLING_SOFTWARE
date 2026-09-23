@@ -1,0 +1,639 @@
+<div class="invoice-container" [class.print-mode-a4]="printFormat() === 'A4'" [class.print-mode-thermal]="printFormat() !== 'A4'">
+  <!-- Page Header Actions (Hidden in Print) -->
+  <div class="page-header no-print flex justify-between items-center flex-wrap gap-2">
+    <div>
+      <h1 class="page-title">Tax Invoice & Receipt</h1>
+      <p class="page-subtitle">Invoice number: <strong>{{ invoice()?.invoiceNumber }}</strong></p>
+    </div>
+    <div class="page-actions flex gap-2 flex-wrap items-center">
+      
+      <!-- 🖨️ Format Selector (A4 vs Thermal vs Mini) -->
+      <div style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 20px;">
+        <button 
+          type="button"
+          (click)="printFormat.set('A4')"
+          [style.background]="printFormat() === 'A4' ? '#0f172a' : 'transparent'"
+          [style.color]="printFormat() === 'A4' ? 'white' : '#475569'"
+          style="border: none; border-radius: 16px; padding: 5px 14px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s;"
+        >
+          📄 A4 लेजर / PDF
+        </button>
+
+        <button 
+          type="button"
+          (click)="printFormat.set('THERMAL_80')"
+          [style.background]="printFormat() === 'THERMAL_80' ? '#2563eb' : 'transparent'"
+          [style.color]="printFormat() === 'THERMAL_80' ? 'white' : '#475569'"
+          style="border: none; border-radius: 16px; padding: 5px 14px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s;"
+          title="TSC TE244 / 3-इंच 80mm थर्मल प्रिंटर के लिए"
+        >
+          🧾 80mm / TSC TE244 रसीद
+        </button>
+
+        <button 
+          type="button"
+          (click)="printFormat.set('THERMAL_58')"
+          [style.background]="printFormat() === 'THERMAL_58' ? '#059669' : 'transparent'"
+          [style.color]="printFormat() === 'THERMAL_58' ? 'white' : '#475569'"
+          style="border: none; border-radius: 16px; padding: 5px 14px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s;"
+          title="2-इंच 58mm छोटा थर्मल प्रिंटर"
+        >
+          🧾 58mm मिनी
+        </button>
+      </div>
+
+      <!-- Copy Type Selector (For A4) -->
+      @if (printFormat() === 'A4') {
+        <div class="copy-selector">
+          <select [ngModel]="copyType()" (ngModelChange)="copyType.set($event)" class="form-control" style="width: auto; display: inline-block; padding: 5px 10px; font-size: 12.5px;">
+            <option value="ORIGINAL">Original (Buyer)</option>
+            <option value="DUPLICATE">Duplicate (Transporter)</option>
+            <option value="TRIPLICATE">Triplicate (Supplier)</option>
+          </select>
+        </div>
+      }
+
+      <button class="btn btn-secondary btn-sm" routerLink="/billing">
+        <i class="fa-solid fa-plus"></i> New Bill
+      </button>
+      <button 
+        class="btn btn-sm" 
+        [routerLink]="['/billing']" 
+        [queryParams]="{ editSaleId: invoice()?._id }"
+        style="background: linear-gradient(135deg, #ea580c, #c2410c); color: white; font-weight: 800; border: none; border-radius: 8px;"
+        title="इस बिल में आइटम या पेमेंट एडिट करें"
+      >
+        <i class="fa-solid fa-pen-to-square"></i> ✏️ बिल एडिट करें (Edit Bill)
+      </button>
+      <button class="btn btn-outline btn-sm" (click)="printInvoice()" style="font-weight: 700; background: #0f172a; color: white;">
+        <i class="fa-solid fa-print"></i> Print (प्रिंट)
+      </button>
+      <button class="btn btn-primary btn-sm" (click)="downloadPDF()" [disabled]="isDownloadingPDF()">
+        @if (isDownloadingPDF()) {
+          <i class="fa-solid fa-spinner fa-spin"></i> Preparing PDF...
+        } @else {
+          <i class="fa-solid fa-file-pdf"></i> Download PDF
+        }
+      </button>
+      <button class="btn btn-success btn-sm" (click)="openWhatsAppModal()">
+        <i class="fa-brands fa-whatsapp"></i> WhatsApp
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="flex justify-between items-center" style="min-height: 200px; width: 100%;">
+      <div class="spinner" style="margin: 0 auto;"></div>
+    </div>
+  } @else if (!invoice()) {
+    <div class="card">
+      <div class="card-body text-center">
+        <h3 class="text-danger">Invoice Not Found</h3>
+        <p>The requested invoice could not be retrieved.</p>
+      </div>
+    </div>
+  } @else {
+    
+    <!-- ========================================== -->
+    <!-- 📄 OPTION 1: EXACT TALLY A4 TAX INVOICE   -->
+    <!-- ========================================== -->
+    @if (printFormat() === 'A4') {
+      <div class="invoice-paper tally-exact-paper">
+        <div class="tally-exact-box">
+        
+          <!-- 1. TOP HEADER TITLE -->
+          <div class="tally-top-title-bar">
+            TAX INVOICE
+          </div>
+
+          <!-- 2. COMPANY HEADER (LOGO + COMPANY DETAILS + QR CODE) -->
+          <div class="tally-company-banner">
+            <!-- Left Logo -->
+            <div class="tally-banner-logo">
+              <img [src]="shop()?.logo || 'assets/images/sanjeevani_seal.png'" alt="Logo" class="tally-seal-img" />
+            </div>
+
+            <!-- Center Info -->
+            <div class="tally-banner-center">
+              <h1 class="tally-company-heading">{{ shop()?.name || 'SELF LEARNING' }}</h1>
+              <div class="tally-company-sub">{{ shop()?.address || 'A.B Patel Road, Near IIP PETROL, PUMP, GOREGAON, MUMBAI' }}</div>
+              <div class="tally-company-contact">
+                <span>Tel. : {{ shop()?.mobile || '0154521,9407808553' }}</span>
+                <span *ngIf="shop()?.email">, E-Mail : {{ shop()?.email }}</span>
+              </div>
+            </div>
+
+            <!-- Right QR Code -->
+            <div class="tally-banner-qr">
+              @if (upiQrImageUrl()) {
+                <img [src]="upiQrImageUrl()" alt="QR Code" class="tally-header-qr-img" />
+              } @else {
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=MKS_INVOICE" alt="QR" class="tally-header-qr-img" />
+              }
+            </div>
+          </div>
+
+          <!-- 3. IRN & ACK DETAILS BAR -->
+          <div class="tally-irn-bar">
+            <div class="tally-irn-row">
+              <span class="tally-lbl">IRN</span>
+              <span class="tally-colon">:</span>
+              <span class="tally-irn-val">{{ invoice()._id || 'adkedkdhfkdjfkdjdkfljfldfieeerueriejdfjdfjdferrrioeureu' }}</span>
+            </div>
+            <div class="tally-ack-row">
+              <div>
+                <span class="tally-lbl">Ack No.</span>
+                <span class="tally-colon">:</span>
+                <span class="tally-val font-bold">45546215{{ invoice().invoiceNumber ? invoice().invoiceNumber.replace('INV-', '') : '48564' }}</span>
+              </div>
+              <div>
+                <span class="tally-lbl">Ack Date</span>
+                <span class="tally-colon">:</span>
+                <span class="tally-val font-bold">{{ (invoice().invoiceDate || invoice().createdAt) | date:'dd-MM-yy' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. GSTIN & PAN BAR (SHADED GRAY) -->
+          <div class="tally-gstin-pan-bar">
+            <div>
+              <strong>GSTIN/UIN :</strong> {{ shop()?.gstin || '27AXXXX54521X1Z' }}
+            </div>
+            <div>
+              <strong>PAN No.</strong> {{ getPanNumber() }}
+            </div>
+          </div>
+
+          <!-- 5. THREE-COLUMN PARTY & INVOICE DETAILS GRID -->
+          <div class="tally-three-col-grid">
+            <!-- Col 1: Buyer (Bill To) -->
+            <div class="tally-party-col">
+              <div class="tally-col-head">Buyer (Bill To)</div>
+              <div class="tally-party-name-blue">{{ invoice().customerName || 'Ashok Trading Com' }}</div>
+              <div class="tally-party-line">{{ invoice().customerId?.address || 'NEW A.B. ROAD,' }}</div>
+              <div class="tally-party-line">{{ invoice().customerId?.city || 'MUMBAI' }}</div>
+              <div class="tally-party-line">
+                State Name : {{ invoice().customerId?.state || shop()?.state || 'Maharashtra' }} &nbsp;&nbsp; Code : {{ invoice().customerId?.stateCode || shop()?.stateCode || '27' }}
+              </div>
+              <div class="tally-party-line">
+                GSTIN No : {{ invoice().customerGstin || (invoice().customerMobile ? 'Mob: ' + invoice().customerMobile : 'ABXX24524524574') }}
+              </div>
+            </div>
+
+            <!-- Col 2: Consignee (Ship to) -->
+            <div class="tally-party-col">
+              <div class="tally-col-head">Consignee (Ship to)</div>
+              <div class="tally-party-name-blue">{{ invoice().customerName || 'Ashok Trading Com' }}</div>
+              <div class="tally-party-line">{{ invoice().customerId?.address || 'NEW A.B. ROAD,' }}</div>
+              <div class="tally-party-line">{{ invoice().customerId?.city || 'MUMBAI' }}</div>
+              <div class="tally-party-line">
+                State Name : {{ invoice().customerId?.state || shop()?.state || 'Maharashtra' }} &nbsp;&nbsp; Code : {{ invoice().customerId?.stateCode || shop()?.stateCode || '27' }}
+              </div>
+              <div class="tally-party-line">
+                GSTIN No : {{ invoice().customerGstin || (invoice().customerMobile ? 'Mob: ' + invoice().customerMobile : 'abxx24524524574') }}
+              </div>
+            </div>
+
+            <!-- Col 3: Invoice Metadata Table -->
+            <div class="tally-meta-col">
+              <table class="tally-col3-meta-tbl">
+                <tr>
+                  <td class="m-lbl">Invoice No</td>
+                  <td class="m-val">: <strong>{{ invoice().invoiceNumber }}</strong></td>
+                </tr>
+                <tr>
+                  <td class="m-lbl">Date</td>
+                  <td class="m-val">: <strong>{{ (invoice().invoiceDate || invoice().createdAt) | date:'d-MMM-yy' }}</strong></td>
+                </tr>
+                <tr>
+                  <td class="m-lbl">E-Way Bill No.</td>
+                  <td class="m-val">: {{ invoice().eWayBillNumber || '123456789452' }}</td>
+                </tr>
+                <tr>
+                  <td class="m-lbl">Delivery Note No.</td>
+                  <td class="m-val">: 12345</td>
+                </tr>
+                <tr>
+                  <td class="m-lbl">Buyer Order No.</td>
+                  <td class="m-val">: 1234574</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- 6. ITEMS TABLE (FULL EXACT GRID) -->
+          <table class="tally-main-item-table">
+            <thead>
+              <tr class="tally-grid-head">
+                <th style="width: 4%;">S.No.</th>
+                <th style="width: 34%; text-align: left; padding-left: 8px;">Description</th>
+                <th style="width: 9%;">HSN/SAC<br>Code</th>
+                <th style="width: 7%;">GST<br>Rate</th>
+                <th style="width: 8%;">Qty.</th>
+                <th style="width: 6%;">Unit</th>
+                <th style="width: 8%; text-align: right;">(Incl)<br>Rate</th>
+                <th style="width: 8%; text-align: right;">Rate</th>
+                <th style="width: 6%;">Disc<br>%</th>
+                <th style="width: 10%; text-align: right; padding-right: 6px;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of invoice().items; track item._id || $index; let idx = $index) {
+                <tr class="tally-main-row">
+                  <td class="text-center">{{ idx + 1 }}</td>
+                  <td class="text-left font-medium" style="padding-left: 8px;">
+                    <div>{{ item.productName }}</div>
+                    <div class="item-extra-sub" *ngIf="item.batchNumber || item.expiryDate || item.size">
+                      <span *ngIf="item.batchNumber">B: {{ item.batchNumber }} </span>
+                      <span *ngIf="item.expiryDate">Exp: {{ item.expiryDate | date:'MM/yy' }} </span>
+                      <span *ngIf="item.size">Size: {{ item.size }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center">{{ item.hsnCode || '4521' }}</td>
+                  <td class="text-center">{{ item.gstPercent || 5 }} %</td>
+                  <td class="text-center font-bold">{{ item.quantity | number:'1.2-2' }}</td>
+                  <td class="text-center">{{ item.unit || 'pcs' }}</td>
+                  <td class="text-right">{{ getInclusiveRate(item) | number:'1.2-2' }}</td>
+                  <td class="text-right">{{ item.rate | number:'1.2-2' }}</td>
+                  <td class="text-center">{{ item.discount > 0 ? item.discount : '' }}</td>
+                  <td class="text-right font-bold" style="padding-right: 6px;">{{ item.subtotal | number:'1.2-2' }}</td>
+                </tr>
+              }
+
+              <!-- TOTAL ROW -->
+              <tr class="tally-grid-total-row">
+                <td colspan="4" class="text-center font-bold">TOTAL</td>
+                <td class="text-center font-bold">{{ getTotalQty() | number:'1.2-2' }}</td>
+                <td colspan="4"></td>
+                <td class="text-right font-bold" style="padding-right: 6px;">{{ getTotalTaxable() | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 7. AMOUNT IN WORDS & CALCULATION SECTION (2-COL) -->
+          <div class="tally-words-calc-split">
+            <!-- Left Side: Amount In Words + Bank Details -->
+            <div class="tally-words-bank-pane">
+              <!-- Words -->
+              <div class="tally-words-line">
+                <strong>Amount In Words :</strong> 
+                <span class="font-bold"> INR {{ amountInWords(invoice().grandTotal).replace('Rupees ', '').replace(' Only', '') }} Only</span>
+              </div>
+
+              <!-- Bank Details with QR -->
+              <div class="tally-bank-box-flex">
+                <div class="tally-bank-qr">
+                  @if (upiQrImageUrl()) {
+                    <img [src]="upiQrImageUrl()" alt="Bank QR" />
+                  } @else {
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=UPI_PAYMENT" alt="QR" />
+                  }
+                </div>
+                <div class="tally-bank-info-lines">
+                  <div><span class="b-lbl">Bank Name</span> <span class="b-col">:</span> <strong class="b-val">{{ shop()?.bankName || 'Axis Bank Ltd' }}</strong></div>
+                  <div><span class="b-lbl">A/c No.</span> <span class="b-col">:</span> <strong class="b-val">{{ shop()?.bankAccountNumber || '452145214547' }}</strong></div>
+                  <div><span class="b-lbl">Branch & IFS code</span> <span class="b-col">:</span> <strong class="b-val">{{ shop()?.bankBranch || 'Mumbai' }} & {{ shop()?.bankIfsc || 'IFSCODE452' }}</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: Calculation Summary Table -->
+            <div class="tally-calc-pane">
+              <table class="tally-calc-side-tbl">
+                <tr>
+                  <td class="c-lbl">Basic Amount</td>
+                  <td class="c-val">{{ invoice().subtotal | number:'1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td class="c-lbl">CGST</td>
+                  <td class="c-val">{{ invoice().totalCgst | number:'1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td class="c-lbl">SGST</td>
+                  <td class="c-val">{{ invoice().totalSgst | number:'1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td class="c-lbl">Round Off</td>
+                  <td class="c-val">{{ (invoice().roundOff || 0) | number:'1.2-2' }}</td>
+                </tr>
+                <tr class="g-total-row">
+                  <td class="c-lbl font-bold">G. Total Amount</td>
+                  <td class="c-val font-bold">{{ invoice().grandTotal | number:'1.2-2' }}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- 8. GST TAX ANALYSIS BREAKUP TABLE -->
+          <table class="tally-exact-tax-table">
+            <thead>
+              <tr class="t-head1">
+                <th rowspan="2" style="width: 25%;">Taxable Value</th>
+                <th colspan="2" style="width: 25%;">CGST</th>
+                <th colspan="2" style="width: 25%;">SGST/UTGST</th>
+                <th rowspan="2" style="width: 25%;">Total Tax Amount</th>
+              </tr>
+              <tr class="t-head2">
+                <th style="width: 10%;">Rate</th>
+                <th style="width: 15%;">Amount</th>
+                <th style="width: 10%;">Rate</th>
+                <th style="width: 15%;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (slab of getGstBreakup(); track slab.rate) {
+                <tr>
+                  <td class="text-right">{{ slab.taxable | number:'1.2-2' }}</td>
+                  <td class="text-center">{{ (slab.rate / 2) | number:'1.2-2' }}%</td>
+                  <td class="text-right">{{ slab.cgst | number:'1.2-2' }}</td>
+                  <td class="text-center">{{ (slab.rate / 2) | number:'1.2-2' }}%</td>
+                  <td class="text-right">{{ slab.sgst | number:'1.2-2' }}</td>
+                  <td class="text-right font-bold">{{ slab.totalTax | number:'1.2-2' }}</td>
+                </tr>
+              }
+              <tr class="tax-total-row">
+                <td class="text-right font-bold"><span style="float: left; font-weight: 800;">Total:</span> {{ getTotalTaxable() | number:'1.2-2' }}</td>
+                <td></td>
+                <td class="text-right font-bold">{{ invoice().totalCgst | number:'1.2-2' }}</td>
+                <td></td>
+                <td class="text-right font-bold">{{ invoice().totalSgst | number:'1.2-2' }}</td>
+                <td class="text-right font-bold">{{ getTotalGstAmount() | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 9. TERMS & CONDITIONS (LEFT) + FOR COMPANY & STAMP (RIGHT) -->
+          <div class="tally-bottom-sign-split">
+            <!-- Terms & Conditions -->
+            <div class="tally-terms-box">
+              <div class="terms-h">Terms & Condition :-</div>
+              <div class="terms-item">* Goods once sold will not be taken back.</div>
+              <div class="terms-item">* Interest &#64;18% p.a. will be charged if the payment is not make with in the stipulated time.</div>
+              <div class="terms-item">* We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div>
+            </div>
+
+            <!-- Signatory Box with Round Stamp -->
+            <div class="tally-sign-box">
+              <div class="for-text">For &nbsp;<strong>{{ shop()?.name || 'SELF LEARNING' }}</strong></div>
+              
+              <!-- Round Stamp/Seal -->
+              <div class="seal-container">
+                <div class="round-seal-mock">
+                  <div class="seal-inner-circle">
+                    <div class="seal-text-top">SELF LEARNING</div>
+                    <div class="seal-logo-sym">§</div>
+                    <div class="seal-name">Rohan</div>
+                    <div class="seal-sign-tag">Sign.</div>
+                    <div class="seal-text-bottom">TALLY CUSTOMIZATION</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="auth-sign-label">Authorised Signatory</div>
+            </div>
+          </div>
+
+          <!-- 10. JURISDICTION & COMPUTER GENERATED NOTE -->
+          <div class="tally-jurisdiction-note">
+            <div class="j-title">SUBJECT TO {{ (shop()?.city || 'MUMBAI') | uppercase }} JURISDICTION</div>
+            <div class="j-sub">This is a Computer Generated Invoice</div>
+          </div>
+
+        </div>
+      </div>
+    } @else {
+      <!-- ========================================== -->
+      <!-- 🧾 OPTION 2: 80MM / 58MM THERMAL POS RECEIPT -->
+      <!-- ========================================== -->
+      <div class="thermal-wrapper flex justify-center">
+        <div class="thermal-receipt" [class.thermal-58]="printFormat() === 'THERMAL_58'">
+          <!-- Store Header -->
+          <div class="thermal-header text-center">
+            <div class="thermal-shop-name">{{ shop()?.name || 'MKS STORE' }}</div>
+            <div class="thermal-shop-type" *ngIf="shop()?.shopType">{{ shop()?.shopType }} STORE</div>
+            <div class="thermal-meta">{{ shop()?.address }}, {{ shop()?.city }}</div>
+            <div class="thermal-meta">📱 {{ shop()?.mobile }}</div>
+            <div class="thermal-meta" *ngIf="shop()?.gstin">GSTIN: {{ shop()?.gstin }}</div>
+          </div>
+
+          <div class="thermal-divider"></div>
+
+          <!-- Invoice Details -->
+          <div class="thermal-info-grid">
+            <div class="flex justify-between">
+              <span>Bill No: <strong>#{{ invoice()?.invoiceNumber }}</strong></span>
+              <span>{{ (invoice()?.invoiceDate || invoice()?.createdAt) | date:'dd/MM/yy hh:mm a' }}</span>
+            </div>
+            <div class="flex justify-between" *ngIf="invoice()?.customerName">
+              <span>Cust: <strong>{{ invoice()?.customerName }}</strong></span>
+              <span>📱 {{ invoice()?.customerMobile || '' }}</span>
+            </div>
+            <!-- 💊 Medical Doctor & Patient Details -->
+            @if (invoice()?.doctorName || invoice()?.patientName) {
+              <div class="flex justify-between" *ngIf="invoice()?.doctorName" style="color: #0f766e; font-weight: 700;">
+                <span>Dr: <strong>{{ invoice()?.doctorName }}</strong></span>
+                <span *ngIf="invoice()?.isPrescription">℞ Rx Bill</span>
+              </div>
+              <div class="flex justify-between" *ngIf="invoice()?.patientName">
+                <span>Patient: <strong>{{ invoice()?.patientName }}</strong></span>
+                <span *ngIf="invoice()?.patientAge">Age: {{ invoice()?.patientAge }}</span>
+              </div>
+            }
+            <div class="flex justify-between">
+              <span>Mode: <strong>{{ invoice()?.paymentMethod }}</strong></span>
+              <span>Cashier: <strong>{{ invoice()?.cashierName || 'Admin' }}</strong></span>
+            </div>
+          </div>
+
+          <div class="thermal-divider"></div>
+
+          <!-- Thermal Items Table -->
+          <table class="thermal-table">
+            <thead>
+              <tr>
+                <th style="text-align: left; width: 45%;">Item</th>
+                <th style="text-align: center; width: 15%;">Qty</th>
+                <th style="text-align: right; width: 20%;">Rate</th>
+                <th style="text-align: right; width: 20%;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of invoice()?.items; track item._id || $index; let idx = $index) {
+                <tr>
+                  <td colspan="4" style="padding-top: 4px; font-weight: 700; text-align: left;">
+                    {{ idx + 1 }}. {{ item.productName }}
+                    @if (item.genericName) { <span style="font-size: 9px; color: #0f766e; font-weight: 600;"> ({{ item.genericName }})</span> }
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px dashed #cbd5e1;">
+                  <td style="font-size: 9.5px; color: #64748b;">
+                    @if (item.batchNumber) { <span>B:{{ item.batchNumber }} </span> }
+                    @if (item.expiryDate) { <span>Exp:{{ item.expiryDate | date:'MM/yy' }} </span> }
+                    @if (item.imeiNumber) { <span>IMEI:{{ item.imeiNumber }} </span> }
+                    @if (item.size) { <span>Sz:{{ item.size }} </span> }
+                    {{ item.hsnCode ? 'HSN:' + item.hsnCode : '' }}
+                  </td>
+                  <td style="text-align: center; font-weight: 700;">{{ item.quantity }} {{ item.unit || 'PCS' }}</td>
+                  <td style="text-align: right;">₹{{ item.rate | number:'1.2-2' }}</td>
+                  <td style="text-align: right; font-weight: 800;">₹{{ item.total | number:'1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="thermal-divider"></div>
+
+          <!-- Totals -->
+          <div class="thermal-totals">
+            <div class="flex justify-between">
+              <span>Total Items (Qty):</span>
+              <span><strong>{{ invoice()?.items?.length }} ({{ getTotalQty() }})</strong></span>
+            </div>
+            <div class="flex justify-between">
+              <span>Subtotal (₹):</span>
+              <span>₹{{ invoice()?.subtotal | number:'1.2-2' }}</span>
+            </div>
+            @if (invoice()?.totalDiscount > 0) {
+              <div class="flex justify-between" style="color: #059669;">
+                <span>Discount (₹):</span>
+                <span>-₹{{ invoice()?.totalDiscount | number:'1.2-2' }}</span>
+              </div>
+            }
+            @if (invoice()?.totalGst > 0) {
+              <div class="flex justify-between">
+                <span>Total GST (₹):</span>
+                <span>₹{{ invoice()?.totalGst | number:'1.2-2' }}</span>
+              </div>
+            }
+            @if (invoice()?.roundOff !== 0) {
+              <div class="flex justify-between">
+                <span>Round Off:</span>
+                <span>{{ invoice()?.roundOff >= 0 ? '+' : '' }}₹{{ invoice()?.roundOff | number:'1.2-2' }}</span>
+              </div>
+            }
+            
+            <div class="thermal-grand-total flex justify-between">
+              <span>NET TOTAL:</span>
+              <span>₹{{ invoice()?.grandTotal | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="flex justify-between" style="font-size: 11.5px; margin-top: 4px;">
+              <span>Paid Amount:</span>
+              <span><strong>₹{{ invoice()?.amountPaid | number:'1.2-2' }}</strong></span>
+            </div>
+            @if (invoice()?.balanceDue > 0) {
+              <div class="flex justify-between" style="color: #dc2626; font-size: 11.5px; font-weight: 800;">
+                <span>Balance Due:</span>
+                <span>₹{{ invoice()?.balanceDue | number:'1.2-2' }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="thermal-divider"></div>
+
+          <!-- 💳 Dynamic UPI QR Code for Thermal Print -->
+          @if (upiQrImageUrl() && shop()?.enableUpiQrOnInvoice !== false) {
+            <div style="text-align: center; margin: 6px 0; padding: 8px 6px; border: 1px dashed #5f259f; border-radius: 6px; background: #fafafa;">
+              <div style="font-size: 10.5px; font-weight: 900; color: #0f172a; margin-bottom: 3px;">
+                SCAN & PAY (₹{{ invoice()?.grandTotal | number:'1.2-2' }})
+              </div>
+              <img [src]="upiQrImageUrl()" alt="UPI QR" style="width: 110px; height: 110px; margin: 0 auto; display: block;" />
+              <div style="font-size: 11.5px; font-weight: 900; color: #5f259f; margin-top: 3px;">
+                {{ shop()?.upiName || shop()?.ownerName || shop()?.name }}
+              </div>
+              <div style="font-size: 9px; color: #475569; margin-top: 1px; font-family: monospace; font-weight: 700;">
+                {{ shop()?.upiId }}
+              </div>
+            </div>
+          }
+
+          <!-- ✍️ Signatory Section for Thermal POS Print -->
+          <div class="thermal-signatory-section" style="margin: 14px 0 10px; padding-top: 8px; border-top: 1px dashed #000000;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 10px;">
+              <div style="text-align: left; width: 45%;">
+                <div style="height: 22px;"></div>
+                <div style="border-top: 1px dashed #64748b; font-size: 9px; color: #475569; padding-top: 2px;">
+                  Customer Sign
+                </div>
+              </div>
+              <div style="text-align: right; width: 55%;">
+                <div style="font-size: 9.5px; font-weight: 700; color: #000; margin-bottom: 18px;">
+                  For {{ shop()?.name || 'MKS STORE' }}
+                </div>
+                <div style="border-top: 1px dashed #000; font-size: 10px; font-weight: 800; color: #000; padding-top: 2px; display: inline-block;">
+                  अधिकृत हस्ताक्षर / Signatory
+                </div>
+                @if (invoice()?.cashierName) {
+                  <div style="font-size: 8.5px; color: #475569; margin-top: 1px;">
+                    ({{ invoice()?.cashierName }})
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Note & Barcode -->
+          <div class="thermal-footer text-center">
+            <div style="font-weight: 700; margin-bottom: 2px;">*** धन्यवाद! फिर पधारें ***</div>
+            <div style="font-size: 10px; color: #64748b;">THANK YOU! VISIT AGAIN</div>
+            <div style="font-family: monospace; font-size: 11px; margin-top: 6px; letter-spacing: 2px; font-weight: 700;">
+              *{{ invoice()?.invoiceNumber }}*
+            </div>
+            <div style="font-size: 9px; color: #94a3b8; margin-top: 4px;">
+              Powered by MKS Billing Software
+            </div>
+          </div>
+
+        </div>
+      </div>
+    }
+  }
+</div>
+
+<!-- Modal Custom WhatsApp Number & PDF Share -->
+@if (showWhatsAppModal()) {
+  <div class="modal-overlay">
+    <div class="modal" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title flex items-center gap-2">
+          <i class="fa-brands fa-whatsapp text-success" style="font-size: 22px;"></i> WhatsApp PDF Share
+        </h3>
+        <button class="modal-close" (click)="showWhatsAppModal.set(false)">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info flex items-center gap-2 mb-3" style="font-size: 12px; padding: 8px 12px; background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; border-radius: 6px;">
+          <i class="fa-solid fa-file-pdf" style="font-size: 16px;"></i>
+          <span>PDF memory me generate hogi (apke device me download nahi hogi). Direct WhatsApp par share ho jayegi!</span>
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+          WhatsApp mobile number enter karein:
+        </p>
+        <div class="form-group">
+          <label class="form-label">WhatsApp Mobile Number <span class="required">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text" style="background: var(--gray-100); font-weight: 600; padding: 8px 12px; font-size: 14px;">+91</span>
+            <input 
+              type="text" 
+              class="form-control" 
+              [ngModel]="whatsAppMobile()" 
+              (ngModelChange)="whatsAppMobile.set($event)"
+              placeholder="10-digit mobile number"
+              maxlength="13"
+              style="font-size: 15px; font-weight: 600;"
+            >
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showWhatsAppModal.set(false)" [disabled]="isSharingWhatsApp()">Cancel</button>
+        <button type="button" class="btn btn-success" (click)="sendWhatsAppBill()" [disabled]="isSharingWhatsApp()">
+          @if (isSharingWhatsApp()) {
+            <i class="fa-solid fa-spinner fa-spin"></i> ⏳ PDF तैयार हो रही है (Preparing PDF)...
+          } @else {
+            <i class="fa-brands fa-whatsapp"></i> Share PDF on WhatsApp
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

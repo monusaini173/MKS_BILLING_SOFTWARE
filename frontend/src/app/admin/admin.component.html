@@ -1,0 +1,115 @@
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Super Admin Control Panel</h1>
+    <p class="page-subtitle">Oversee registered businesses, tenant database tables, and system metrics.</p>
+  </div>
+</div>
+
+<!-- Stats row -->
+<div class="grid grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon primary"><i class="fa-solid fa-store"></i></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats().totalShops }}</div>
+      <div class="stat-label">Total Registered Shops</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon success"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats().activeShops }}</div>
+      <div class="stat-label">Active Tenants</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon danger"><i class="fa-solid fa-circle-xmark"></i></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats().inactiveShops }}</div>
+      <div class="stat-label">Suspended / Inactive</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon info"><i class="fa-solid fa-users"></i></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats().totalUsers }}</div>
+      <div class="stat-label">Total Registered Users</div>
+    </div>
+  </div>
+</div>
+
+<!-- Shops List Table -->
+<div class="card">
+  <div class="card-header"><div class="card-title">System-wide Registered Shops</div></div>
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 200px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (shops().length === 0) {
+      <div class="empty-state">
+        <i class="fa-solid fa-shop-slash"></i>
+        <h3>No Shops Registered</h3>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Shop Name</th>
+              <th>Shop Type</th>
+              <th>Owner Details</th>
+              <th>Subscription / Trial</th>
+              <th>Created Date</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (sh of shops(); track sh._id) {
+              <tr>
+                <td class="font-semibold">{{ sh.name }}</td>
+                <td><span class="badge badge-primary font-medium">{{ sh.shopType }}</span></td>
+                <td>
+                  <span style="display: block; font-weight: 500;">{{ sh.ownerName }}</span>
+                  <span class="text-muted" style="display: block; font-size: 11px;">Mobile: {{ sh.mobile }}</span>
+                </td>
+                <td>
+                  <div class="flex flex-col gap-1">
+                    <span class="badge" [style.background]="sh.subscriptionPlan === 'TRIAL' ? '#fef3c7' : '#dcfce7'" [style.color]="sh.subscriptionPlan === 'TRIAL' ? '#92400e' : '#166534'" style="font-weight: 700; font-size: 11px;">
+                      {{ sh.subscriptionPlan || 'TRIAL' }}
+                    </span>
+                    <span style="font-size: 10.5px; color: var(--text-secondary);">
+                      वैधता: {{ sh.subscriptionExpiry ? (sh.subscriptionExpiry | date:'dd-MM-yyyy') : '3 Days Trial' }}
+                    </span>
+                    <div class="flex gap-1" style="margin-top: 2px;">
+                      <button type="button" class="btn btn-sm" (click)="extendShopSubscription(sh, 3, 'TRIAL')" style="font-size: 10px; padding: 2px 6px; background: #fef3c7; color: #92400e;" title="3 दिन ट्रायल बढ़ाएं">
+                        +3 दिन
+                      </button>
+                      <button type="button" class="btn btn-sm" (click)="extendShopSubscription(sh, 30, 'PREMIUM_MONTHLY')" style="font-size: 10px; padding: 2px 6px; background: #dcfce7; color: #166534;" title="1 माह ₹500 प्रीमियम दें">
+                        +30 दिन (₹500)
+                      </button>
+                      <button type="button" class="btn btn-sm" (click)="extendShopSubscription(sh, 365, 'PREMIUM_YEARLY')" style="font-size: 10px; padding: 2px 6px; background: #e0e7ff; color: #4338ca;" title="1 वर्ष वार्षिक प्रीमियम दें">
+                        +1 वर्ष
+                      </button>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ sh.createdAt | date:'dd-MM-yyyy' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="sh.isActive ? 'badge-success' : 'badge-danger'">
+                    {{ sh.isActive ? 'Active' : 'Suspended' }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm" [ngClass]="sh.isActive ? 'btn-danger' : 'btn-success'" (click)="toggleShopActive(sh)">
+                    {{ sh.isActive ? 'Suspend Access' : 'Restore Access' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

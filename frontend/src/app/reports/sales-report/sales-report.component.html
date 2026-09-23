@@ -1,0 +1,267 @@
+<div class="page-header no-print flex justify-between items-center flex-wrap gap-3">
+  <div>
+    <h1 class="page-title">{{ lang.isHindi() ? 'सेल्स इनवॉइस व बिलिंग रिपोर्ट्स' : 'Sales Invoices & Billing History' }}</h1>
+    <p class="page-subtitle">{{ lang.isHindi() ? 'ग्राहक के नाम, इनवॉइस नंबर या मोबाइल से किसी भी बिल को तुरंत खोजें।' : 'Search any invoice by customer name, invoice number, or mobile number instantly.' }}</p>
+  </div>
+  <div class="page-actions flex gap-2">
+    <a routerLink="/billing" class="btn btn-primary">
+      <i class="fa-solid fa-plus"></i> {{ lang.isHindi() ? 'नया बिल बनाएं' : 'New Bill' }}
+    </a>
+    <button class="btn btn-outline" (click)="printReport()"><i class="fa-solid fa-print"></i> {{ lang.isHindi() ? 'प्रिंट रिपोर्ट' : 'Print Report' }}</button>
+    <a routerLink="/reports" class="btn btn-secondary">{{ lang.isHindi() ? 'रिपोर्ट्स हब' : 'Back to Center' }}</a>
+  </div>
+</div>
+
+<!-- 🔍 Fast Search & Comprehensive Filters Bar -->
+<div class="card mb-4 no-print" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1.5px solid #e2e8f0;">
+  <div class="card-body" style="padding: 16px 20px;">
+    <div class="flex gap-3 items-center flex-wrap">
+      
+      <!-- 🔍 Live Instant Search Bar (Customer Name / Invoice No / Mobile) -->
+      <div style="flex: 1.5; min-width: 280px; position: relative;">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #4f46e5; font-size: 15px;"></i>
+        <input 
+          type="text" 
+          class="form-control" 
+          [(ngModel)]="searchQuery" 
+          (ngModelChange)="onSearchChange()"
+          placeholder="ग्राहक का नाम, बिल नं. (उदा. INV-001) या मोबाइल नंबर से खोजें..."
+          style="padding-left: 40px; padding-right: 36px; height: 42px; font-size: 13.5px; font-weight: 600; border-radius: 8px; border: 2px solid #c7d2fe;"
+          autofocus
+        >
+        <button 
+          *ngIf="searchQuery" 
+          type="button" 
+          (click)="clearSearch()" 
+          style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; font-size: 16px; cursor: pointer;"
+          title="सर्च हटाएं"
+        >
+          &times;
+        </button>
+      </div>
+
+      <!-- Date Period Filter -->
+      <div class="form-group mb-0" style="min-width: 170px;">
+        <select class="form-control" [(ngModel)]="filter" (ngModelChange)="loadReport()" style="height: 42px; font-weight: 700; border-radius: 8px;">
+          <option value="all">🌟 सभी बिल (All Invoices)</option>
+          <option value="today">📅 आज (Today)</option>
+          <option value="yesterday">⏪ कल (Yesterday)</option>
+          <option value="week">🗓️ पिछले 7 दिन (7 Days)</option>
+          <option value="month">📊 इस महीने (This Month)</option>
+          <option value="year">📅 इस साल (This Year)</option>
+          <option value="custom">⚙️ कस्टम तारीख (Custom Range)</option>
+        </select>
+      </div>
+
+      <!-- Multi-Branch Filter Dropdown -->
+      <div *ngIf="auth.myShops().length > 1" class="form-group mb-0" style="min-width: 180px;">
+        <select class="form-control" [(ngModel)]="branchFilter" (ngModelChange)="loadReport()" style="height: 42px; font-weight: 700; border-radius: 8px; border-color: #0284c7; color: #0369a1;">
+          <option value="ALL">🏢 सभी शाखाएं (All Branches)</option>
+          <option *ngFor="let b of auth.myShops()" [value]="b._id">
+            📍 {{ b.name }} ({{ b.branchCode || 'BR' }})
+          </option>
+        </select>
+      </div>
+
+      <!-- Payment Status Filter -->
+      <div class="form-group mb-0" style="min-width: 150px;">
+        <select class="form-control" [(ngModel)]="statusFilter" (ngModelChange)="loadReport()" style="height: 42px; font-weight: 700; border-radius: 8px;">
+          <option value="ALL">सभी स्थिति (All Status)</option>
+          <option value="PAID">✅ पूर्ण भुगतान (Paid)</option>
+          <option value="PARTIAL">⚠️ आंशिक (Partial)</option>
+          <option value="PENDING">🚨 उधार / बकाया (Udhaar)</option>
+        </select>
+      </div>
+
+      @if (filter === 'custom') {
+        <div class="form-group mb-0">
+          <input type="date" class="form-control" [(ngModel)]="startDate" style="height: 42px; border-radius: 8px;">
+        </div>
+        <div class="form-group mb-0">
+          <input type="date" class="form-control" [(ngModel)]="endDate" style="height: 42px; border-radius: 8px;">
+        </div>
+        <button class="btn btn-primary" (click)="loadReport()" style="height: 42px; border-radius: 8px;">
+          लागू करें (Apply)
+        </button>
+      }
+
+    </div>
+
+    <!-- Active Search Filter Pill -->
+    <div *ngIf="searchQuery" style="margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 12px;">
+      <span style="color: #64748b;">सर्च रिजल्ट:</span>
+      <span class="badge" style="background: #e0e7ff; color: #4338ca; font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 20px;">
+        🔍 "{{ searchQuery }}" के लिए <strong>{{ sales().length }}</strong> बिल मिले
+      </span>
+      <button (click)="clearSearch()" class="btn btn-link btn-sm" style="padding: 0; color: #ef4444; font-size: 11.5px; text-decoration: underline; background: none; border: none; cursor: pointer;">
+        सर्च रीसेट करें
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-4 mb-4">
+  <div class="stat-card" style="border-radius: 12px;">
+    <div class="stat-icon primary"><i class="fa-solid fa-receipt"></i></div>
+    <div class="stat-info">
+      <div class="stat-value">{{ sales().length }} <span style="font-size: 13px; color: #64748b; font-weight: normal;">बिल</span></div>
+      <div class="stat-label">कुल इनवॉइस संख्या</div>
+    </div>
+  </div>
+  <div class="stat-card" style="border-radius: 12px;">
+    <div class="stat-icon primary"><i class="fa-solid fa-money-bill-wave"></i></div>
+    <div class="stat-info">
+      <div class="stat-value">₹{{ summary().totalSales || 0 | number:'1.2-2' }}</div>
+      <div class="stat-label">कुल बिल राशि (Total Sales)</div>
+    </div>
+  </div>
+  <div class="stat-card" style="border-radius: 12px;">
+    <div class="stat-icon success"><i class="fa-solid fa-wallet"></i></div>
+    <div class="stat-info">
+      <div class="stat-value">₹{{ summary().totalPaid || 0 | number:'1.2-2' }}</div>
+      <div class="stat-label">प्राप्त राशि (Paid Amount)</div>
+    </div>
+  </div>
+  <div class="stat-card" style="border-radius: 12px;">
+    <div class="stat-icon danger"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+    <div class="stat-info">
+      <div class="stat-value">₹{{ summary().totalPending || 0 | number:'1.2-2' }}</div>
+      <div class="stat-label">बकाया उधार (Pending Udhaar)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Sales Log Table -->
+<div class="card" style="border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
+  <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px;">
+    <div class="card-title flex items-center gap-2" style="font-weight: 800; font-size: 15px; color: #1e293b;">
+      <i class="fa-solid fa-receipt text-primary"></i>
+      <span>इनवॉइस सूची (Invoices List)</span>
+      <span class="badge badge-primary" style="font-size: 11px; margin-left: 6px;">{{ sales().length }} रिकॉर्ड</span>
+    </div>
+  </div>
+  
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 220px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (sales().length === 0) {
+      <div class="empty-state" style="padding: 45px 20px; text-align: center;">
+        <i class="fa-solid fa-receipt" style="font-size: 42px; color: #cbd5e1; margin-bottom: 12px;"></i>
+        <h3 style="font-size: 16px; font-weight: 700; color: #334155;">कोई इनवॉइस नहीं मिला (No Invoices Found)</h3>
+        <p style="font-size: 13px; color: #64748b; margin-top: 4px;">
+          @if (searchQuery) {
+            "{{ searchQuery }}" से मिलता-जुलता कोई बिल नहीं मिला। कृपया नाम या बिल नंबर जांचें।
+          } @else {
+            इस तारीख व फ़िल्टर में कोई बिक्री दर्ज नहीं है।
+          }
+        </p>
+        <button *ngIf="searchQuery" (click)="clearSearch()" class="btn btn-outline-primary btn-sm mt-3" style="font-weight: 700;">
+          🔄 सभी बिल देखें
+        </button>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0; overflow-x: auto;">
+        <table style="width: 100%; min-width: 900px; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="padding: 12px 16px; font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase;">इनवॉइस नं.</th>
+              <th style="padding: 12px 16px; font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase;">दिनांक व समय</th>
+              <th style="padding: 12px 16px; font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase;">ग्राहक (Customer)</th>
+              <th style="padding: 12px 16px; font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right;">कुल बिल (₹)</th>
+              <th style="padding: 12px 16px; font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right;">जमा (₹)</th>
+              <th style="padding: 12px 16px; font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: right;">बकाया उधार (₹)</th>
+              <th style="padding: 12px 16px; font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center;">स्थिति</th>
+              <th style="padding: 12px 16px; font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase; text-align: center; width: 140px;">एक्शन</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (sale of sales(); track sale._id) {
+              <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;" class="hover:bg-slate-50">
+                
+                <!-- Invoice Number Link -->
+                <td style="padding: 12px 16px; font-weight: 800;">
+                  <a [routerLink]="['/billing', sale._id, 'invoice']" style="color: #4f46e5; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; background: #eef2ff; padding: 3px 8px; border-radius: 6px; border: 1px solid #c7d2fe;">
+                    <i class="fa-solid fa-receipt" style="font-size: 11px;"></i>
+                    <span>{{ sale.invoiceNumber }}</span>
+                  </a>
+                </td>
+
+                <!-- Date & Time -->
+                <td style="padding: 12px 16px; font-size: 12.5px; color: #475569;">
+                  <div>{{ sale.invoiceDate | date:'dd-MM-yyyy' }}</div>
+                  <div style="font-size: 11px; color: #94a3b8;">{{ sale.invoiceDate | date:'hh:mm a' }}</div>
+                </td>
+
+                <!-- Customer Details -->
+                <td style="padding: 12px 16px;">
+                  <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">
+                    {{ sale.customerName || 'Walk-in Customer' }}
+                  </div>
+                  @if (sale.customerMobile) {
+                    <div style="font-size: 11.5px; color: #64748b; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                      <i class="fa-solid fa-phone" style="font-size: 10px; color: #10b981;"></i>
+                      <span>{{ sale.customerMobile }}</span>
+                    </div>
+                  }
+                </td>
+
+                <!-- Grand Total -->
+                <td style="padding: 12px 16px; font-weight: 800; font-size: 14px; text-align: right; color: #0f172a;">
+                  ₹{{ sale.grandTotal | number:'1.2-2' }}
+                </td>
+
+                <!-- Paid Amount -->
+                <td style="padding: 12px 16px; font-weight: 700; font-size: 13.5px; text-align: right; color: #16a34a;">
+                  ₹{{ sale.amountPaid | number:'1.2-2' }}
+                </td>
+
+                <!-- Pending Due Amount -->
+                <td style="padding: 12px 16px; font-weight: 800; font-size: 13.5px; text-align: right; color: sale.balanceDue > 0 ? '#dc2626' : '#64748b';">
+                  @if (sale.balanceDue > 0) {
+                    <span style="color: #dc2626; background: #fef2f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecaca;">
+                      ₹{{ sale.balanceDue | number:'1.2-2' }}
+                    </span>
+                  } @else {
+                    <span style="color: #10b981;">₹0.00</span>
+                  }
+                </td>
+
+                <!-- Status Badge -->
+                <td style="padding: 12px 16px; text-align: center;">
+                  <span class="badge" [ngClass]="{
+                    'badge-success': sale.status === 'PAID',
+                    'badge-warning': sale.status === 'PARTIAL',
+                    'badge-danger': sale.status === 'PENDING'
+                  }" style="font-size: 11px; padding: 4px 9px;">
+                    {{ sale.status === 'PAID' ? '✅ Paid' : (sale.status === 'PARTIAL' ? '⚠️ Partial' : '🚨 Udhaar') }}
+                  </span>
+                </td>
+
+                <!-- Actions -->
+                <td style="padding: 12px 16px; text-align: center;">
+                  <div class="flex gap-1.5 items-center justify-center">
+                    <!-- View / Print Invoice -->
+                    <a [routerLink]="['/billing', sale._id, 'invoice']" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11.5px;" title="बिल देखें व प्रिंट करें">
+                      <i class="fa-solid fa-eye"></i>
+                    </a>
+
+                    <!-- WhatsApp Share -->
+                    <button type="button" class="btn btn-sm btn-outline" (click)="shareOnWhatsApp(sale)" style="border-color: #25d366; color: #166534; padding: 4px 8px; font-size: 11.5px;" title="WhatsApp पर बिल विवरण भेजें">
+                      <i class="fa-brands fa-whatsapp" style="color: #25d366;"></i>
+                    </button>
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+

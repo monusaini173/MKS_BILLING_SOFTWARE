@@ -1,0 +1,925 @@
+<div class="ca-container">
+  <!-- Screen Header (No Print) -->
+  <div class="page-header no-print">
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 24px;">👔</span>
+        <h1 class="page-title" style="margin-bottom: 2px;">CA Monthly Report & Tax Filing Hub</h1>
+      </div>
+      <p class="page-subtitle">
+        चार्टर्ड अकाउंटेंट (CA) के लिए <strong>असली बिलों की पूरी PDF बुकलेट (Full Bills PDF)</strong> व मासिक GST समरी।
+      </p>
+    </div>
+    <div class="page-actions flex gap-2">
+      <button class="btn btn-outline" (click)="showCaModal.set(true)" style="border-color: #cbd5e1; font-weight: 600;">
+        <i class="fa-solid fa-user-tie text-primary"></i> 
+        {{ caName() ? 'CA: ' + caName() : 'Add CA Contact' }}
+      </button>
+      <a routerLink="/reports" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Reports Center
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter & Month Selector Card (No Print) -->
+  <div class="card mb-4 no-print" style="border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+    <div class="card-body" style="padding: 16px 20px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+        
+        <!-- Filter Mode & Selectors -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+          <div class="btn-group" style="display: inline-flex; background: #f1f5f9; padding: 3px; border-radius: 8px;">
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              [style.background]="filterMode === 'MONTHLY' ? '#2563eb' : 'transparent'"
+              [style.color]="filterMode === 'MONTHLY' ? '#fff' : '#475569'"
+              (click)="filterMode = 'MONTHLY'; loadReport()"
+              style="border: none; font-weight: 700; border-radius: 6px; padding: 6px 14px;"
+            >
+              📅 Monthly (मासिक)
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              [style.background]="filterMode === 'CUSTOM' ? '#2563eb' : 'transparent'"
+              [style.color]="filterMode === 'CUSTOM' ? '#fff' : '#475569'"
+              (click)="filterMode = 'CUSTOM'"
+              style="border: none; font-weight: 700; border-radius: 6px; padding: 6px 14px;"
+            >
+              📆 Custom Date
+            </button>
+          </div>
+
+          @if (filterMode === 'MONTHLY') {
+            <!-- Month Dropdown -->
+            <select class="form-control" [(ngModel)]="selectedMonth" (ngModelChange)="loadReport()" style="width: 170px; font-weight: 700;">
+              @for (m of months; track m.value) {
+                <option [value]="m.value">{{ m.name }}</option>
+              }
+            </select>
+
+            <!-- Year Dropdown -->
+            <select class="form-control" [(ngModel)]="selectedYear" (ngModelChange)="loadReport()" style="width: 110px; font-weight: 700;">
+              @for (y of years; track y) {
+                <option [value]="y">{{ y }}</option>
+              }
+            </select>
+
+            <!-- Quick Month Buttons -->
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-sm btn-outline" (click)="setPreviousMonth()" style="font-size: 12px; font-weight: 700; border-color: #cbd5e1;">
+                ⏮️ पिछला महीना (Last Month)
+              </button>
+              <button class="btn btn-sm btn-outline" (click)="setCurrentMonth()" style="font-size: 12px; font-weight: 700; border-color: #cbd5e1;">
+                ⏺️ यह महीना (This Month)
+              </button>
+            </div>
+          } @else {
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="date" class="form-control" [(ngModel)]="startDate" style="width: 150px;">
+              <span style="font-weight: 700; color: #64748b;">से</span>
+              <input type="date" class="form-control" [(ngModel)]="endDate" style="width: 150px;">
+              <button class="btn btn-primary btn-sm" (click)="loadReport()" style="font-weight: 700;">Apply</button>
+            </div>
+          }
+        </div>
+
+        <!-- PDF Format Selector: Full Bills vs Summary Table -->
+        <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 8px;">
+          <span style="font-size: 11.5px; font-weight: 800; color: #475569;">PDF फॉर्मैट:</span>
+          <button 
+            type="button"
+            class="btn btn-xs"
+            [style.background]="printFormatMode() === 'FULL_BILLS' ? '#0f172a' : 'transparent'"
+            [style.color]="printFormatMode() === 'FULL_BILLS' ? '#fff' : '#64748b'"
+            (click)="printFormatMode.set('FULL_BILLS')"
+            style="border: none; font-weight: 800; font-size: 11px; padding: 4px 8px; border-radius: 4px;"
+            title="हर बिल का पूरा चालान / इनवॉइस प्रिंट करें"
+          >
+            🗂️ असली बिल बुकलेट (Full Bills)
+          </button>
+          <button 
+            type="button"
+            class="btn btn-xs"
+            [style.background]="printFormatMode() === 'SUMMARY_TABLE' ? '#0f172a' : 'transparent'"
+            [style.color]="printFormatMode() === 'SUMMARY_TABLE' ? '#fff' : '#64748b'"
+            (click)="printFormatMode.set('SUMMARY_TABLE')"
+            style="border: none; font-weight: 800; font-size: 11px; padding: 4px 8px; border-radius: 4px;"
+            title="रजिस्टर समरी टेबल"
+          >
+            📊 समरी शीट (Summary Table)
+          </button>
+        </div>
+
+        <!-- Master Print & Export Actions -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-sm" (click)="printAllMasterPDF()" style="font-weight: 800; background: #0f172a; border-color: #0f172a;">
+            <i class="fa-solid fa-file-pdf"></i> Download Complete CA PDF (Sales + Purchases)
+          </button>
+          <button class="btn btn-sm" (click)="shareViaWhatsApp('ALL')" style="background: #25D366; color: white; border: none; font-weight: 700;">
+            <i class="fa-brands fa-whatsapp"></i> Share to CA WhatsApp
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Stat Summary Cards (No Print) -->
+  <div class="grid grid-4 mb-4 no-print">
+    <!-- Sales Output Tax -->
+    <div class="ca-stat-card">
+      <div class="ca-stat-icon sales">
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+      </div>
+      <div>
+        <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+          🟢 Total Sales (GSTR-1)
+        </div>
+        <div style="font-size: 20px; font-weight: 900; color: #0f172a; margin: 2px 0;">
+          ₹{{ reportData()?.salesSummary?.totalSalesAmount || 0 | number:'1.2-2' }}
+        </div>
+        <div style="font-size: 11.5px; color: #10b981; font-weight: 700;">
+          Output GST: ₹{{ reportData()?.salesSummary?.totalSalesGst || 0 | number:'1.2-2' }} ({{ reportData()?.salesSummary?.count || 0 }} Bills)
+        </div>
+      </div>
+    </div>
+
+    <!-- Purchases ITC -->
+    <div class="ca-stat-card">
+      <div class="ca-stat-icon purchases">
+        <i class="fa-solid fa-cart-shopping"></i>
+      </div>
+      <div>
+        <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+          🔵 Total Purchases (GSTR-2)
+        </div>
+        <div style="font-size: 20px; font-weight: 900; color: #0f172a; margin: 2px 0;">
+          ₹{{ reportData()?.purchasesSummary?.totalPurchasesAmount || 0 | number:'1.2-2' }}
+        </div>
+        <div style="font-size: 11.5px; color: #3b82f6; font-weight: 700;">
+          Input ITC: ₹{{ reportData()?.purchasesSummary?.totalPurchasesGst || 0 | number:'1.2-2' }} ({{ reportData()?.purchasesSummary?.count || 0 }} Bills)
+        </div>
+      </div>
+    </div>
+
+    <!-- Net GST Tax Payable -->
+    <div class="ca-stat-card">
+      <div class="ca-stat-icon tax">
+        <i class="fa-solid fa-scale-balanced"></i>
+      </div>
+      <div>
+        <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+          ⚖️ Net GST Liability
+        </div>
+        <div style="font-size: 20px; font-weight: 900; color: #b45309; margin: 2px 0;">
+          ₹{{ reportData()?.taxReconciliation?.netGstPayable || 0 | number:'1.2-2' }}
+        </div>
+        <div style="font-size: 11.5px; color: #78350f; font-weight: 600;">
+          (Output Tax - Input ITC)
+        </div>
+      </div>
+    </div>
+
+    <!-- ITC Carry Forward / Balance -->
+    <div class="ca-stat-card">
+      <div class="ca-stat-icon itc">
+        <i class="fa-solid fa-wallet"></i>
+      </div>
+      <div>
+        <div style="font-size: 11.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+          💳 ITC Balance (Credit)
+        </div>
+        <div style="font-size: 20px; font-weight: 900; color: #7c3aed; margin: 2px 0;">
+          ₹{{ reportData()?.taxReconciliation?.itcCarryForward || 0 | number:'1.2-2' }}
+        </div>
+        <div style="font-size: 11.5px; color: #6d28d9; font-weight: 600;">
+          Available for next month
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Navigation (No Print) -->
+  <div class="tab-nav no-print">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab() === 'SALES'" 
+      (click)="activeTab.set('SALES')"
+    >
+      <span style="font-size: 16px;">🟢</span> 
+      1. बिक्री बिल (Sale Invoices - GSTR-1)
+      <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 12px;">
+        {{ reportData()?.salesSummary?.count || 0 }} Bills
+      </span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab() === 'PURCHASES'" 
+      (click)="activeTab.set('PURCHASES')"
+    >
+      <span style="font-size: 16px;">🔵</span> 
+      2. खरीद बिल (Purchase Bills - GSTR-2 / ITC)
+      <span class="badge" style="background: #f3e8ff; color: #7e22ce; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 12px;">
+        {{ reportData()?.purchasesSummary?.count || 0 }} Bills
+      </span>
+    </button>
+
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab() === 'RECONCILIATION'" 
+      (click)="activeTab.set('RECONCILIATION')"
+    >
+      <span style="font-size: 16px;">📑</span> 
+      3. समेकित CA टैक्स समरी (Combined Reconciliation)
+    </button>
+  </div>
+
+  <!-- Loading Spinner -->
+  @if (loading()) {
+    <div class="card no-print" style="min-height: 250px; display: flex; align-items: center; justify-content: center;">
+      <div style="text-align: center;">
+        <div class="spinner" style="margin: 0 auto 12px auto;"></div>
+        <p style="font-weight: 700; color: #64748b;">Loading CA Monthly Report Data...</p>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 1: SALES INVOICES (GSTR-1) -->
+  @if (!loading() && activeTab() === 'SALES') {
+    <div class="card no-print" style="border: 1px solid #e2e8f0;">
+      <!-- Tab Header with Action Buttons -->
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h3 style="font-size: 15px; font-weight: 800; margin: 0; color: #0f172a;">
+            🟢 Sale Invoices (बिक्री बिल सूची) - {{ getMonthName() }} {{ selectedYear }}
+          </h3>
+          <!-- B2B / B2C Filter -->
+          <div class="btn-group" style="display: inline-flex; background: #e2e8f0; padding: 2px; border-radius: 6px;">
+            <button 
+              type="button" 
+              class="btn btn-xs" 
+              [style.background]="salesFilter() === 'ALL' ? '#fff' : 'transparent'"
+              [style.color]="salesFilter() === 'ALL' ? '#0f172a' : '#64748b'"
+              (click)="salesFilter.set('ALL')"
+              style="border: none; font-weight: 700; font-size: 11px; padding: 4px 8px; border-radius: 4px;"
+            >
+              All ({{ reportData()?.sales?.length || 0 }})
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-xs" 
+              [style.background]="salesFilter() === 'B2B' ? '#2563eb' : 'transparent'"
+              [style.color]="salesFilter() === 'B2B' ? '#fff' : '#64748b'"
+              (click)="salesFilter.set('B2B')"
+              style="border: none; font-weight: 700; font-size: 11px; padding: 4px 8px; border-radius: 4px;"
+            >
+              B2B with GSTIN ({{ reportData()?.salesSummary?.b2bSalesCount || 0 }})
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-xs" 
+              [style.background]="salesFilter() === 'B2C' ? '#059669' : 'transparent'"
+              [style.color]="salesFilter() === 'B2C' ? '#fff' : '#64748b'"
+              (click)="salesFilter.set('B2C')"
+              style="border: none; font-weight: 700; font-size: 11px; padding: 4px 8px; border-radius: 4px;"
+            >
+              B2C Retail ({{ reportData()?.salesSummary?.b2cSalesCount || 0 }})
+            </button>
+          </div>
+        </div>
+
+        <!-- Separate Sale Export Buttons -->
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm" (click)="printSalesPDF()" style="background: #10b981; color: white; border: none; font-weight: 800;" title="सभी बिक्री बिलों की पूरी PDF बुकलेट डाउनलोड करें">
+            <i class="fa-solid fa-file-pdf"></i> Download Sales PDF (सभी बिक्री बिल PDF)
+          </button>
+          <button class="btn btn-sm btn-outline" (click)="exportSalesCSV()" style="font-weight: 700; border-color: #cbd5e1;">
+            <i class="fa-solid fa-file-excel text-success"></i> Export Excel/CSV (GSTR-1)
+          </button>
+          <button class="btn btn-sm" (click)="shareViaWhatsApp('SALES')" style="background: #25D366; color: white; border: none; font-weight: 700;">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp Summary
+          </button>
+        </div>
+      </div>
+
+      <!-- Sales Table -->
+      <div class="card-body" style="padding: 0;">
+        @if (filteredSales().length === 0) {
+          <div class="empty-state" style="padding: 40px; text-align: center;">
+            <i class="fa-solid fa-receipt" style="font-size: 36px; color: #cbd5e1; margin-bottom: 8px;"></i>
+            <h4 style="font-weight: 700; color: #64748b;">No Sale Invoices in this period</h4>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0;">
+            <table>
+              <thead>
+                <tr style="background: #f1f5f9;">
+                  <th>#</th>
+                  <th>Invoice No</th>
+                  <th>Date</th>
+                  <th>Customer Name</th>
+                  <th>GSTIN / Type</th>
+                  <th style="text-align: right;">Taxable (₹)</th>
+                  <th style="text-align: right;">CGST (₹)</th>
+                  <th style="text-align: right;">SGST (₹)</th>
+                  <th style="text-align: right;">IGST (₹)</th>
+                  <th style="text-align: right;">Total GST (₹)</th>
+                  <th style="text-align: right;">Grand Total (₹)</th>
+                  <th style="text-align: center;">Print Bill</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (sale of filteredSales(); track sale._id; let idx = $index) {
+                  <tr>
+                    <td style="color: #94a3b8; font-size: 11px;">{{ idx + 1 }}</td>
+                    <td class="font-bold" style="color: #2563eb;">{{ sale.invoiceNumber }}</td>
+                    <td style="font-size: 12px; color: #64748b;">{{ sale.invoiceDate | date:'dd-MMM-yyyy' }}</td>
+                    <td class="font-semibold">{{ sale.customerName }}</td>
+                    <td>
+                      @if (sale.customerGstin) {
+                        <span class="badge-b2b">{{ sale.customerGstin }}</span>
+                      } @else {
+                        <span class="badge-b2c">B2C Retail</span>
+                      }
+                    </td>
+                    <td style="text-align: right; font-weight: 700;">₹{{ sale.subtotal | number:'1.2-2' }}</td>
+                    <td style="text-align: right; color: #64748b;">₹{{ sale.totalCgst | number:'1.2-2' }}</td>
+                    <td style="text-align: right; color: #64748b;">₹{{ sale.totalSgst | number:'1.2-2' }}</td>
+                    <td style="text-align: right; color: #64748b;">₹{{ sale.totalIgst | number:'1.2-2' }}</td>
+                    <td style="text-align: right; font-weight: 700; color: #10b981;">₹{{ sale.totalGst | number:'1.2-2' }}</td>
+                    <td style="text-align: right; font-weight: 900; color: #0f172a;">₹{{ sale.grandTotal | number:'1.2-2' }}</td>
+                    <td style="text-align: center;">
+                      <a [routerLink]="['/billing', sale._id, 'invoice']" target="_blank" class="btn btn-xs btn-outline" style="padding: 2px 8px; font-size: 11px; font-weight: 700; border-color: #2563eb; color: #2563eb;" title="View & Print This Bill">
+                        <i class="fa-solid fa-print"></i> Bill
+                      </a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <!-- Footer Row -->
+              <tfoot>
+                <tr style="background: #f8fafc; font-weight: 900;">
+                  <td colspan="5" style="text-align: right; padding: 12px;">Total (कुल योग):</td>
+                  <td style="text-align: right; padding: 12px; color: #0f172a;">₹{{ reportData()?.salesSummary?.totalTaxableSales || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #64748b;">₹{{ reportData()?.salesSummary?.totalSalesCgst || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #64748b;">₹{{ reportData()?.salesSummary?.totalSalesSgst || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #64748b;">₹{{ reportData()?.salesSummary?.totalSalesIgst || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #10b981;">₹{{ reportData()?.salesSummary?.totalSalesGst || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #0f172a; font-size: 14px;">₹{{ reportData()?.salesSummary?.totalSalesAmount || 0 | number:'1.2-2' }}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- TAB 2: PURCHASE INVOICES (GSTR-2 / ITC) -->
+  @if (!loading() && activeTab() === 'PURCHASES') {
+    <div class="card no-print" style="border: 1px solid #e2e8f0;">
+      <!-- Tab Header with Action Buttons -->
+      <div class="card-header flex justify-between items-center" style="background: #f8fafc; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h3 style="font-size: 15px; font-weight: 800; margin: 0; color: #0f172a;">
+            🔵 Purchase Invoices (खरीद बिल सूची - Input Tax Credit) - {{ getMonthName() }} {{ selectedYear }}
+          </h3>
+          <!-- GST Filter -->
+          <div class="btn-group" style="display: inline-flex; background: #e2e8f0; padding: 2px; border-radius: 6px;">
+            <button 
+              type="button" 
+              class="btn btn-xs" 
+              [style.background]="purchaseFilter() === 'ALL' ? '#fff' : 'transparent'"
+              [style.color]="purchaseFilter() === 'ALL' ? '#0f172a' : '#64748b'"
+              (click)="purchaseFilter.set('ALL')"
+              style="border: none; font-weight: 700; font-size: 11px; padding: 4px 8px; border-radius: 4px;"
+            >
+              All ({{ reportData()?.purchases?.length || 0 }})
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-xs" 
+              [style.background]="purchaseFilter() === 'GST' ? '#3b82f6' : 'transparent'"
+              [style.color]="purchaseFilter() === 'GST' ? '#fff' : '#64748b'"
+              (click)="purchaseFilter.set('GST')"
+              style="border: none; font-weight: 700; font-size: 11px; padding: 4px 8px; border-radius: 4px;"
+            >
+              GST Registered Vendors
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-xs" 
+              [style.background]="purchaseFilter() === 'NON_GST' ? '#64748b' : 'transparent'"
+              [style.color]="purchaseFilter() === 'NON_GST' ? '#fff' : '#64748b'"
+              (click)="purchaseFilter.set('NON_GST')"
+              style="border: none; font-weight: 700; font-size: 11px; padding: 4px 8px; border-radius: 4px;"
+            >
+              Unregistered / Cash
+            </button>
+          </div>
+        </div>
+
+        <!-- Separate Purchase Export Buttons -->
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm" (click)="printPurchasesPDF()" style="background: #3b82f6; color: white; border: none; font-weight: 800;" title="सभी खरीद बिलों की पूरी PDF बुकलेट डाउनलोड करें">
+            <i class="fa-solid fa-file-pdf"></i> Download Purchases PDF (सभी खरीद बिल PDF)
+          </button>
+          <button class="btn btn-sm btn-outline" (click)="exportPurchasesCSV()" style="font-weight: 700; border-color: #cbd5e1;">
+            <i class="fa-solid fa-file-excel text-primary"></i> Export Excel/CSV (GSTR-2)
+          </button>
+          <button class="btn btn-sm" (click)="shareViaWhatsApp('PURCHASES')" style="background: #25D366; color: white; border: none; font-weight: 700;">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp Summary
+          </button>
+        </div>
+      </div>
+
+      <!-- Purchases Table -->
+      <div class="card-body" style="padding: 0;">
+        @if (filteredPurchases().length === 0) {
+          <div class="empty-state" style="padding: 40px; text-align: center;">
+            <i class="fa-solid fa-cart-flatbed" style="font-size: 36px; color: #cbd5e1; margin-bottom: 8px;"></i>
+            <h4 style="font-weight: 700; color: #64748b;">No Purchase Invoices in this period</h4>
+          </div>
+        } @else {
+          <div class="table-wrapper" style="border: none; border-radius: 0;">
+            <table>
+              <thead>
+                <tr style="background: #f1f5f9;">
+                  <th>#</th>
+                  <th>Bill / Ref No</th>
+                  <th>Date</th>
+                  <th>Supplier / Vendor</th>
+                  <th>Supplier GSTIN</th>
+                  <th style="text-align: right;">Taxable (₹)</th>
+                  <th style="text-align: right;">Input CGST (₹)</th>
+                  <th style="text-align: right;">Input SGST (₹)</th>
+                  <th style="text-align: right;">Input IGST (₹)</th>
+                  <th style="text-align: right;">Total ITC (₹)</th>
+                  <th style="text-align: right;">Grand Total (₹)</th>
+                  <th style="text-align: center;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pur of filteredPurchases(); track pur._id; let idx = $index) {
+                  <tr>
+                    <td style="color: #94a3b8; font-size: 11px;">{{ idx + 1 }}</td>
+                    <td class="font-bold" style="color: #0284c7;">{{ pur.billNumber }}</td>
+                    <td style="font-size: 12px; color: #64748b;">{{ pur.purchaseDate | date:'dd-MMM-yyyy' }}</td>
+                    <td class="font-semibold">{{ pur.supplierName }}</td>
+                    <td>
+                      @if (pur.supplierGstin) {
+                        <span class="badge-b2b" style="background: #e0f2fe; color: #0369a1;">{{ pur.supplierGstin }}</span>
+                      } @else {
+                        <span class="badge-b2c">Unregistered</span>
+                      }
+                    </td>
+                    <td style="text-align: right; font-weight: 700;">₹{{ pur.subtotal | number:'1.2-2' }}</td>
+                    <td style="text-align: right; color: #64748b;">₹{{ pur.totalCgst | number:'1.2-2' }}</td>
+                    <td style="text-align: right; color: #64748b;">₹{{ pur.totalSgst | number:'1.2-2' }}</td>
+                    <td style="text-align: right; color: #64748b;">₹{{ pur.totalIgst | number:'1.2-2' }}</td>
+                    <td style="text-align: right; font-weight: 700; color: #3b82f6;">₹{{ pur.totalGst | number:'1.2-2' }}</td>
+                    <td style="text-align: right; font-weight: 900; color: #0f172a;">₹{{ pur.grandTotal | number:'1.2-2' }}</td>
+                    <td style="text-align: center;">
+                      <span class="badge" style="background: #dcfce7; color: #166534; font-size: 11px; font-weight: 700;">
+                        {{ pur.paymentStatus }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <!-- Footer Row -->
+              <tfoot>
+                <tr style="background: #f8fafc; font-weight: 900;">
+                  <td colspan="5" style="text-align: right; padding: 12px;">Total (कुल खरीद योग):</td>
+                  <td style="text-align: right; padding: 12px; color: #0f172a;">₹{{ reportData()?.purchasesSummary?.totalTaxablePurchases || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #64748b;">₹{{ reportData()?.purchasesSummary?.totalPurchasesCgst || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #64748b;">₹{{ reportData()?.purchasesSummary?.totalPurchasesSgst || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #64748b;">₹{{ reportData()?.purchasesSummary?.totalPurchasesIgst || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #3b82f6;">₹{{ reportData()?.purchasesSummary?.totalPurchasesGst || 0 | number:'1.2-2' }}</td>
+                  <td style="text-align: right; padding: 12px; color: #0f172a; font-size: 14px;">₹{{ reportData()?.purchasesSummary?.totalPurchasesAmount || 0 | number:'1.2-2' }}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- TAB 3: RECONCILIATION & MASTER PACK -->
+  @if (!loading() && activeTab() === 'RECONCILIATION') {
+    <div class="card no-print" style="border: 1px solid #e2e8f0; margin-bottom: 24px;">
+      <div class="card-header" style="background: #f8fafc; padding: 16px 20px;">
+        <h3 style="font-size: 16px; font-weight: 800; margin: 0; color: #0f172a;">
+          ⚖️ GST Monthly Tax Computation & Reconciliation Summary (टैक्स मिलान विवरण)
+        </h3>
+      </div>
+      <div class="card-body" style="padding: 20px;">
+        
+        <div class="grid grid-2 mb-4">
+          <!-- Tax Computation Table -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;">
+            <div style="background: #f1f5f9; padding: 10px 14px; font-weight: 800; font-size: 13.5px; border-bottom: 1px solid #e2e8f0;">
+              📊 Tax Output vs Input Tax Credit Breakdown
+            </div>
+            <table style="width: 100%;">
+              <thead>
+                <tr style="background: #f8fafc; font-size: 12px;">
+                  <th style="padding: 8px 12px;">Tax Head</th>
+                  <th style="padding: 8px 12px; text-align: right;">Sales Output (₹)</th>
+                  <th style="padding: 8px 12px; text-align: right;">Purchases ITC (₹)</th>
+                  <th style="padding: 8px 12px; text-align: right;">Net Balance (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding: 8px 12px; font-weight: 700;">CGST</td>
+                  <td style="padding: 8px 12px; text-align: right; color: #10b981; font-weight: 700;">₹{{ reportData()?.taxReconciliation?.outputCgst || 0 | number:'1.2-2' }}</td>
+                  <td style="padding: 8px 12px; text-align: right; color: #3b82f6; font-weight: 700;">₹{{ reportData()?.taxReconciliation?.inputCgst || 0 | number:'1.2-2' }}</td>
+                  <td style="padding: 8px 12px; text-align: right; font-weight: 800;">
+                    ₹{{ Math.max(0, (reportData()?.taxReconciliation?.outputCgst || 0) - (reportData()?.taxReconciliation?.inputCgst || 0)) | number:'1.2-2' }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; font-weight: 700;">SGST</td>
+                  <td style="padding: 8px 12px; text-align: right; color: #10b981; font-weight: 700;">₹{{ reportData()?.taxReconciliation?.outputSgst || 0 | number:'1.2-2' }}</td>
+                  <td style="padding: 8px 12px; text-align: right; color: #3b82f6; font-weight: 700;">₹{{ reportData()?.taxReconciliation?.inputSgst || 0 | number:'1.2-2' }}</td>
+                  <td style="padding: 8px 12px; text-align: right; font-weight: 800;">
+                    ₹{{ Math.max(0, (reportData()?.taxReconciliation?.outputSgst || 0) - (reportData()?.taxReconciliation?.inputSgst || 0)) | number:'1.2-2' }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; font-weight: 700;">IGST</td>
+                  <td style="padding: 8px 12px; text-align: right; color: #10b981; font-weight: 700;">₹{{ reportData()?.taxReconciliation?.outputIgst || 0 | number:'1.2-2' }}</td>
+                  <td style="padding: 8px 12px; text-align: right; color: #3b82f6; font-weight: 700;">₹{{ reportData()?.taxReconciliation?.inputIgst || 0 | number:'1.2-2' }}</td>
+                  <td style="padding: 8px 12px; text-align: right; font-weight: 800;">
+                    ₹{{ Math.max(0, (reportData()?.taxReconciliation?.outputIgst || 0) - (reportData()?.taxReconciliation?.inputIgst || 0)) | number:'1.2-2' }}
+                  </td>
+                </tr>
+                <tr style="background: #f8fafc; font-weight: 900;">
+                  <td style="padding: 10px 12px;">Total GST</td>
+                  <td style="padding: 10px 12px; text-align: right; color: #10b981;">₹{{ reportData()?.taxReconciliation?.totalOutputGst || 0 | number:'1.2-2' }}</td>
+                  <td style="padding: 10px 12px; text-align: right; color: #3b82f6;">₹{{ reportData()?.taxReconciliation?.totalInputItc || 0 | number:'1.2-2' }}</td>
+                  <td style="padding: 10px 12px; text-align: right; color: #0f172a; font-size: 14px;">
+                    ₹{{ reportData()?.taxReconciliation?.netGstPayable || 0 | number:'1.2-2' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- CA Filing Instructions Card -->
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 18px;">
+            <h4 style="color: #1e40af; font-weight: 800; font-size: 14px; margin-bottom: 8px;">
+              📌 CA Tax Filing Checklist (टैक्स फाइलिंग हेतु निर्देश)
+            </h4>
+            <ul style="font-size: 12.5px; color: #1e3a8a; line-height: 1.6; padding-left: 18px; margin-bottom: 16px;">
+              <li><strong>GSTR-1:</strong> बिक्री बिल रिपोर्ट (Sales Report) के आधार पर Outward Supplies दर्ज करें।</li>
+              <li><strong>GSTR-2B / 3B ITC:</strong> खरीद बिलों (Purchases) से प्राप्त इनपुट टैक्स क्रेडिट का मिलान करें।</li>
+              <li><strong>B2B vs B2C:</strong> जिन ग्राहकों का GSTIN है, वे B2B सूची में तथा बिना GSTIN वाले बिल B2C सूची में दिए गए हैं।</li>
+            </ul>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-sm" (click)="printAllMasterPDF()" style="font-weight: 700;">
+                <i class="fa-solid fa-file-pdf"></i> Download Master CA PDF
+              </button>
+              <button class="btn btn-sm" (click)="shareViaWhatsApp('ALL')" style="background: #25D366; color: white; border: none; font-weight: 700;">
+                <i class="fa-brands fa-whatsapp"></i> Share All to CA
+              </button>
+              <button class="btn btn-sm btn-outline" (click)="shareViaEmail('ALL')" style="font-weight: 700; border-color: #93c5fd; background: white;">
+                <i class="fa-solid fa-envelope"></i> Email to CA
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- ================================================================= -->
+  <!-- DEDICATED PRINT BOOKLET (FULL BILLS PDF OR REGISTER SUMMARY PDF)   -->
+  <!-- ================================================================= -->
+  <div class="print-only print-container">
+    
+    <!-- ========================================== -->
+    <!-- MODE A: FULL BILLS BOOKLET (हर बिल असली फॉर्मैट में) -->
+    <!-- ========================================== -->
+    @if (printFormatMode() === 'FULL_BILLS') {
+      
+      <!-- 1. FULL SALE INVOICES BOOKLET -->
+      @if (printSection() === 'SALES' || printSection() === 'ALL') {
+        @for (sale of reportData()?.sales; track sale._id; let idx = $index) {
+          <div class="full-bill-page">
+            <!-- Header -->
+            <div>
+              <div style="text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 6px; margin-bottom: 8px;">
+                <div style="font-size: 8pt; font-weight: bold; float: right;">[ TAX INVOICE ]</div>
+                <div style="font-size: 15pt; font-weight: 900; letter-spacing: 0.5px;">{{ shop()?.name || 'MKS BUSINESS STORE' }}</div>
+                <div style="font-size: 8.5pt; color: #333;">
+                  {{ shop()?.address || 'Main Market' }} | Phone: {{ shop()?.mobile || 'N/A' }}
+                </div>
+                <div style="font-size: 9.5pt; font-weight: 800; margin-top: 2px;">
+                  GSTIN: {{ shop()?.gstin || 'URP (Unregistered)' }} | State: {{ shop()?.state || 'Rajasthan' }}
+                </div>
+              </div>
+
+              <!-- Meta Box (Bill Details & Customer Details) -->
+              <div class="bill-meta-box">
+                <div style="width: 55%;">
+                  <div><strong>Billed To (Customer):</strong> {{ sale.customerName }}</div>
+                  <div><strong>Mobile:</strong> {{ sale.customerMobile || 'N/A' }}</div>
+                  <div><strong>GSTIN:</strong> {{ sale.customerGstin || 'B2C Retail / Cash' }}</div>
+                </div>
+                <div style="width: 45%; text-align: right;">
+                  <div><strong>Invoice No:</strong> <span style="font-size: 11pt; font-weight: bold; color: #000;">{{ sale.invoiceNumber }}</span></div>
+                  <div><strong>Invoice Date:</strong> {{ sale.invoiceDate | date:'dd-MM-yyyy hh:mm a' }}</div>
+                  <div><strong>Payment Mode:</strong> {{ sale.paymentMethod || 'CASH' }} ({{ sale.paymentStatus || 'PAID' }})</div>
+                </div>
+              </div>
+
+              <!-- Items Table -->
+              <table class="bill-items-table">
+                <thead>
+                  <tr>
+                    <th style="width: 30px; text-align: center;">#</th>
+                    <th>Product / Item Description</th>
+                    <th style="width: 70px; text-align: center;">HSN</th>
+                    <th style="width: 55px; text-align: center;">Qty</th>
+                    <th style="width: 65px; text-align: right;">Rate (₹)</th>
+                    <th style="width: 55px; text-align: center;">GST%</th>
+                    <th style="width: 65px; text-align: right;">Tax (₹)</th>
+                    <th style="width: 75px; text-align: right;">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (it of sale.items; track $index; let i = $index) {
+                    <tr>
+                      <td style="text-align: center;">{{ i + 1 }}</td>
+                      <td style="font-weight: bold;">{{ it.productName }}</td>
+                      <td style="text-align: center;">{{ it.hsnCode || '-' }}</td>
+                      <td style="text-align: center;">{{ it.quantity }} {{ it.unit || 'PCS' }}</td>
+                      <td style="text-align: right;">{{ it.rate | number:'1.2-2' }}</td>
+                      <td style="text-align: center;">{{ it.gstPercent }}%</td>
+                      <td style="text-align: right;">{{ ((it.cgst || 0) + (it.sgst || 0) + (it.igst || 0)) | number:'1.2-2' }}</td>
+                      <td style="text-align: right; font-weight: bold;">{{ it.total | number:'1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Bottom Totals & Signature -->
+            <div>
+              <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 6px; margin-bottom: 12px;">
+                <div style="font-size: 8.5pt;">
+                  <div><strong>Tax Breakdown:</strong></div>
+                  <div>CGST: ₹{{ sale.totalCgst | number:'1.2-2' }} | SGST: ₹{{ sale.totalSgst | number:'1.2-2' }} | IGST: ₹{{ sale.totalIgst | number:'1.2-2' }}</div>
+                  <div>Total Tax Amount: ₹{{ sale.totalGst | number:'1.2-2' }}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 9pt;">Subtotal (Taxable): ₹{{ sale.subtotal | number:'1.2-2' }}</div>
+                  <div style="font-size: 9pt;">Total GST: ₹{{ sale.totalGst | number:'1.2-2' }}</div>
+                  <div style="font-size: 13pt; font-weight: 900; margin-top: 2px;">Grand Total: ₹{{ sale.grandTotal | number:'1.2-2' }}</div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 8.5pt; border-top: 1px dashed #666; padding-top: 8px;">
+                <div>
+                  <div style="color: #444;">E. & O.E. | Computer Generated Tax Invoice</div>
+                  <div style="color: #444;">Bill {{ idx + 1 }} of {{ reportData()?.sales?.length }} (Period: {{ getMonthName() }} {{ selectedYear }})</div>
+                </div>
+                <div style="text-align: right;">
+                  <div>For <strong>{{ shop()?.name || 'MKS STORE' }}</strong></div>
+                  <div style="margin-top: 24px;">Authorized Signatory</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        }
+      }
+
+      <!-- 2. FULL PURCHASE BILLS BOOKLET -->
+      @if (printSection() === 'PURCHASES' || printSection() === 'ALL') {
+        @for (pur of reportData()?.purchases; track pur._id; let pidx = $index) {
+          <div class="full-bill-page">
+            <!-- Header -->
+            <div>
+              <div style="text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 6px; margin-bottom: 8px;">
+                <div style="font-size: 8pt; font-weight: bold; float: right; color: #1e3a8a;">[ PURCHASE INWARD BILL / ITC ]</div>
+                <div style="font-size: 15pt; font-weight: 900; letter-spacing: 0.5px;">{{ shop()?.name || 'MKS BUSINESS STORE' }}</div>
+                <div style="font-size: 8.5pt; color: #333;">
+                  PURCHASE PROCUREMENT VOUCHER | ITC CLAIM FORM
+                </div>
+                <div style="font-size: 9.5pt; font-weight: 800; margin-top: 2px;">
+                  Buyer GSTIN: {{ shop()?.gstin || 'URP (Unregistered)' }} | State: {{ shop()?.state || 'Rajasthan' }}
+                </div>
+              </div>
+
+              <!-- Meta Box (Supplier Details & Bill Details) -->
+              <div class="bill-meta-box" style="background: #f8fafc;">
+                <div style="width: 55%;">
+                  <div><strong>Supplier / Vendor Name:</strong> {{ pur.supplierName }}</div>
+                  <div><strong>Supplier Mobile:</strong> {{ pur.supplierMobile || 'N/A' }}</div>
+                  <div><strong>Supplier GSTIN:</strong> {{ pur.supplierGstin || 'Unregistered Vendor' }}</div>
+                </div>
+                <div style="width: 45%; text-align: right;">
+                  <div><strong>Supplier Bill No:</strong> <span style="font-size: 11pt; font-weight: bold; color: #000;">{{ pur.billNumber }}</span></div>
+                  <div><strong>Purchase Date:</strong> {{ pur.purchaseDate | date:'dd-MM-yyyy' }}</div>
+                  <div><strong>Payment Status:</strong> {{ pur.paymentStatus }} ({{ pur.paymentMethod || 'BANK' }})</div>
+                </div>
+              </div>
+
+              <!-- Items Table -->
+              <table class="bill-items-table">
+                <thead>
+                  <tr style="background: #e2e8f0;">
+                    <th style="width: 30px; text-align: center;">#</th>
+                    <th>Purchased Product / Description</th>
+                    <th style="width: 70px; text-align: center;">HSN</th>
+                    <th style="width: 55px; text-align: center;">Qty</th>
+                    <th style="width: 65px; text-align: right;">Rate (₹)</th>
+                    <th style="width: 55px; text-align: center;">GST%</th>
+                    <th style="width: 65px; text-align: right;">Input Tax (₹)</th>
+                    <th style="width: 75px; text-align: right;">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (it of pur.items; track $index; let i = $index) {
+                    <tr>
+                      <td style="text-align: center;">{{ i + 1 }}</td>
+                      <td style="font-weight: bold;">{{ it.productName }}</td>
+                      <td style="text-align: center;">{{ it.hsnCode || '-' }}</td>
+                      <td style="text-align: center;">{{ it.quantity }} {{ it.unit || 'PCS' }}</td>
+                      <td style="text-align: right;">{{ (it.purchasePrice || it.rate) | number:'1.2-2' }}</td>
+                      <td style="text-align: center;">{{ it.gstPercent }}%</td>
+                      <td style="text-align: right;">{{ ((it.cgst || 0) + (it.sgst || 0) + (it.igst || 0)) | number:'1.2-2' }}</td>
+                      <td style="text-align: right; font-weight: bold;">{{ it.total | number:'1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Bottom Totals & Signature -->
+            <div>
+              <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 6px; margin-bottom: 12px;">
+                <div style="font-size: 8.5pt;">
+                  <div><strong>Input Tax Credit (ITC Claimable):</strong></div>
+                  <div>Input CGST: ₹{{ pur.totalCgst | number:'1.2-2' }} | Input SGST: ₹{{ pur.totalSgst | number:'1.2-2' }} | Input IGST: ₹{{ pur.totalIgst | number:'1.2-2' }}</div>
+                  <div><strong>Total ITC on Bill: ₹{{ pur.totalGst | number:'1.2-2' }}</strong></div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 9pt;">Taxable Amount: ₹{{ pur.subtotal | number:'1.2-2' }}</div>
+                  <div style="font-size: 9pt;">Total Input GST: ₹{{ pur.totalGst | number:'1.2-2' }}</div>
+                  <div style="font-size: 13pt; font-weight: 900; margin-top: 2px;">Total Purchase: ₹{{ pur.grandTotal | number:'1.2-2' }}</div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 8.5pt; border-top: 1px dashed #666; padding-top: 8px;">
+                <div>
+                  <div style="color: #444;">Procurement Verified & Stock Added to Inventory</div>
+                  <div style="color: #444;">Purchase Bill {{ pidx + 1 }} of {{ reportData()?.purchases?.length }} (Period: {{ getMonthName() }} {{ selectedYear }})</div>
+                </div>
+                <div style="text-align: right;">
+                  <div>Stock Inward Verified By: ___________________</div>
+                  <div style="margin-top: 18px;">CA / Accounts Audit Stamp</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        }
+      }
+
+    } 
+    <!-- ========================================== -->
+    <!-- MODE B: SUMMARY REGISTER TABLE (रजिस्टर समरी) -->
+    <!-- ========================================== -->
+    @else {
+      <!-- OFFICIAL SHOP HEADER -->
+      <div class="print-header">
+        <h2 style="font-size: 18pt; font-weight: 900; margin: 0 0 4px 0;">{{ shop()?.name || 'MKS BUSINESS STORE' }}</h2>
+        <div style="font-size: 10pt; color: #333;">
+          {{ shop()?.address || 'Main Market' }} | Mob: {{ shop()?.mobile || '' }} | Email: {{ shop()?.email || '' }}
+        </div>
+        <div style="font-size: 11pt; font-weight: 800; margin-top: 4px; color: #111;">
+          GSTIN: {{ shop()?.gstin || 'N/A' }} | State: {{ shop()?.state || 'Rajasthan' }}
+        </div>
+        <div style="font-size: 13pt; font-weight: 900; margin-top: 8px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 0; text-transform: uppercase;">
+          @if (printSection() === 'SALES') {
+            🟢 MONTHLY SALES & GSTR-1 TAX REPORT (बिक्री बिल विवरण)
+          } @else if (printSection() === 'PURCHASES') {
+            🔵 MONTHLY PURCHASES & GSTR-2 ITC REPORT (खरीद बिल विवरण)
+          } @else {
+            👔 MASTER CHARTERED ACCOUNTANT (CA) MONTHLY TAX FILING PACK
+          }
+        </div>
+        <div style="font-size: 10pt; font-weight: 700; margin-top: 4px;">
+          Period: <strong>{{ getMonthName() }} {{ selectedYear }}</strong> 
+          (Generated on: {{ liveDate | date:'dd-MMM-yyyy hh:mm a' }})
+        </div>
+      </div>
+
+      <!-- SUMMARY REGISTER TABLE -->
+      <div style="margin-bottom: 16px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+          <thead>
+            <tr style="background: #f1f5f9;">
+              <th style="border: 1px solid #999; padding: 6px;">Particulars</th>
+              <th style="border: 1px solid #999; padding: 6px; text-align: right;">Total Bills</th>
+              <th style="border: 1px solid #999; padding: 6px; text-align: right;">Taxable Amount (₹)</th>
+              <th style="border: 1px solid #999; padding: 6px; text-align: right;">CGST (₹)</th>
+              <th style="border: 1px solid #999; padding: 6px; text-align: right;">SGST (₹)</th>
+              <th style="border: 1px solid #999; padding: 6px; text-align: right;">IGST (₹)</th>
+              <th style="border: 1px solid #999; padding: 6px; text-align: right;">Total GST (₹)</th>
+              <th style="border: 1px solid #999; padding: 6px; text-align: right;">Grand Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (printSection() === 'SALES' || printSection() === 'ALL') {
+              <tr>
+                <td style="border: 1px solid #999; padding: 6px; font-weight: bold;">🟢 Outward Sales (GSTR-1)</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">{{ reportData()?.salesSummary?.count || 0 }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">₹{{ reportData()?.salesSummary?.totalTaxableSales || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">₹{{ reportData()?.salesSummary?.totalSalesCgst || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">₹{{ reportData()?.salesSummary?.totalSalesSgst || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">₹{{ reportData()?.salesSummary?.totalSalesIgst || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right; font-weight: bold;">₹{{ reportData()?.salesSummary?.totalSalesGst || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right; font-weight: bold;">₹{{ reportData()?.salesSummary?.totalSalesAmount || 0 | number:'1.2-2' }}</td>
+              </tr>
+            }
+            @if (printSection() === 'PURCHASES' || printSection() === 'ALL') {
+              <tr>
+                <td style="border: 1px solid #999; padding: 6px; font-weight: bold;">🔵 Inward Purchases (ITC)</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">{{ reportData()?.purchasesSummary?.count || 0 }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">₹{{ reportData()?.purchasesSummary?.totalTaxablePurchases || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">₹{{ reportData()?.purchasesSummary?.totalPurchasesCgst || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">₹{{ reportData()?.purchasesSummary?.totalPurchasesSgst || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right;">₹{{ reportData()?.purchasesSummary?.totalPurchasesIgst || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right; font-weight: bold;">₹{{ reportData()?.purchasesSummary?.totalPurchasesGst || 0 | number:'1.2-2' }}</td>
+                <td style="border: 1px solid #999; padding: 6px; text-align: right; font-weight: bold;">₹{{ reportData()?.purchasesSummary?.totalPurchasesAmount || 0 | number:'1.2-2' }}</td>
+              </tr>
+            }
+            @if (printSection() === 'ALL') {
+              <tr style="background: #f8fafc; font-weight: 900;">
+                <td colspan="6" style="border: 1px solid #999; padding: 6px; text-align: right;">NET GST TAX PAYABLE (Outward GST - Input ITC):</td>
+                <td colspan="2" style="border: 1px solid #999; padding: 6px; text-align: right; font-size: 11pt;">
+                  ₹{{ reportData()?.taxReconciliation?.netGstPayable || 0 | number:'1.2-2' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+  </div>
+
+  <!-- CA CONTACT MODAL (NO PRINT) -->
+  @if (showCaModal()) {
+    <div class="modal-overlay no-print" (click)="showCaModal.set(false)">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div style="padding: 16px 20px; background: #0f172a; color: white; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; font-size: 15px; font-weight: 800;">
+            👔 Chartered Accountant (CA) Contact Details
+          </h3>
+          <button type="button" (click)="showCaModal.set(false)" style="background: transparent; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+        <div style="padding: 20px;">
+          <p style="font-size: 12px; color: #64748b; margin-bottom: 14px;">
+            यहाँ अपने CA का नाम और WhatsApp नंबर सेव करें ताकि हर महीने 1-क्लिक में पूरी रिपोर्ट भेजी जा सके।
+          </p>
+
+          <div class="form-group mb-3">
+            <label style="font-size: 12px; font-weight: 700;">CA / Tax Consultant Name</label>
+            <input type="text" class="form-control" [ngModel]="caName()" (ngModelChange)="caName.set($event)" placeholder="e.g. CA Rahul Sharma">
+          </div>
+
+          <div class="form-group mb-3">
+            <label style="font-size: 12px; font-weight: 700;">CA WhatsApp Mobile No</label>
+            <input type="text" class="form-control" [ngModel]="caMobile()" (ngModelChange)="caMobile.set($event)" placeholder="e.g. 9876543210">
+          </div>
+
+          <div class="form-group mb-4">
+            <label style="font-size: 12px; font-weight: 700;">CA Email Address (Optional)</label>
+            <input type="email" class="form-control" [ngModel]="caEmail()" (ngModelChange)="caEmail.set($event)" placeholder="e.g. ca.rahul@gmail.com">
+          </div>
+
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" (click)="showCaModal.set(false)">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveCADetails()" style="font-weight: 700;">
+              <i class="fa-solid fa-floppy-disk"></i> Save CA Details
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

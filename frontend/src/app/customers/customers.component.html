@@ -1,0 +1,537 @@
+<!-- Page Header -->
+<div class="page-header no-print">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="page-title" style="margin-bottom: 2px;">👥 ग्राहक खाता बही व उधार प्रबंधन (Customer Udhaar Book)</h1>
+      <span class="badge badge-danger" *ngIf="pendingCustomersCount() > 0" style="font-size: 11px;">
+        {{ pendingCustomersCount() }} ग्राहकों का उधार बाकी
+      </span>
+    </div>
+    <p class="page-subtitle">ग्राहकों का खाता, कुल खरीदारी, बकाया उधार ट्रैक करें और 1-क्लिक में WhatsApp तकादा (Payment Reminder) भेजें।</p>
+  </div>
+  <div class="page-actions flex gap-2">
+    <button class="btn btn-primary" (click)="openAddModal()">
+      <i class="fa-solid fa-user-plus"></i> + नया ग्राहक जोड़ें (Add Customer)
+    </button>
+  </div>
+</div>
+
+<!-- 3 Stat Cards for Udhaar & Customer Summary -->
+<div class="grid grid-3 mb-4 no-print">
+  <!-- Total Customers -->
+  <div class="stat-card" style="border-top: 3px solid var(--primary);">
+    <div class="stat-icon primary">
+      <i class="fa-solid fa-users"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value text-primary">{{ customers().length }}</div>
+      <div class="stat-label">कुल पंजीकृत ग्राहक (Total Customers)</div>
+    </div>
+  </div>
+
+  <!-- Total Udhaar Pending -->
+  <div class="stat-card" style="border-top: 3px solid #EF4444; background: linear-gradient(to bottom right, #ffffff, #fff5f5);">
+    <div class="stat-icon danger">
+      <i class="fa-solid fa-hand-holding-dollar"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value text-danger font-bold">₹{{ totalPendingAmount() | number:'1.2-2' }}</div>
+      <div class="stat-label font-semibold" style="color: #991B1B;">बाजार में कुल उधार (Total Pending Udhaar)</div>
+      <div class="stat-change text-danger" style="font-size: 11px;">
+        <i class="fa-solid fa-clock"></i> {{ pendingCustomersCount() }} ग्राहकों से वसूली बाकी
+      </div>
+    </div>
+  </div>
+
+  <!-- Cleared Accounts -->
+  <div class="stat-card" style="border-top: 3px solid var(--success);">
+    <div class="stat-icon success">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value text-success">{{ customers().length - pendingCustomersCount() }}</div>
+      <div class="stat-label">क्लियर खाते (Zero Balance Customers)</div>
+      <div class="stat-change text-success" style="font-size: 11px;">
+        <span>कोई बकाया नहीं</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter & Search Controls Bar -->
+<div class="card mb-4 no-print">
+  <div class="card-body" style="padding: 12px 20px;">
+    <div class="flex items-center justify-between gap-3" style="flex-wrap: wrap;">
+      
+      <!-- Filter Tabs -->
+      <div class="flex gap-1" style="background: var(--gray-100); padding: 4px; border-radius: var(--border-radius); flex-wrap: wrap;">
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeTab() === 'ALL' ? 'white' : 'transparent'" 
+          [style.color]="activeTab() === 'ALL' ? 'var(--primary)' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeTab() === 'ALL' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeTab() === 'ALL' ? '700' : '500'"
+          (click)="activeTab.set('ALL')"
+        >
+          👥 सभी ग्राहक ({{ customers().length }})
+        </button>
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeTab() === 'PENDING' ? 'white' : 'transparent'" 
+          [style.color]="activeTab() === 'PENDING' ? '#DC2626' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeTab() === 'PENDING' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeTab() === 'PENDING' ? '700' : '500'"
+          (click)="activeTab.set('PENDING')"
+        >
+          <i class="fa-solid fa-circle-exclamation text-danger"></i> ⚠️ उधार बाकी ({{ pendingCustomersCount() }})
+        </button>
+        <button 
+          class="btn btn-sm" 
+          [style.background]="activeTab() === 'CLEARED' ? 'white' : 'transparent'" 
+          [style.color]="activeTab() === 'CLEARED' ? '#059669' : 'var(--text-secondary)'"
+          [style.boxShadow]="activeTab() === 'CLEARED' ? 'var(--shadow-sm)' : 'none'"
+          [style.fontWeight]="activeTab() === 'CLEARED' ? '700' : '500'"
+          (click)="activeTab.set('CLEARED')"
+        >
+          <i class="fa-solid fa-check text-success"></i> क्लियर खाते ({{ customers().length - pendingCustomersCount() }})
+        </button>
+      </div>
+
+      <!-- Search Box -->
+      <div class="search-box" style="min-width: 240px; max-width: 320px;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input 
+          type="text" 
+          class="form-control" 
+          placeholder="नाम, मोबाइल या ईमेल से खोजें..." 
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          style="font-size: 12.5px; padding: 6px 12px 6px 36px;"
+        >
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Customer Table Card -->
+<div class="card">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="card-title flex items-center gap-2">
+      <i class="fa-solid fa-address-book text-primary"></i>
+      <span>ग्राहक सूची व खाता बैलेंस</span>
+      <span class="badge badge-secondary">{{ filteredCustomers().length }} ग्राहक</span>
+    </div>
+    <div class="font-bold text-danger" style="font-size: 13.5px;" *ngIf="activeTab() === 'PENDING' || activeTab() === 'ALL'">
+      कुल बकाया: ₹{{ totalPendingAmount() | number:'1.2-2' }}
+    </div>
+  </div>
+
+  <div class="card-body" style="padding: 0;">
+    @if (loading()) {
+      <div class="flex justify-between items-center" style="min-height: 200px; width: 100%;">
+        <div class="spinner" style="margin: 0 auto;"></div>
+      </div>
+    } @else if (filteredCustomers().length === 0) {
+      <div class="empty-state" style="padding: 60px 20px;">
+        <i class="fa-solid fa-users" style="font-size: 48px; color: var(--gray-300); margin-bottom: 12px;"></i>
+        <h3 style="font-size: 16px; font-weight: 700;">कोई ग्राहक नहीं मिला (No Customers Found)</h3>
+        <p style="color: var(--text-secondary); font-size: 13px; max-width: 400px; margin: 0 auto 16px;">
+          {{ activeTab() === 'PENDING' ? 'शानदार! किसी भी ग्राहक का उधार बाकी नहीं है।' : 'नए ग्राहकों को जोड़ें और उनके बिल व उधार का हिसाब रखें।' }}
+        </p>
+        <button class="btn btn-primary btn-sm" (click)="openAddModal()">
+          <i class="fa-solid fa-plus"></i> नया ग्राहक जोड़ें (Add Customer)
+        </button>
+      </div>
+    } @else {
+      <div class="table-wrapper" style="border: none; border-radius: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th>ग्राहक का नाम (Customer Name)</th>
+              <th>संपर्क विवरण (Contact Info)</th>
+              <th style="text-align: right;">कुल खरीदारी (Total Billed)</th>
+              <th style="text-align: right;">बकाया उधार (Pending Udhaar)</th>
+              <th style="text-align: center; width: 280px;">एक्शन / तकादा (Actions)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (cust of filteredCustomers(); track cust._id) {
+              <tr>
+                <!-- Customer Name -->
+                <td>
+                  <div class="font-bold" style="font-size: 13.5px; color: var(--text-primary);">
+                    {{ cust.name }}
+                  </div>
+                  @if (cust.gstin) {
+                    <span class="badge badge-primary font-medium" style="font-size: 9px; padding: 1px 6px;">GSTIN: {{ cust.gstin }}</span>
+                  }
+                  @if (cust.address) {
+                    <div style="font-size: 11px; color: var(--text-muted); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      {{ cust.address }}
+                    </div>
+                  }
+                </td>
+
+                <!-- Contact Info -->
+                <td>
+                  <div style="font-weight: 600; font-size: 12.5px; color: var(--text-primary);">
+                    <i class="fa-solid fa-phone text-muted" style="font-size: 10px; margin-right: 4px;"></i>{{ cust.mobile }}
+                  </div>
+                  @if (cust.email) {
+                    <div style="font-size: 11px; color: var(--text-muted);">
+                      <i class="fa-solid fa-envelope" style="font-size: 10px; margin-right: 4px;"></i>{{ cust.email }}
+                    </div>
+                  }
+                </td>
+
+                <!-- Total Purchases -->
+                <td style="text-align: right;">
+                  <span class="font-semibold" style="font-size: 13px;">₹{{ cust.totalPurchases | number:'1.2-2' }}</span>
+                </td>
+
+                <!-- Outstanding Udhaar -->
+                <td style="text-align: right;">
+                  @if (cust.pendingAmount > 0) {
+                    <div class="font-bold text-danger" style="font-size: 15px;">
+                      ₹{{ cust.pendingAmount | number:'1.2-2' }}
+                    </div>
+                    <span class="badge badge-danger" style="font-size: 9.5px; padding: 1px 6px;">
+                      उधार बाकी
+                    </span>
+                  } @else {
+                    <div class="font-bold text-success" style="font-size: 13px;">
+                      ₹0.00
+                    </div>
+                    <span class="badge badge-success" style="font-size: 9.5px; padding: 1px 6px;">
+                      क्लियर
+                    </span>
+                  }
+                </td>
+
+                <!-- Action Column with WhatsApp Reminder & Settle -->
+                <td>
+                  <div class="flex gap-1 justify-center items-center" style="flex-wrap: wrap;">
+                    
+                    <!-- 1-Click WhatsApp Reminder Button -->
+                    @if (cust.pendingAmount > 0) {
+                      <button 
+                        class="btn btn-sm" 
+                        (click)="openReminderModal(cust)"
+                        style="background: #25D366; color: white; border: none; font-weight: 600; font-size: 11.5px; padding: 4px 10px; border-radius: 6px; box-shadow: 0 1px 4px rgba(37,211,102,0.3);"
+                        title="ग्राहक को WhatsApp पर उधार का तकादा भेजें"
+                      >
+                        <i class="fa-brands fa-whatsapp" style="font-size: 14px; margin-right: 2px;"></i> तकादा भेजें
+                      </button>
+
+                      <button 
+                        class="btn btn-success btn-sm" 
+                        (click)="openPaymentModal(cust)"
+                        style="font-size: 11.5px; padding: 4px 8px;"
+                        title="उधार जमा करें"
+                      >
+                        <i class="fa-solid fa-hand-holding-dollar"></i> जमा
+                      </button>
+                    }
+
+                    <a [routerLink]="['/customers', cust._id]" class="btn btn-outline btn-sm" style="font-size: 11.5px; padding: 4px 8px;" title="खाता लेजर देखें">
+                      <i class="fa-solid fa-eye"></i> खाता
+                    </a>
+
+                    <button class="btn btn-outline btn-sm btn-icon" (click)="openEditModal(cust)" title="एडिट करें">
+                      <i class="fa-solid fa-pencil"></i>
+                    </button>
+
+                    <button class="btn btn-outline btn-sm btn-icon text-danger" (click)="deleteCustomer(cust._id)" title="डिलीट करें">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr style="background: var(--gray-50); font-weight: 700;">
+              <td colspan="3" style="text-align: right; font-size: 13px;">कुल बकाया योग (Total Udhaar Due):</td>
+              <td style="text-align: right; font-size: 15px;" class="text-danger">
+                ₹{{ totalPendingAmount() | number:'1.2-2' }}
+              </td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ============================================================
+     Modal: WhatsApp Udhaar Payment Reminder (व्हाट्सएप तकादा)
+     ============================================================ -->
+@if (showReminderModal()) {
+  <div class="modal-overlay" (click)="showReminderModal.set(false)">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()" style="max-width: 600px;">
+      
+      <!-- Modal Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #128C7E, #25D366); color: white;">
+        <div class="flex items-center gap-2">
+          <div style="background: rgba(255,255,255,0.2); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            <i class="fa-brands fa-whatsapp"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: white; font-size: 16px; margin-bottom: 2px;">
+              WhatsApp उधार तकादा (Payment Reminder)
+            </h3>
+            <p style="margin: 0; font-size: 11.5px; color: rgba(255,255,255,0.85);">
+              ग्राहक: <strong>{{ reminderCustomer()?.name }}</strong> (📱 +91 {{ reminderCustomer()?.mobile }})
+            </p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="showReminderModal.set(false)" style="color: white;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px 24px;">
+        
+        <!-- Customer Udhaar Amount Banner -->
+        <div class="flex justify-between items-center mb-3" style="background: #fff5f5; border: 1.5px solid #FEE2E2; padding: 12px 16px; border-radius: 8px;">
+          <div>
+            <span style="font-size: 12px; color: #991B1B; font-weight: 600; display: block;">कुल बकाया उधार राशि (Pending Due):</span>
+            <span style="font-size: 22px; font-weight: 800; color: #DC2626;">₹{{ reminderCustomer()?.pendingAmount | number:'1.2-2' }}</span>
+          </div>
+          <div style="text-align: right; font-size: 11.5px; color: var(--text-secondary);">
+            <span>दुकान: <strong>{{ auth.currentShop()?.name }}</strong></span><br>
+            <span>मोबाइल: {{ reminderCustomer()?.mobile }}</span>
+          </div>
+        </div>
+
+        <!-- Editable Mobile Number Field (User can enter/change custom number on the spot) -->
+        <div class="form-group mb-3" style="background: #e8f5e9; border: 1.5px solid #a7f3d0; padding: 12px 16px; border-radius: 8px;">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #065f46; margin-bottom: 6px;">
+            📲 WhatsApp मोबाइल नंबर (जिस नंबर पर मैसेज भेजना है): <span class="required">*</span>
+          </label>
+          <div class="input-group">
+            <span style="background: white; font-weight: 700; color: #065f46; border: 1px solid var(--gray-300); border-right: none; padding: 8px 12px; font-size: 14px; border-radius: var(--border-radius) 0 0 var(--border-radius); display: flex; align-items: center;">
+              +91
+            </span>
+            <input 
+              type="text" 
+              class="form-control" 
+              [ngModel]="reminderMobile()" 
+              (ngModelChange)="reminderMobile.set($event)"
+              placeholder="10 अंकों का मोबाइल नंबर दर्ज करें या बदलें..."
+              maxlength="13"
+              style="font-size: 15px; font-weight: 700; color: #111827; border-radius: 0 var(--border-radius) var(--border-radius) 0;"
+            >
+          </div>
+          <small style="font-size: 11px; color: #047857; margin-top: 4px; display: block;">
+            <i class="fa-solid fa-pen"></i> आप यहाँ कोई भी दूसरा मोबाइल नंबर डालकर सीधे उसी नंबर पर WhatsApp भेज सकते हैं।
+          </small>
+        </div>
+
+        <!-- Editable Purchased Products / Items Detail Field -->
+        <div class="form-group mb-3" style="background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 12px 16px; border-radius: 8px;">
+          <div class="flex justify-between items-center mb-1">
+            <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #1e40af; margin-bottom: 0;">
+              🛍️ बाकी सामान/प्रोडक्ट का विवरण (Purchased Items):
+            </label>
+            <span style="font-size: 11px; color: #2563eb; font-weight: 600;" *ngIf="reminderInvoiceNo()">
+              🧾 बिल: #{{ reminderInvoiceNo() }} ({{ reminderInvoiceDate() }})
+            </span>
+          </div>
+          <textarea 
+            class="form-control" 
+            rows="2" 
+            [ngModel]="reminderProducts()" 
+            (ngModelChange)="onReminderProductsChange($event)"
+            placeholder="जैसे: • 2x शर्ट (₹800), • 1x जीन्स (₹1200)..."
+            style="font-size: 13px; font-weight: 600; color: #1e3a8a; border: 1px solid #93c5fd; background: white;"
+          ></textarea>
+          <small style="font-size: 11px; color: #2563eb; margin-top: 4px; display: block;">
+            <i class="fa-solid fa-circle-check"></i> ग्राहक को WhatsApp मैसेज में यह साफ-साफ दिखेगा कि उन्होंने कौन-सा सामान खरीदा था जिसका पैसा बाकी है।
+          </small>
+        </div>
+
+        <!-- Template Selector Buttons -->
+        <div class="form-group mb-3">
+          <label class="form-label" style="font-size: 12.5px; font-weight: 700;">
+            तकादा टेम्पलेट चुनें (Select Reminder Message):
+          </label>
+          <div class="grid grid-3 gap-2">
+            
+            <!-- Template 1: Polite -->
+            <div 
+              (click)="onTemplateSelect('POLITE')"
+              [style.background]="selectedTemplate() === 'POLITE' ? '#e8f5e9' : 'var(--gray-50)'"
+              [style.borderColor]="selectedTemplate() === 'POLITE' ? '#25D366' : 'var(--gray-200)'"
+              [style.boxShadow]="selectedTemplate() === 'POLITE' ? '0 0 0 2px #25D366' : 'none'"
+              style="padding: 10px; border-radius: 8px; border: 1.5px solid; cursor: pointer; text-align: center; transition: all 0.15s;"
+            >
+              <i class="fa-solid fa-hand-holding-heart text-success" style="font-size: 18px; margin-bottom: 4px; display: block;"></i>
+              <div style="font-weight: 700; font-size: 12px; color: var(--text-primary);">विनम्र तकादा</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Friendly Reminder</div>
+            </div>
+
+            <!-- Template 2: Detailed Ledger -->
+            <div 
+              (click)="onTemplateSelect('DETAILED')"
+              [style.background]="selectedTemplate() === 'DETAILED' ? '#e0f2fe' : 'var(--gray-50)'"
+              [style.borderColor]="selectedTemplate() === 'DETAILED' ? '#0284c7' : 'var(--gray-200)'"
+              [style.boxShadow]="selectedTemplate() === 'DETAILED' ? '0 0 0 2px #0284c7' : 'none'"
+              style="padding: 10px; border-radius: 8px; border: 1.5px solid; cursor: pointer; text-align: center; transition: all 0.15s;"
+            >
+              <i class="fa-solid fa-file-invoice text-info" style="font-size: 18px; margin-bottom: 4px; display: block;"></i>
+              <div style="font-weight: 700; font-size: 12px; color: var(--text-primary);">खाता विवरण</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Detailed Ledger</div>
+            </div>
+
+            <!-- Template 3: Urgent -->
+            <div 
+              (click)="onTemplateSelect('URGENT')"
+              [style.background]="selectedTemplate() === 'URGENT' ? '#fff1f2' : 'var(--gray-50)'"
+              [style.borderColor]="selectedTemplate() === 'URGENT' ? '#e11d48' : 'var(--gray-200)'"
+              [style.boxShadow]="selectedTemplate() === 'URGENT' ? '0 0 0 2px #e11d48' : 'none'"
+              style="padding: 10px; border-radius: 8px; border: 1.5px solid; cursor: pointer; text-align: center; transition: all 0.15s;"
+            >
+              <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 18px; margin-bottom: 4px; display: block;"></i>
+              <div style="font-weight: 700; font-size: 12px; color: var(--text-primary);">जरूरी सूचना</div>
+              <div style="font-size: 10px; color: var(--text-secondary);">Urgent Payment</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editable Message Preview Box -->
+        <div class="form-group mb-0">
+          <div class="flex justify-between items-center mb-1">
+            <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 0;">
+              WhatsApp संदेश का पूर्वावलोकन / एडिट करें (Message Preview):
+            </label>
+            <span style="font-size: 10.5px; color: var(--text-muted);"><i class="fa-solid fa-pen"></i> आप नीचे टेक्स्ट को बदल भी सकते हैं</span>
+          </div>
+          <textarea 
+            class="form-control" 
+            rows="6" 
+            [ngModel]="customMessageText()" 
+            (ngModelChange)="customMessageText.set($event)"
+            style="font-family: inherit; font-size: 13px; line-height: 1.5; background: #fafafa; border: 1.5px solid var(--gray-300);"
+          ></textarea>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="background: var(--gray-50); display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" (click)="showReminderModal.set(false)">रद्द करें (Cancel)</button>
+        <button 
+          type="button" 
+          class="btn" 
+          (click)="sendWhatsAppReminder()"
+          style="background: #25D366; color: white; font-weight: 700; font-size: 13.5px; padding: 8px 18px; border-radius: 6px; box-shadow: 0 2px 8px rgba(37,211,102,0.4);"
+        >
+          <i class="fa-brands fa-whatsapp" style="font-size: 16px; margin-right: 4px;"></i> 📲 WhatsApp पर भेजें (Send on WhatsApp)
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Add/Edit Customer -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="showModal = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ editMode ? 'Edit Customer Info' : 'Register Customer' }}</h3>
+        <button class="modal-close" (click)="showModal = false">&times;</button>
+      </div>
+      <form [formGroup]="customerForm" (ngSubmit)="onSubmit()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">ग्राहक का नाम (Customer Name) <span class="required">*</span></label>
+            <input type="text" formControlName="name" class="form-control" placeholder="उदा. राहुल शर्मा">
+            @if (customerForm.get('name')?.touched && customerForm.get('name')?.invalid) {
+              <div class="form-error" style="color: #dc2626; font-size: 11.5px; margin-top: 3px;">
+                <i class="fa-solid fa-circle-exclamation"></i> कृपया ग्राहक का नाम दर्ज करें (कम से कम 2 अक्षर)।
+              </div>
+            }
+          </div>
+          <div class="form-group">
+            <label class="form-label">मोबाइल नंबर (Mobile Number) <span class="required">*</span></label>
+            <div class="input-group">
+              <span style="background: var(--gray-100); font-weight: 700; color: var(--text-secondary); border: 1px solid var(--gray-300); border-right: none; padding: 8px 12px; font-size: 13px; border-radius: var(--border-radius) 0 0 var(--border-radius); display: flex; align-items: center;">
+                +91
+              </span>
+              <input type="text" formControlName="mobile" class="form-control" placeholder="10 अंकों का मोबाइल नंबर" maxlength="13" style="border-radius: 0 var(--border-radius) var(--border-radius) 0;">
+            </div>
+            @if (customerForm.get('mobile')?.touched && customerForm.get('mobile')?.invalid) {
+              <div class="form-error" style="color: #dc2626; font-size: 11.5px; margin-top: 3px;">
+                <i class="fa-solid fa-circle-exclamation"></i> 10 अंकों का मान्य मोबाइल नंबर दर्ज करें।
+              </div>
+            }
+          </div>
+          <div class="form-group">
+            <label class="form-label">ईमेल पता (Email Address - Optional)</label>
+            <input type="email" formControlName="email" class="form-control" placeholder="email@example.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">GSTIN (वैकल्पिक)</label>
+            <input type="text" formControlName="gstin" class="form-control" placeholder="08AAAAA0000A1Z5" style="text-transform: uppercase;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">पता (Address - Optional)</label>
+            <textarea formControlName="address" class="form-control" placeholder="दुकान / मकान का पता" style="min-height: 48px;"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showModal = false">रद्द करें (Cancel)</button>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting">
+            <span *ngIf="submitting" class="spinner spinner-xs" style="margin-right: 6px;"></span>
+            {{ editMode ? 'अपडेट करें (Update Customer)' : 'ग्राहक सेव करें (Save Customer)' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal Receive Udhaar -->
+@if (showPaymentModal) {
+  <div class="modal-overlay" (click)="showPaymentModal = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Receive Payment: {{ selectedCustomer?.name }}</h3>
+        <button class="modal-close" (click)="showPaymentModal = false">&times;</button>
+      </div>
+      <form [formGroup]="paymentForm" (ngSubmit)="submitPayment()">
+        <div class="modal-body">
+          <div style="background: var(--danger-light); border-radius: var(--border-radius); padding: 12px; margin-bottom: 16px; color: #991B1B;">
+            Total pending balance to settle: <strong>₹{{ selectedCustomer?.pendingAmount | number:'1.2-2' }}</strong>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount Received (₹) <span class="required">*</span></label>
+            <input type="number" formControlName="amount" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Method <span class="required">*</span></label>
+            <select formControlName="method" class="form-control">
+              <option value="CASH">💵 Cash (नकद)</option>
+              <option value="UPI">📱 UPI (Google Pay / PhonePe / Paytm)</option>
+              <option value="CARD">💳 Debit/Credit Card</option>
+              <option value="BANK_TRANSFER">🏦 Bank Transfer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Transaction Reference (ID)</label>
+            <input type="text" formControlName="transactionId" class="form-control" placeholder="Optional reference">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input type="text" formControlName="notes" class="form-control" placeholder="e.g. Settle partial balance">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showPaymentModal = false">Cancel</button>
+          <button type="submit" class="btn btn-success" [disabled]="submitting">Log Settle Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
