@@ -22,7 +22,11 @@ function getExecutablePath() {
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
     'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome'
   ];
   for (const p of paths) {
     if (p && fs.existsSync(p)) return p;
@@ -110,9 +114,10 @@ function initWhatsAppClient() {
   });
 
   client.initialize().catch((err) => {
-    console.error("❌ [WHATSAPP] Init error:", err.message);
+    console.warn("⚠️ [WHATSAPP] Could not initialize WhatsApp client (Chrome/Puppeteer issue on server):", err.message);
     isReady = false;
     isInitializing = false;
+    client = null;
   });
 }
 
