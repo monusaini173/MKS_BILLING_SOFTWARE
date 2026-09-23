@@ -12,6 +12,8 @@
   },
   "keywords": [],
   "author": "MKS IT Solution",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@angular/cli": "^21.2.24"
+  }
 }
-
