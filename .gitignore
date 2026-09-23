@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment and Credentials (.env secrets)
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+
+# WhatsApp Web Auth & Cache (Server Session Data)
+.wwebjs_auth/
+**/.wwebjs_auth/
+.wwebjs_cache/
+**/.wwebjs_cache/
+
+# Production & Build Outputs
+dist/
+**/dist/
+frontend/dist/
+tmp/
+**/tmp/
+out-tsc/
+**/out-tsc/
+
+# Angular Cache & Build Logs
+.angular/
+**/.angular/
+.sass-cache/
+
+# Logs & Debug Output
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# IDE & Workspace Configurations
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Testing & Coverage
+coverage/
+**/coverage/
+.nyc_output/

@@ -1,8 +1,10 @@
 Add-Type -AssemblyName System.Drawing
 
-$projectDir = "C:\Users\BHANWAR\OneDrive\All baukap\OneDrive\Desktop\mks_billing_softwer"
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$projectDir = (Resolve-Path (Join-Path $scriptDir "..\..")).Path
 $pngPath = Join-Path $projectDir "frontend\public\assets\images\mks_billing_logo.png"
-$icoPath = Join-Path $projectDir "mks_logo.ico"
+$icoPath = Join-Path $projectDir "desktop_launcher\assets\mks_logo.ico"
+
 
 # 1. Convert PNG to High-Resolution Windows Icon (.ico)
 $img = [System.Drawing.Bitmap]::FromFile($pngPath)

@@ -1,33 +1,38 @@
 @echo off
-title MKS POS Billing Counter
-color 0a
+title MKS Billing Software Launcher
+color 0b
 echo =================================================================
-echo        MKS POS BILLING COUNTER - DIRECT POS LAUNCHER
-echo                     by MKS IT Solution
+echo        MKS BILLING SOFTWARE - 1-CLICK DESKTOP LAUNCHER
+echo                 by MKS IT Solution
 echo =================================================================
 echo.
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 
 :: Check if Server is already running on Port 5000
 netstat -ano | findstr /R /C:":5000 .*LISTENING" >nul
-if %errorlevel% neq 0 (
-    echo [1/2] Starting Backend Server...
+if %errorlevel% equ 0 (
+    echo [OK] Backend Server is already running on Port 5000.
+) else (
+    echo [1/3] Starting Backend Server (Port 5000)...
     start "MKS Server" /min cmd /c "cd server && npm start"
 )
 
 :: Check if Frontend is already running on Port 4200
 netstat -ano | findstr /R /C:":4200 .*LISTENING" >nul
-if %errorlevel% neq 0 (
-    echo [2/2] Starting POS Billing System...
+if %errorlevel% equ 0 (
+    echo [OK] Frontend POS is already running on Port 4200.
+) else (
+    echo [2/3] Starting Frontend POS Application (Port 4200)...
     start "MKS Frontend" /min cmd /c "cd frontend && npm start"
+    echo Waiting for application to initialize...
     timeout /t 5 /nobreak >nul
 )
 
 echo.
-echo Opening POS Billing Counter Window...
+echo [3/3] Opening MKS Billing Desktop Software Window...
 
-:: Launch dedicated standalone POS window directly to /billing
+:: Launch dedicated standalone app window
 if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" (
     start "" "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" --app=http://localhost:4200/billing --window-size=1366,768 --start-maximized
 ) else if exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" (
@@ -38,4 +43,8 @@ if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" (
     start http://localhost:4200/billing
 )
 
+echo.
+echo =================================================================
+echo  MKS Billing Software is ready and open!
+echo =================================================================
 exit
