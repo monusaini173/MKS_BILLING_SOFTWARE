@@ -308,8 +308,7 @@ const updateShopProfile = async (req, res) => {
       } else {
         // Verify OTP
         const cleanOtp = String(otp).trim();
-        const isMaster = cleanOtp === '995062' || cleanOtp === 'MKS9950';
-        const isOtpValid = isMaster || (
+        const isOtpValid = !!(
           user.pendingMobileOtp &&
           user.pendingMobileOtp === cleanOtp &&
           user.pendingMobileOtpExpires &&

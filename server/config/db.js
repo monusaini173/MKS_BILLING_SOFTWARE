@@ -1,4 +1,12 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+// Fix for querySrv ECONNREFUSED error on Windows/ISP DNS
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // Fallback to system default if setting DNS fails
+}
 
 const connectDB = async () => {
   try {

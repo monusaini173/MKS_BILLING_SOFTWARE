@@ -1,6 +1,6 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Shop = require('../models/Shop');
-const ShopType = require('../models/ShopType');
 
 const seedSuperAdmin = async () => {
   try {
@@ -11,12 +11,17 @@ const seedSuperAdmin = async () => {
     const superAdminExists = await User.findOne({ role: 'SUPER_ADMIN' });
 
     if (!adminUser && !superAdminExists) {
+      const adminUserId = new mongoose.Types.ObjectId();
+      const shopId = new mongoose.Types.ObjectId();
+
       // Find or create a master platform shop
       let platformShop = await Shop.findOne({ name: 'MKS Platform Master' });
       if (!platformShop) {
         platformShop = await Shop.create({
+          _id: shopId,
           name: 'MKS Platform Master',
           shopType: 'KIRANA',
+          owner: adminUserId,
           ownerName: 'MKS Platform Owner',
           mobile: '9876543210',
           email: adminEmail,
@@ -28,6 +33,7 @@ const seedSuperAdmin = async () => {
       }
 
       adminUser = await User.create({
+        _id: adminUserId,
         name: 'MKS Platform Owner',
         email: adminEmail,
         password: 'admin123',

@@ -38,6 +38,8 @@ connectDB().then(() => {
 
 const app = express();
 
+const { sanitizeInput } = require('./middleware/securityShield');
+
 // Enterprise-grade Cybersecurity Headers
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -56,13 +58,22 @@ app.use(mongoSanitize({
   replaceWith: '_'
 }));
 
-// CORS (allows any localhost port in development)
+// CORS Configuration with strict origin check
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:4200',
+  'http://localhost:3000',
+  'http://127.0.0.1:4200',
+  'http://127.0.0.1:3000'
+].filter(Boolean);
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    // Allow non-browser requests (Postman, mobile apps, desktop launcher), local origins, or any Vercel domain
+    if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || /\.vercel\.app$/.test(origin)) {
       return callback(null, true);
     }
-    return callback(null, true);
+    return callback(new Error('🛡️ Security Shield: Blocked by CORS policy'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -70,10 +81,12 @@ app.use(cors({
   exposedHeaders: ['Authorization', 'X-Shop-Type', 'X-Shop-Id']
 }));
 
-
-// Body parser
+// Body parser with security size limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Apply XSS Input Sanitization
+app.use(sanitizeInput);
 
 // Compression
 app.use(compression());
@@ -83,14 +96,13 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Rate limiting (generous for local fast POS billing)
+// Rate limiting (Protect API against DDoS / abuse)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100000,
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 3000,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV === 'development' || req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
-  message: { success: false, message: 'Too many requests. Please try again later.' },
+  message: { success: false, message: '🛡️ Security Shield: Rate limit exceeded. Please try again later.' },
 });
 app.use('/api/', limiter);
 

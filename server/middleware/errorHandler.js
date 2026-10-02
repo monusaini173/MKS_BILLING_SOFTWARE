@@ -23,9 +23,12 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ success: false, message: messages.join(', ') });
   }
 
-  res.status(err.statusCode || 500).json({
+  const statusCode = err.statusCode || 500;
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  res.status(statusCode).json({
     success: false,
-    message: error.message || 'Server Error',
+    message: isProduction && statusCode === 500 ? 'Internal Server Error' : (error.message || 'Server Error'),
   });
 };
 

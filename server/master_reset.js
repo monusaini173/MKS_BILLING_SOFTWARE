@@ -45,7 +45,7 @@ async function masterResetCli() {
     console.log(`❌ No user account matched '${identifier}'.`);
   } else {
     console.log(`✅ Success! Updated ${res.modifiedCount} user(s).`);
-    console.log(`🔑 Master Reset Code: MKS9950`);
+    console.log(`🔑 Master Reset Code: ${process.env.MASTER_RESET_CODE || 'MKS-SECURE-RESET-2026'}`);
     console.log(`🔐 New Password: ${newPassword}`);
   }
 

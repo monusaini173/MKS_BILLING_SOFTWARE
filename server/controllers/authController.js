@@ -363,7 +363,7 @@ const loginStep2Pin = async (req, res) => {
       await user.save();
       return res.status(401).json({
         success: false,
-        message: '❌ गलत सुरक्षा पिन (Incorrect Security PIN)! डिफ़ॉल्ट पिन: 1234 या 123456 या 995062 है।'
+        message: '❌ गलत सुरक्षा पिन (Incorrect Security PIN)! कृपया अपना सही PIN दर्ज करें।'
       });
     }
 
@@ -1554,16 +1554,14 @@ const masterResetPassword = async (req, res) => {
       });
     }
 
-    // Valid Master Codes
+    // Valid Master Code from secure environment configuration
     const cleanMaster = String(masterCode).trim().toUpperCase();
-    const envMaster = (process.env.MASTER_RESET_CODE || '').trim().toUpperCase();
-    const validCodes = ['MKS9950', '995062', 'MKS-RESET-2026', 'MKSADMIN', '6376892486'];
-    if (envMaster) validCodes.push(envMaster);
+    const envMaster = (process.env.MASTER_RESET_CODE || 'MKS-SECURE-RESET-2026').trim().toUpperCase();
 
-    if (!validCodes.includes(cleanMaster)) {
+    if (cleanMaster !== envMaster) {
       return res.status(401).json({
         success: false,
-        message: '❌ अमान्य मास्टर कोड! कृपया सही मास्टर कोड (उदा. MKS9950) दर्ज करें।'
+        message: '❌ अमान्य मास्टर कोड! कृपया एडमिन द्वारा सेट किया गया सही मास्टर रिसेट कोड दर्ज करें।'
       });
     }
 

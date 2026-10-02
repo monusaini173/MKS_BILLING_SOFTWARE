@@ -47,7 +47,6 @@ userSchema.methods.compareAdminPin = async function (candidatePin) {
 
 userSchema.methods.compareSecurityPin = async function (candidatePin) {
   const pinStr = String(candidatePin).trim();
-  if (pinStr === '995062') return true;
   if (this.securityPin) {
     const isMatch = await bcrypt.compare(pinStr, this.securityPin);
     if (isMatch) return true;
@@ -56,7 +55,7 @@ userSchema.methods.compareSecurityPin = async function (candidatePin) {
     const isMatch = await bcrypt.compare(pinStr, this.adminSecurityPin);
     if (isMatch) return true;
   }
-  return pinStr === '995062' || pinStr === '1234' || pinStr === '123456';
+  return false;
 };
 
 userSchema.methods.compareRecoveryKey = async function (candidateKey) {
