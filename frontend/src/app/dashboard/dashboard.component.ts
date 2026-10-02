@@ -162,7 +162,7 @@ export class DashboardComponent implements OnInit {
   downloadBackup() {
     this.isBackingUp.set(true);
     const token = this.auth.getAccessToken() || sessionStorage.getItem('mks_access_token') || localStorage.getItem('mks_access_token') || '';
-    const url = 'http://localhost:5000/api/reports/backup';
+    const url = `${this.api.getApiBaseUrl()}/reports/backup`;
 
     fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => {

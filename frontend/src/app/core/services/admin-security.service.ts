@@ -21,8 +21,8 @@ export class AdminSecurityService {
   lockoutRemainingSecs = signal<number>(0);
   failedAttempts = signal<number>(0);
 
-  // Auto-Lock Inactivity Timer (1 Minute)
-  private readonly IDLE_TIMEOUT_MS = 60 * 1000;
+  // Auto-Lock Inactivity Timer (15 Minutes)
+  private readonly IDLE_TIMEOUT_MS = 15 * 60 * 1000;
   private idleTimer: any = null;
   private lastActivityTime = Date.now();
   private successCallback: (() => void) | null = null;

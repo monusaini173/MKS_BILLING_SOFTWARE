@@ -2235,7 +2235,7 @@ export class BillingComponent implements OnInit, OnDestroy {
     const total = (sale.grandTotal || 0).toLocaleString('en-IN');
     const paid = (sale.amountPaid || 0).toLocaleString('en-IN');
     const due = (sale.balanceDue || 0).toLocaleString('en-IN');
-    const pdfViewUrl = `http://localhost:5000/api/sales/${sale._id}/pdf`;
+    const pdfViewUrl = `${this.api.getApiBaseUrl()}/sales/${sale._id}/pdf`;
 
     let msg = `नमस्ते ${custName} जी! 🙏\nआपकी खरीदारी का बिल:\n🧾 *इनवॉइस:* ${invNo}\n💰 *कुल राशि:* ₹${total}\n✅ *जमा:* ₹${paid}`;
     if (sale.balanceDue > 0) {

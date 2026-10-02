@@ -117,7 +117,7 @@ export class ReportsComponent implements OnInit {
     // Build query string
     const queryStr = Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&');
     const token = this.auth.getAccessToken() || sessionStorage.getItem('mks_access_token') || localStorage.getItem('mks_access_token') || '';
-    const url = `http://localhost:5000/api/reports/download?${queryStr}`;
+    const url = `${this.api.getApiBaseUrl()}/reports/download?${queryStr}`;
 
     const link = document.createElement('a');
     link.href = url;

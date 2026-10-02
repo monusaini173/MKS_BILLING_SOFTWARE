@@ -152,10 +152,11 @@ export class ProductsComponent implements OnInit, OnDestroy {
     if (showFeedback) {
       this.isCheckingWhatsApp.set(true);
     }
+    const rootUrl = this.api.getApiBaseUrl().replace(/\/api\/?$/, '');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1800);
 
-    fetch('http://localhost:5000/whatsapp-status', { signal: controller.signal })
+    fetch(`${rootUrl}/whatsapp-status`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
         clearTimeout(timeoutId);
@@ -207,7 +208,8 @@ export class ProductsComponent implements OnInit, OnDestroy {
   }
 
   openWhatsAppQrWindow() {
-    window.open('http://localhost:5000/whatsapp-qr', '_blank', 'width=520,height=680');
+    const rootUrl = this.api.getApiBaseUrl().replace(/\/api\/?$/, '');
+    window.open(`${rootUrl}/whatsapp-qr`, '_blank', 'width=520,height=680');
     this.toast.info('Scan QR Code', 'अपने फोन के WhatsApp से QR कोड स्कैन करें। स्कैन होते ही यह विंडो अपने-आप ऑटो-रिफ्रेश हो जाएगी!');
     this.startWhatsAppAutoPoll();
   }

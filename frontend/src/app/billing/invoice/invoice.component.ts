@@ -201,7 +201,7 @@ export class InvoiceComponent implements OnInit {
     const fmtQuery = this.printFormat() === 'THERMAL_80' ? '80MM' : (this.printFormat() === 'THERMAL_58' ? '58MM' : 'A4');
     const formatLabel = this.printFormat() === 'THERMAL_80' ? '80mm Thermal Receipt' : (this.printFormat() === 'THERMAL_58' ? '58mm Thermal Receipt' : 'A4 Tax Invoice');
     const fileName = `Invoice_${inv.invoiceNumber}_${fmtQuery}.pdf`;
-    const pdfViewUrl = `http://localhost:5000/api/sales/${inv._id}/pdf?format=${fmtQuery}`;
+    const pdfViewUrl = `${this.api.getApiBaseUrl()}/sales/${inv._id}/pdf?format=${fmtQuery}`;
 
     // 🔒 Lock button & show loading: DO NOT open WhatsApp until PDF is fully generated!
     this.isSharingWhatsApp.set(true);

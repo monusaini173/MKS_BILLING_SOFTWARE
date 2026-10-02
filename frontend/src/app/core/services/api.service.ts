@@ -6,12 +6,38 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class ApiService {
-  private getApiBaseUrl(): string {
+  public getApiBaseUrl(): string {
+    // 1. User/Admin configured custom API URL in localStorage
+    const customUrl = localStorage.getItem('MKS_API_URL');
+    if (customUrl && customUrl.trim()) {
+      let clean = customUrl.trim().replace(/\/+$/, '');
+      if (!clean.endsWith('/api')) clean += '/api';
+      return clean;
+    }
+
+    // 2. Check current browser hostname for local development
     if (typeof window !== 'undefined' && window.location) {
       const hostname = window.location.hostname || 'localhost';
-      return `http://${hostname}:5000/api`;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return `http://${hostname}:5000/api`;
+      }
     }
-    return 'http://localhost:5000/api';
+
+    // 3. Fallback for Vercel / Production environment (Render API)
+    const renderBackend = localStorage.getItem('RENDER_BACKEND_URL') || 'https://mks-billing-software.onrender.com/api';
+    let cleanRender = renderBackend.trim().replace(/\/+$/, '');
+    if (!cleanRender.endsWith('/api')) cleanRender += '/api';
+    return cleanRender;
+  }
+
+  public setApiBaseUrl(url: string): void {
+    if (url && url.trim()) {
+      let clean = url.trim().replace(/\/+$/, '');
+      if (!clean.endsWith('/api')) clean += '/api';
+      localStorage.setItem('MKS_API_URL', clean);
+    } else {
+      localStorage.removeItem('MKS_API_URL');
+    }
   }
 
   constructor(private http: HttpClient) {}

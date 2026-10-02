@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -14,9 +15,50 @@ import { ToastService } from '../../core/services/toast.service';
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
-  private auth = inject(AuthService);
+  protected auth = inject(AuthService);
   private router = inject(Router);
-  private toast = inject(ToastService);
+  protected toast = inject(ToastService);
+  public api = inject(ApiService);
+
+  // 🌐 Server API URL Config Modal
+  showServerConfigModal = signal<boolean>(false);
+  serverApiUrl = signal<string>(this.api.getApiBaseUrl());
+  seedLoading = signal<boolean>(false);
+
+  openServerConfigModal() {
+    this.serverApiUrl.set(this.api.getApiBaseUrl());
+    this.showServerConfigModal.set(true);
+  }
+
+  saveServerApiUrl() {
+    const url = this.serverApiUrl().trim();
+    if (!url) {
+      this.toast.warning('URL Required', 'कृपया Render Backend API का URL दर्ज करें।');
+      return;
+    }
+    this.api.setApiBaseUrl(url);
+    this.toast.success('Server URL Saved!', `Backend API URL: ${this.api.getApiBaseUrl()}`);
+    this.showServerConfigModal.set(false);
+  }
+
+  seedDatabase() {
+    this.seedLoading.set(true);
+    this.api.post<any>('/auth/seed-master').subscribe({
+      next: (res: any) => {
+        this.seedLoading.set(false);
+        this.toast.success('Database Seeded! 🌱', res.message || 'Super Admin (owner@mksbilling.com / admin123) is ready!');
+        this.loginForm.patchValue({
+          email: 'owner@mksbilling.com',
+          password: 'admin123'
+        });
+        this.showServerConfigModal.set(false);
+      },
+      error: (err: any) => {
+        this.seedLoading.set(false);
+        this.toast.error('Seeding Error', err.error?.message || 'Database seeding failed.');
+      }
+    });
+  }
 
   // 3-Tier Multi-Factor Flow: 'CREDENTIALS' -> 'PIN' -> 'OTP'
   currentStep = signal<'CREDENTIALS' | 'PIN' | 'OTP'>('CREDENTIALS');
@@ -80,7 +122,7 @@ export class LoginComponent {
 
     this.loading = true;
     this.auth.loginStep1(this.loginForm.value).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.loading = false;
         if (res.success && res.data?.stepToken) {
           this.stepToken.set(res.data.stepToken);
@@ -91,7 +133,7 @@ export class LoginComponent {
           this.toast.info('पासवर्ड सत्यापित', 'कृपया अपना सुरक्षा पिन (Security PIN) दर्ज करें।');
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.loading = false;
         const errData = err.error || {};
         if (errData.code === 'LOGIN_LOCKED' || errData.remainingSecs > 0) {
@@ -116,7 +158,7 @@ export class LoginComponent {
 
     this.pinLoading = true;
     this.auth.loginStep2Pin(this.stepToken(), pin).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.pinLoading = false;
         if (res.success && res.data?.stepToken) {
           this.stepToken.set(res.data.stepToken);
@@ -132,7 +174,7 @@ export class LoginComponent {
           this.redirectAfterLogin(res.data.user);
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.pinLoading = false;
         this.toast.error('पिन गलत है', err.error?.message || 'गलत सुरक्षा पिन दर्ज किया गया है।');
       }
@@ -145,7 +187,7 @@ export class LoginComponent {
   onSendOtp() {
     this.resendLoading = true;
     this.auth.loginStep3SendOtp(this.stepToken()).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.resendLoading = false;
         if (res.success && res.data?.stepToken) {
           this.stepToken.set(res.data.stepToken);
@@ -156,7 +198,7 @@ export class LoginComponent {
           this.toast.info('📱 SMS भेजा गया', res.message || 'पंजीकृत मोबाइल नंबर पर OTP भेज दिया गया है।');
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.resendLoading = false;
         this.toast.error('SMS Error', err.error?.message || 'OTP भेजने में त्रुटि हुई।');
       }
@@ -175,13 +217,13 @@ export class LoginComponent {
 
     this.otpLoading = true;
     this.auth.loginStep3VerifyOtp(this.stepToken(), otp).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.otpLoading = false;
         if (res.success && res.data?.user) {
           this.redirectAfterLogin(res.data.user);
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.otpLoading = false;
         this.toast.error('सत्यापन विफल (OTP Error)', err.error?.message || 'गलत OTP दर्ज किया गया है।');
       }
@@ -286,7 +328,7 @@ export class LoginComponent {
 
     this.resetLoading.set(true);
     this.auth.masterResetPassword({ identifier, masterCode, newPassword }).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.resetLoading.set(false);
         if (res.success) {
           this.toast.success('पासवर्ड बदला गया!', res.message || 'आपका पासवर्ड सफलतापूर्वक बदल दिया गया है।');
@@ -302,7 +344,7 @@ export class LoginComponent {
           this.showMasterResetModal.set(false);
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.resetLoading.set(false);
         this.toast.error('रीसेट विफल', err.error?.message || 'गलत मास्टर कोड या अमान्य विवरण।');
       }

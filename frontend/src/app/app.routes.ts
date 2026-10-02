@@ -36,6 +36,13 @@ export const routes: Routes = [
     loadChildren: () => import('./admin/admin.routes').then(m => m.ADMIN_ROUTES),
   },
 
+  // Dedicated Full-Screen Touch POS Terminal Counter
+  {
+    path: 'billing/pos',
+    canActivate: [authGuard],
+    loadComponent: () => import('./billing/pos-counter/pos-counter.component').then(m => m.PosCounterComponent),
+  },
+
   // Main App (requires auth)
   {
     path: '',

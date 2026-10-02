@@ -405,3 +405,57 @@
     </div>
   </div>
 }
+
+<!-- Server API Config Modal -->
+@if (showServerConfigModal()) {
+  <div class="modal-overlay">
+    <div class="modal-card" style="max-width: 440px; padding: 24px; border-radius: 16px; background: #ffffff; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
+      <h3 style="margin-top: 0; font-size: 18px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+        <span>🌐</span> Backend API Server URL
+      </h3>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 16px; line-height: 1.5;">
+        Vercel पर लाइव ऐप को अपने Render Backend से कनेक्ट करने के लिए सही Render URL दर्ज करें:
+      </p>
+
+      <div class="form-group-clean" style="margin-bottom: 16px;">
+        <label class="form-label-clean">Render Backend API URL</label>
+        <input 
+          type="text" 
+          [ngModel]="serverApiUrl()" 
+          (ngModelChange)="serverApiUrl.set($event)"
+          class="clean-input" 
+          placeholder="https://your-backend-app.onrender.com/api"
+        />
+        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+          उदाहरण: https://mks-billing-software.onrender.com/api
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+        <button type="button" (click)="showServerConfigModal.set(false)" class="btn-clean-secondary" style="flex: 1; margin-top: 0;">
+          Cancel
+        </button>
+        <button type="button" (click)="saveServerApiUrl()" class="btn-clean-primary" style="flex: 1;">
+          Save & Connect
+        </button>
+      </div>
+
+      <div style="border-top: 1px dashed #cbd5e1; padding-top: 14px;">
+        <div style="font-size: 11px; font-weight: 800; color: #475569; margin-bottom: 6px; text-transform: uppercase;">
+          🌱 Render DB Reset / Create Super Admin (1-Click)
+        </div>
+        <button 
+          type="button" 
+          (click)="seedDatabase()"
+          [disabled]="seedLoading()"
+          style="width: 100%; padding: 10px; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 800; font-size: 12px; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          @if (seedLoading()) {
+            <span>⏳ Seeding Render Database...</span>
+          } @else {
+            <span>🌱 Auto-Seed Super Admin Account (Create owner&#64;mksbilling.com)</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
