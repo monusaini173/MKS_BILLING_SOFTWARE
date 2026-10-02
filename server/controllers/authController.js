@@ -198,7 +198,7 @@ const login = async (req, res) => {
     const tempToken = jwt.sign(
       { id: user._id, purpose: 'LOGIN_OTP_VERIFICATION' },
       process.env.JWT_SECRET,
-      { expiresIn: '5m' }
+      { expiresIn: '60m' }
     );
 
     const userMobile = user.mobile || '';
@@ -307,7 +307,7 @@ const loginStep1 = async (req, res) => {
     const stepToken = jwt.sign(
       { id: user._id, purpose: 'LOGIN_STEP1_DONE' },
       process.env.JWT_SECRET,
-      { expiresIn: '5m' }
+      { expiresIn: '60m' }
     );
 
     const userMobile = user.mobile || '';
@@ -392,7 +392,7 @@ const loginStep2Pin = async (req, res) => {
     const step3Token = jwt.sign(
       { id: user._id, purpose: 'LOGIN_STEP3_OTP_VERIFICATION', targetMobile },
       process.env.JWT_SECRET,
-      { expiresIn: '5m' }
+      { expiresIn: '60m' }
     );
 
     const maskedMobile = targetMobile.length >= 10
