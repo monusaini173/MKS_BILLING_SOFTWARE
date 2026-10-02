@@ -27,7 +27,8 @@ const {
   masterResetPassword,
   getMyShops,
   createBranch,
-  switchShop
+  switchShop,
+  seedMaster
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const {
@@ -38,6 +39,7 @@ const {
 
 // Standard & 3-Tier Multi-Factor Authentication with Shield
 router.post('/register', register);
+router.post('/seed-master', seedMaster);
 router.post('/login', loginLimiter, login);
 router.post('/master-reset-password', loginLimiter, masterResetPassword);
 router.post('/login/verify-otp', loginLimiter, verifyLoginOtp);

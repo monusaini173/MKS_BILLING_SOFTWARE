@@ -1612,6 +1612,23 @@ const masterResetPassword = async (req, res) => {
   }
 };
 
+// @desc  Public 1-click seed endpoint to ensure Super Admin and Demo Shops exist
+// @route POST /api/auth/seed-master
+const seedMaster = async (req, res) => {
+  try {
+    const seedAdmin = require('../utils/seedAdmin');
+    await seedAdmin();
+
+    return res.json({
+      success: true,
+      message: '✅ Database successfully seeded! Super Admin (owner@mksbilling.com / admin123) is ready!'
+    });
+  } catch (error) {
+    console.error('Seed Master Error:', error);
+    return res.status(500).json({ success: false, message: 'Seeding failed: ' + error.message });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -1639,6 +1656,7 @@ module.exports = {
   loginStep3VerifyOtp,
   getMyShops,
   createBranch,
-  switchShop
+  switchShop,
+  seedMaster
 };
 
