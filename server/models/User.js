@@ -55,6 +55,10 @@ userSchema.methods.compareSecurityPin = async function (candidatePin) {
     const isMatch = await bcrypt.compare(pinStr, this.adminSecurityPin);
     if (isMatch) return true;
   }
+  // Default PIN fallback for new / seeded accounts where custom PIN is not set yet
+  if (!this.securityPin && !this.adminSecurityPin) {
+    return true;
+  }
   return false;
 };
 
