@@ -69,8 +69,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow non-browser requests (Postman, mobile apps, desktop launcher), local origins, or any Vercel domain
-    if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || /\.vercel\.app$/.test(origin)) {
+    // Allow non-browser requests (Postman, mobile apps, desktop launcher), local/LAN origins, or any Vercel domain
+    if (!origin || allowedOrigins.includes(origin) || /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(origin) || /\.vercel\.app$/.test(origin)) {
       return callback(null, true);
     }
     return callback(new Error('🛡️ Security Shield: Blocked by CORS policy'));

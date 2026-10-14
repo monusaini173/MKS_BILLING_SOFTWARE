@@ -374,7 +374,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   openWhatsAppSupport() {
-    const phone = '911234567890';
+    const phone = '916376892486';
     const text = encodeURIComponent(`Hello MKS Billing Support, please assist me.`);
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
   }

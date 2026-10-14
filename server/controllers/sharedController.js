@@ -222,7 +222,23 @@ const toggleShop = async (req, res) => {
     if (!shop) return res.status(404).json({ success: false, message: 'Shop not found.' });
     shop.isActive = !shop.isActive;
     await shop.save();
-    res.json({ success: true, message: `Shop ${shop.isActive ? 'activated' : 'deactivated'}.` });
+
+    if (!shop.isActive) {
+      await User.updateMany(
+        { shopId: shop._id, role: { $ne: 'SUPER_ADMIN' } },
+        { isActive: false, refreshToken: null }
+      );
+    } else {
+      await User.updateMany(
+        { shopId: shop._id },
+        { isActive: true }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: `Shop "${shop.name}" has been ${shop.isActive ? 'ACTIVATED ✅' : 'BLOCKED 🚫'}.`
+    });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };
 

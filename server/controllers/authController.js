@@ -129,7 +129,7 @@ const login = async (req, res) => {
       return res.status(403).json({
         success: false,
         code: 'ACCOUNT_DEACTIVATED',
-        message: '🚫 आपका खाता (Account) डीएक्टिवेट है। कृपया एडमिन से संपर्क करें।'
+        message: '🚫 आपका खाता ब्लॉक है! यह दुकान अब नहीं चलेगी क्योंकि आपको एडमिन द्वारा ब्लॉक कर दिया गया है। कृपया सुपर एडमिन से संपर्क करें।'
       });
     }
 
@@ -141,7 +141,7 @@ const login = async (req, res) => {
         return res.status(403).json({
           success: false,
           code: 'SHOP_BLOCKED',
-          message: '🚫 आपकी दुकान (Shop) एडमिन द्वारा ब्लॉक / सस्पेंड कर दी गई है। कृपया एडमिन से संपर्क करें।'
+          message: '🚫 यह दुकान अब नहीं चलेगी क्योंकि आपको एडमिन द्वारा ब्लॉक कर दिया गया है! कृपया सहायता के लिए सुपर एडमिन से संपर्क करें।'
         });
       }
     } else if (user.shopId) {
@@ -276,7 +276,7 @@ const loginStep1 = async (req, res) => {
         return res.status(403).json({
           success: false,
           code: 'SHOP_BLOCKED',
-          message: '🚫 आपकी दुकान (Shop) एडमिन द्वारा ब्लॉक / सस्पेंड कर दी गई है।'
+          message: '🚫 यह दुकान अब नहीं चलेगी क्योंकि आपको एडमिन द्वारा ब्लॉक कर दिया गया है! कृपया सहायता के लिए सुपर एडमिन से संपर्क करें।'
         });
       }
     }

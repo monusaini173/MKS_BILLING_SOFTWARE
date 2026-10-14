@@ -529,23 +529,6 @@
             }
           </div>
 
-          <div class="thermal-divider"></div>
-
-          <!-- 💳 Dynamic UPI QR Code for Thermal Print -->
-          @if (upiQrImageUrl() && shop()?.enableUpiQrOnInvoice !== false) {
-            <div style="text-align: center; margin: 6px 0; padding: 8px 6px; border: 1px dashed #5f259f; border-radius: 6px; background: #fafafa;">
-              <div style="font-size: 10.5px; font-weight: 900; color: #0f172a; margin-bottom: 3px;">
-                SCAN & PAY (₹{{ invoice()?.grandTotal | number:'1.2-2' }})
-              </div>
-              <img [src]="upiQrImageUrl()" alt="UPI QR" style="width: 110px; height: 110px; margin: 0 auto; display: block;" />
-              <div style="font-size: 11.5px; font-weight: 900; color: #5f259f; margin-top: 3px;">
-                {{ shop()?.upiName || shop()?.ownerName || shop()?.name }}
-              </div>
-              <div style="font-size: 9px; color: #475569; margin-top: 1px; font-family: monospace; font-weight: 700;">
-                {{ shop()?.upiId }}
-              </div>
-            </div>
-          }
 
           <!-- ✍️ Signatory Section for Thermal POS Print -->
           <div class="thermal-signatory-section" style="margin: 14px 0 10px; padding-top: 8px; border-top: 1px dashed #000000;">

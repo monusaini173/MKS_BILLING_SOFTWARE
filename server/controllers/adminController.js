@@ -717,9 +717,9 @@ const getSystemSettings = async (req, res) => {
       settings = await SystemSetting.create({
         appName: 'MKS Billing Software',
         tagline: 'All-in-One Multi-Tenant POS & GST Invoicing System',
-        supportPhone: '9876543210',
+        supportPhone: '6376892486',
         supportEmail: 'owner@mksbilling.com',
-        supportWhatsApp: '9876543210',
+        supportWhatsApp: '6376892486',
         defaultTrialDays: 3,
         subscriptionPlans: [
           { key: 'BASIC_MONTHLY', name: 'Starter Plan', nameHindi: 'स्टार्टर प्लान', price: 299, days: 30, features: ['Unlimited Invoices', 'Stock Management', 'Basic Reports'], canSendWhatsApp: false, isPopular: false },

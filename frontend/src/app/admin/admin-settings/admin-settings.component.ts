@@ -94,9 +94,9 @@ export class AdminSettingsComponent implements OnInit {
     this.settingsForm = this.fb.group({
       appName: ['MKS Billing Software', Validators.required],
       tagline: ['All-in-One Multi-Tenant POS & GST Invoicing System'],
-      supportPhone: ['9876543210'],
+      supportPhone: ['6376892486'],
       supportEmail: ['owner@mksbilling.com'],
-      supportWhatsApp: ['9876543210'],
+      supportWhatsApp: ['6376892486'],
       defaultTrialDays: [3, [Validators.required, Validators.min(1)]],
       
       // Payment Gateway

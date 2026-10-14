@@ -1,5 +1,5 @@
 require('dotenv').config();
-const mongoose = require('mongoose');
+const connectDB = require('./config/db');
 const User = require('./models/User');
 const bcrypt = require('bcryptjs');
 
@@ -13,7 +13,7 @@ async function masterResetCli() {
   console.log(`Target Identifier: ${identifier}`);
   console.log(`New Password:      ${newPassword}`);
 
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mks_billing');
+  await connectDB();
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(newPassword, salt);

@@ -24,7 +24,7 @@ const protect = async (req, res, next) => {
       return res.status(403).json({
         success: false,
         code: 'ACCOUNT_DEACTIVATED',
-        message: '🚫 आपका खाता (Account) डीएक्टिवेट है। कृपया एडमिन से संपर्क करें।'
+        message: '🚫 आपका खाता ब्लॉक है! यह दुकान अब नहीं चलेगी क्योंकि आपको एडमिन द्वारा ब्लॉक कर दिया गया है। कृपया सहायता के लिए सुपर एडमिन से संपर्क करें।'
       });
     }
 
@@ -35,7 +35,7 @@ const protect = async (req, res, next) => {
         return res.status(403).json({
           success: false,
           code: 'SHOP_BLOCKED',
-          message: '🚫 आपकी दुकान (Shop) एडमिन द्वारा ब्लॉक / सस्पेंड कर दी गई है। कृपया एडमिन से संपर्क करें।'
+          message: '🚫 यह दुकान अब नहीं चलेगी क्योंकि आपको एडमिन द्वारा ब्लॉक कर दिया गया है! कृपया सहायता के लिए सुपर एडमिन से संपर्क करें।'
         });
       }
       req.shop = shop;

@@ -4,9 +4,9 @@ const systemSettingSchema = new mongoose.Schema({
   appName: { type: String, default: 'MKS Billing Software' },
   tagline: { type: String, default: 'All-in-One Multi-Tenant POS & GST Invoicing' },
   logoUrl: { type: String, default: '' },
-  supportPhone: { type: String, default: '9876543210' },
+  supportPhone: { type: String, default: '6376892486' },
   supportEmail: { type: String, default: 'support@mksbilling.com' },
-  supportWhatsApp: { type: String, default: '9876543210' },
+  supportWhatsApp: { type: String, default: '6376892486' },
   defaultTrialDays: { type: Number, default: 3 },
   
   // Payment Gateway Config

@@ -139,6 +139,8 @@ export class LoginComponent {
         if (errData.code === 'LOGIN_LOCKED' || errData.remainingSecs > 0) {
           this.startLockoutTimer(errData.remainingSecs || 180);
           this.toast.error('खाता लॉक!', errData.message || 'गलत पासवर्ड के कारण खाता लॉक हो गया है।');
+        } else if (errData.code === 'SHOP_BLOCKED' || errData.code === 'ACCOUNT_DEACTIVATED') {
+          this.toast.error('🚫 दुकान ब्लॉक है (Shop Blocked)', errData.message || 'यह दुकान अब नहीं चलेगी क्योंकि आपको एडमिन द्वारा ब्लॉक कर दिया गया है।');
         } else {
           this.toast.error('लॉगिन विफल (Login Failed)', errData.message || 'अमान्य ईमेल या पासवर्ड।');
         }

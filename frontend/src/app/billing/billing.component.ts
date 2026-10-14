@@ -1288,11 +1288,18 @@ export class BillingComponent implements OnInit, OnDestroy {
     this.paymentMethod = 'UPI';
     this.amountPaid = this.grandTotal;
     this.showPaymentQrModal.set(true);
+
+    // 🚀 Automatically launch Razorpay Gateway & QR Code window
+    this.payViaRazorpay();
   }
 
   payViaRazorpay() {
     if (typeof (window as any).Razorpay === 'undefined') {
-      this.toast.error('Razorpay Error', 'Razorpay SDK लोड नहीं हो सका। कृपया इंटरनेट जांचें।');
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => this.payViaRazorpay();
+      script.onerror = () => this.toast.error('Razorpay Error', 'Razorpay SDK लोड नहीं हो सका। कृपया इंटरनेट जांचें।');
+      document.body.appendChild(script);
       return;
     }
 

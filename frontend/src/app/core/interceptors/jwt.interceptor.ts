@@ -35,7 +35,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
         // Shop is blocked or user deactivated by Admin
         if (error.status === 403 && (error.error?.code === 'SHOP_BLOCKED' || error.error?.code === 'ACCOUNT_DEACTIVATED')) {
           authService.clearTokens();
-          toast.error('🚫 दुकान ब्लॉक है (Shop Blocked)', error.error?.message || 'आपकी दुकान एडमिन द्वारा ब्लॉक कर दी गई है।');
+          toast.error('🚫 दुकान ब्लॉक कर दी गई है! (Shop Blocked)', error.error?.message || 'यह दुकान अब नहीं चलेगी क्योंकि आपको एडमिन द्वारा ब्लॉक कर दिया गया है।');
           router.navigate(['/auth/login']);
           return throwError(() => error);
         }
